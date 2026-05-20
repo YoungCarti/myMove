@@ -10,8 +10,19 @@ void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase
-  await Firebase.initializeApp();
+  // Initialize Firebase with dummy options to bypass startup crash when config is missing
+  try {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "dummy-api-key-for-local-run",
+        appId: "1:1234567890:android:1234567890",
+        messagingSenderId: "1234567890",
+        projectId: "mymove-dummy",
+      ),
+    );
+  } catch (e) {
+    debugPrint("Firebase initialization failed: $e");
+  }
   
   // Run app with providers
   runApp(
