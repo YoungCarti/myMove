@@ -22,7 +22,7 @@
 
 ## Development Approach
 
-**Waterfall Model**
+**Agile Methodology**
 
 ---
 
@@ -1342,77 +1342,116 @@ lib/
 
 # 25. Implementation Plan
 
-## Phase 1: Project Setup
+## 25.1 Development Approach: Agile Model
 
-- Set up Flutter project.
-- Connect project to Firebase.
-- Configure Android app.
-- Install required packages.
-- Create folder structure.
-- Set up GitHub repository.
+The implementation of **myMove: Smart Parking Communication App** will follow the **Agile Development Approach**. Agile is selected because the project requires flexibility, continuous testing, and improvement during development. Since the system includes a Flutter mobile application, Firebase backend, QR code communication feature, parking reservation module, and ESP32-based smart parking prototype, changes may be required after testing each module.
 
-## Phase 2: Authentication
+Agile is suitable for this project because each major feature can be developed in small weekly sprints. At the end of every sprint, the completed feature will be tested, reviewed, and improved before moving to the next sprint. This allows the project to return to previous tasks when bugs, design issues, Firebase errors, QR scanning issues, or ESP32 sensor problems are discovered.
 
-- Build splash screen.
-- Build login screen.
-- Build registration screen.
-- Connect Firebase Authentication.
-- Store user profile in Firestore.
+The Agile implementation period will start on **Thursday, 28 May 2026** and end on **Saturday, 25 July 2026**. This schedule is planned before the examination period in August and before the internship period in September.
 
-## Phase 3: Vehicle and QR Module
+## 25.2 Agile Sprint Cycle
 
-- Build vehicle list screen.
-- Build add vehicle screen.
-- Store vehicle data in Firestore.
-- Generate QR code for vehicle.
-- Build QR display screen.
-- Build QR scanner screen.
+Each weekly sprint will follow the same Agile cycle:
 
-## Phase 4: Double-Parking Communication
+1. **Sprint Planning**  
+   Identify the feature or module to be developed for the week.
 
-- Build blocked-car contact screen.
-- Implement alert sending.
-- Implement alert receiving.
-- Build chat screen.
-- Store messages in Firestore.
-- Add notification support.
+2. **Design and Preparation**  
+   Prepare the required UI design, Firebase structure, database fields, app logic, or hardware setup.
 
-## Phase 5: Parking Management
+3. **Implementation**  
+   Develop the selected feature using Flutter, Firebase, and ESP32 where required.
 
-- Create parking area data.
-- Build parking search screen.
-- Build parking details screen.
-- Display parking availability.
-- Build reservation screen.
-- Build booking history screen.
+4. **Testing**  
+   Test the completed feature immediately after implementation.
 
-## Phase 6: ESP32 Prototype
+5. **Review and Improvement**  
+   Review the result, fix bugs, improve the design, and carry forward any incomplete tasks to the next sprint.
 
-- Design shoebox parking layout.
-- Connect ESP32 with sensors and LEDs.
-- Test sensor distance reading.
-- Detect occupied and available status.
-- Send status to Firebase.
-- Display sensor status in Flutter app.
+This cycle allows the system to be improved continuously instead of waiting until the final testing stage.
 
-## Phase 7: Testing and Evaluation
+## 25.3 Weekly Agile Sprint Plan
 
-- Conduct unit testing.
-- Conduct integration testing.
-- Conduct usability testing.
-- Test Firebase read/write operations.
-- Test QR scanning flow.
-- Test sensor detection.
-- Fix bugs.
+| Week | Date | Agile Sprint | Main Tasks | Expected Deliverable |
+|---|---|---|---|---|
+| Week 1 | 28 May 2026 – 3 June 2026 | Sprint 1: Project Setup and Foundation | Finalize FYP2 implementation scope, confirm MVP features, create Flutter project, connect Firebase, configure Android app, install required packages, create folder structure, set up GitHub repository, prepare basic navigation, and review ESP32 prototype requirements. | Flutter project is ready, Firebase is connected, folder structure is prepared, and development foundation is completed. |
+| Week 2 | 4 June 2026 – 10 June 2026 | Sprint 2: Authentication and User Profile | Build splash screen, login screen, registration screen, password reset flow, logout function, Firebase Authentication connection, Firestore user profile creation, and basic profile screen. Test registration and login using sample users. | Users can register, log in, log out, and store profile data in Firebase. |
+| Week 3 | 11 June 2026 – 17 June 2026 | Sprint 3: Vehicle Registration and QR Code Generation | Build vehicle list screen, add vehicle screen, edit/delete vehicle function, Firestore vehicle collection, QR code generation for each registered vehicle, QR display screen, and QR code data storage. | Users can register vehicles and generate a unique QR code for each vehicle. |
+| Week 4 | 18 June 2026 – 24 June 2026 | Sprint 4: QR Scanning and Blocked-Car Alert | Build QR scanner screen, scan vehicle QR code, retrieve vehicle owner data safely, create blocked-car alert flow, store alert records in Firebase, create alert statuses such as sent, seen, and resolved, and test using printed or displayed QR codes. | A blocked driver can scan a QR code and send an alert to the vehicle owner without exposing the owner’s phone number. |
+| Week 5 | 25 June 2026 – 1 July 2026 | Sprint 5: In-App Chat and Notification Module | Build chat list screen, chat room screen, Firestore chat/message structure, send and receive text messages, add message timestamps, add read status, create in-app notification records, and build notification screen. If Firebase Cloud Messaging is difficult, use in-app notifications as fallback. | Users can communicate through in-app chat after QR scanning, and alerts/messages can be viewed in the app. |
+| Week 6 | 2 July 2026 – 8 July 2026 | Sprint 6: Parking Search, Details, and Availability | Create sample parking area data, build parking search screen, parking list screen, parking details screen, parking slot availability display, parking fee information, building/floor/lot details, and availability status from Firebase. | Users can search parking areas and view parking details, including available and occupied slots. |
+| Week 7 | 9 July 2026 – 15 July 2026 | Sprint 7: Reservation and Booking Management | Build reservation screen, allow users to select parking area and slot, create booking records in Firebase, update selected slot status to reserved, build booking history screen, add cancel booking function, and add simulated payment status. | Users can reserve a parking slot, view booking history, cancel bookings, and see simulated payment status. |
+| Week 8 | 16 July 2026 – 22 July 2026 | Sprint 8: ESP32 Smart Parking Prototype Integration | Build shoebox/tabletop parking prototype, finalize printed parking layout, mount toy parking slots, connect ESP32, ultrasonic sensors, LEDs, and resistors, test distance detection, calibrate occupancy threshold, update parking slot status to Firebase, and display sensor status in Flutter app. | Physical prototype can detect occupied/available slots and update Firebase and the mobile app. |
+| Week 9 | 23 July 2026 – 25 July 2026 | Sprint 9: Final Integration, Testing, and Demo Preparation | Perform full system testing, test login-to-QR-scan flow, test parking reservation flow, test Firebase data updates, test ESP32 prototype, fix major bugs, improve UI consistency, capture screenshots, prepare demo flow, and update documentation. | Final working prototype is ready for demonstration, testing evidence, report writing, and presentation preparation. |
 
-## Phase 8: Documentation and Demo Preparation
+## 25.4 Sprint Deliverables
 
-- Prepare final report.
-- Prepare screenshots.
-- Prepare system architecture diagram.
-- Prepare database diagram.
-- Prepare demo video or live demonstration.
-- Prepare final presentation slides.
+By the end of the Agile implementation period, the following deliverables should be completed:
+
+- Functional Flutter mobile application.
+- Firebase Authentication integration.
+- Firestore database structure for users, vehicles, QR codes, alerts, chats, parking areas, parking slots, bookings, and notifications.
+- Vehicle registration module.
+- QR code generation module.
+- QR code scanning module.
+- Blocked-car alert feature.
+- In-app chat feature.
+- Parking search and parking details feature.
+- Parking reservation and booking management feature.
+- Simulated payment status feature.
+- ESP32 smart parking tabletop prototype.
+- Parking slot availability update from ESP32 to Firebase.
+- Flutter app display of parking availability.
+- Testing records, screenshots, and final demo preparation.
+
+## 25.5 Agile Review Strategy
+
+At the end of each sprint, the completed module will be reviewed using the following questions:
+
+- Is the feature working as expected?
+- Is the Firebase data stored and retrieved correctly?
+- Is the user interface clear and easy to use?
+- Are there any bugs that need to be fixed before the next sprint?
+- Does the feature match the FYP1 proposed scope?
+- Is the feature important for the final demo?
+
+If problems are found, the issue will be added to the next sprint as an improvement task. This supports continuous improvement throughout the implementation period.
+
+## 25.6 Feature Priority
+
+Since the project timeline is limited, the features will be prioritized based on importance.
+
+### High Priority Features
+
+- User authentication.
+- Vehicle registration.
+- QR code generation.
+- QR code scanning.
+- Blocked-car alert.
+- Parking availability display.
+- ESP32 prototype demonstration.
+
+### Medium Priority Features
+
+- In-app chat.
+- Parking search.
+- Parking details.
+- Parking reservation.
+- Booking history.
+- Simulated payment status.
+
+### Low Priority / Future Enhancement Features
+
+- Real payment gateway integration.
+- Full VoIP calling.
+- Identity verification.
+- AI parking prediction.
+- Admin web dashboard.
+- Large-scale real parking deployment.
+
+This priority structure ensures that the most important and unique parts of myMove are completed first, especially the QR-based double-parking communication feature and the smart parking availability prototype.
+
 
 ---
 
