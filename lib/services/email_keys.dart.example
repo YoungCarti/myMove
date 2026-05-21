@@ -1,0 +1,5 @@
+class EmailKeys {
+  static const String serviceId = 'YOUR_EMAILJS_SERVICE_ID';
+  static const String templateId = 'YOUR_EMAILJS_TEMPLATE_ID';
+  static const String publicKey = 'YOUR_EMAILJS_PUBLIC_KEY';
+}
