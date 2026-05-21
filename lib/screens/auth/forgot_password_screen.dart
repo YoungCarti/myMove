@@ -11,6 +11,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
   bool _emailSent = false;
+  String? _emailError;
 
   @override
   void dispose() {
@@ -20,11 +21,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _onSendReset() {
     final email = _emailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) return;
+    String? err;
+    if (email.isEmpty) {
+      err = 'Please enter your email address.';
+    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      err = 'That doesn\'t look like a valid email.';
+    }
+    setState(() => _emailError = err);
+    if (err != null) return;
 
     setState(() => _isLoading = true);
-
-    // TODO: Hook up Firebase Auth sendPasswordResetEmail(email)
+    // TODO: Firebase Auth — sendPasswordResetEmail(email)
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         setState(() {
@@ -164,26 +171,64 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           autofocus: true,
+          onChanged: (_) {
+            if (_emailError != null) setState(() => _emailError = null);
+          },
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.black,
           ),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'you@example.com',
-            hintStyle: TextStyle(
+            hintStyle: const TextStyle(
               color: Color(0xFFBDBDC7),
               fontWeight: FontWeight.w400,
             ),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFFDDDDE3), width: 1.5),
+              borderSide: BorderSide(
+                color: _emailError != null
+                    ? const Color(0xFFFF3B30)
+                    : const Color(0xFFDDDDE3),
+                width: 1.5,
+              ),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2),
+              borderSide: BorderSide(
+                color: _emailError != null
+                    ? const Color(0xFFFF3B30)
+                    : Colors.black,
+                width: 2,
+              ),
             ),
-            contentPadding: EdgeInsets.symmetric(vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(vertical: 10),
           ),
           onSubmitted: (_) => _onSendReset(),
+        ),
+        // Error message
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          child: _emailError != null
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          size: 14, color: Color(0xFFFF3B30)),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          _emailError!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFFF3B30),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
 
         const SizedBox(height: 36),

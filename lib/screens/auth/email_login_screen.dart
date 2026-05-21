@@ -13,7 +13,11 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _showPassword = false; // false = email step, true = password step
+  bool _showPassword = false;
+
+  String? _emailError;
+  String? _passwordError;
+  String? _generalError; // e.g. wrong password from Firebase
 
   @override
   void dispose() {
@@ -24,17 +28,32 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
   void _onContinue() {
     if (!_showPassword) {
-      // Step 1: validate email and move to password
+      // ── Step 1: validate email ──
       final email = _emailController.text.trim();
-      if (email.isEmpty || !email.contains('@')) return;
+      String? err;
+      if (email.isEmpty) {
+        err = 'Please enter your email address.';
+      } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+        err = 'That doesn\'t look like a valid email.';
+      }
+      setState(() => _emailError = err);
+      if (err != null) return;
       setState(() => _showPassword = true);
     } else {
-      // Step 2: attempt login
+      // ── Step 2: validate password ──
       final password = _passwordController.text;
-      if (password.isEmpty) return;
-      setState(() => _isLoading = true);
+      String? err;
+      if (password.isEmpty) {
+        err = 'Please enter your password.';
+      } else if (password.length < 6) {
+        err = 'Password must be at least 6 characters.';
+      }
+      setState(() => _passwordError = err);
+      if (err != null) return;
 
-      // TODO: Hook up to Firebase Auth
+      setState(() => _isLoading = true);
+      // TODO: Firebase Auth — signInWithEmailAndPassword(email, password)
+      // On failure: setState(() { _generalError = e.message; _isLoading = false; });
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) setState(() => _isLoading = false);
       });
@@ -51,9 +70,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // ─── Background image (same as onboarding for continuity) ──────────
-          // To change this image: put your file in assets/images/ and swap to:
-          // Image.asset('assets/images/yourfile.jpg', fit: BoxFit.cover)
+          // ─── Background image ─────────────────────────────────────────
           Positioned(
             top: 0,
             left: 0,
@@ -62,26 +79,34 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
             child: Image.network(
               'https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=800&q=80',
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFE8D5F5), Color(0xFFD4E8FF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+              errorBuilder: (_, __, ___) => Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFE8D5F5), Color(0xFFD4E8FF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                );
-              },
+                ),
+              ),
             ),
           ),
 
-          // ─── Back button overlaid on image ─────────────────────────────────
+          // ─── Back button ─────────────────────────────────────────────
           Positioned(
             top: MediaQuery.of(context).padding.top + 12,
             left: 16,
             child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
+              onTap: () {
+                if (_showPassword) {
+                  setState(() {
+                    _showPassword = false;
+                    _passwordError = null;
+                    _generalError = null;
+                  });
+                } else {
+                  Navigator.of(context).pop();
+                }
+              },
               child: Container(
                 width: 38,
                 height: 38,
@@ -98,7 +123,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
             ),
           ),
 
-          // ─── White content card ─────────────────────────────────────────────
+          // ─── White content card ───────────────────────────────────────
           Positioned(
             top: screenHeight * 0.36,
             left: 0,
@@ -114,7 +139,6 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Title ──
                     const Text(
                       'ENTER YOUR EMAIL',
                       style: TextStyle(
@@ -125,10 +149,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                         height: 1.1,
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
-                    // ── Subtitle ──
                     Text(
                       _showPassword
                           ? 'Enter your password to sign in.'
@@ -139,24 +160,21 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                         height: 1.45,
                       ),
                     ),
-
                     const SizedBox(height: 36),
 
                     // ── Email field ──
-                    const Text(
-                      'Email',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF8E8E93),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    _label('Email'),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autofocus: !_showPassword,
                       readOnly: _showPassword,
+                      onChanged: (_) {
+                        if (_emailError != null) {
+                          setState(() => _emailError = null);
+                        }
+                      },
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -170,23 +188,30 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                         ),
                         enabledBorder: UnderlineInputBorder(
                           borderSide: BorderSide(
-                            color: _showPassword
-                                ? const Color(0xFFEEEEEE)
-                                : const Color(0xFFDDDDE3),
+                            color: _emailError != null
+                                ? const Color(0xFFFF3B30)
+                                : _showPassword
+                                    ? const Color(0xFFEEEEEE)
+                                    : const Color(0xFFDDDDE3),
                             width: 1.5,
                           ),
                         ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.black, width: 2),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: _emailError != null
+                                ? const Color(0xFFFF3B30)
+                                : Colors.black,
+                            width: 2,
+                          ),
                         ),
                         contentPadding:
                             const EdgeInsets.symmetric(vertical: 10),
                       ),
                       onSubmitted: (_) => _onContinue(),
                     ),
+                    _errorText(_emailError),
 
-                    // ── Password field (appears after email) ──
+                    // ── Password field (animates in after email step) ──
                     AnimatedSize(
                       duration: const Duration(milliseconds: 280),
                       curve: Curves.easeInOut,
@@ -195,19 +220,20 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 24),
-                                const Text(
-                                  'Password',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF8E8E93),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                                _label('Password'),
                                 const SizedBox(height: 6),
                                 TextField(
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
                                   autofocus: true,
+                                  onChanged: (_) {
+                                    if (_passwordError != null || _generalError != null) {
+                                      setState(() {
+                                        _passwordError = null;
+                                        _generalError = null;
+                                      });
+                                    }
+                                  },
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -216,8 +242,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                                   decoration: InputDecoration(
                                     hintText: '••••••••',
                                     hintStyle: const TextStyle(
-                                      color: Color(0xFFBDBDC7),
-                                    ),
+                                        color: Color(0xFFBDBDC7)),
                                     suffixIcon: GestureDetector(
                                       onTap: () => setState(() =>
                                           _obscurePassword = !_obscurePassword),
@@ -229,21 +254,30 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                                         size: 20,
                                       ),
                                     ),
-                                    enabledBorder: const UnderlineInputBorder(
+                                    enabledBorder: UnderlineInputBorder(
                                       borderSide: BorderSide(
-                                          color: Color(0xFFDDDDE3), width: 1.5),
+                                        color: _passwordError != null
+                                            ? const Color(0xFFFF3B30)
+                                            : const Color(0xFFDDDDE3),
+                                        width: 1.5,
+                                      ),
                                     ),
-                                    focusedBorder: const UnderlineInputBorder(
+                                    focusedBorder: UnderlineInputBorder(
                                       borderSide: BorderSide(
-                                          color: Colors.black, width: 2),
+                                        color: _passwordError != null
+                                            ? const Color(0xFFFF3B30)
+                                            : Colors.black,
+                                        width: 2,
+                                      ),
                                     ),
                                     contentPadding:
                                         const EdgeInsets.symmetric(vertical: 10),
                                   ),
                                   onSubmitted: (_) => _onContinue(),
                                 ),
+                                _errorText(_passwordError),
 
-                                // Forgot password
+                                // Forgot password link
                                 const SizedBox(height: 12),
                                 Align(
                                   alignment: Alignment.centerRight,
@@ -251,9 +285,8 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                                     onTap: () {
                                       Navigator.of(context).push(
                                         PageRouteBuilder(
-                                          pageBuilder:
-                                              (context, animation, _) =>
-                                                  const ForgotPasswordScreen(),
+                                          pageBuilder: (context, animation, _) =>
+                                              const ForgotPasswordScreen(),
                                           transitionsBuilder:
                                               (context, animation, _, child) {
                                             return SlideTransition(
@@ -267,8 +300,8 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                                               child: child,
                                             );
                                           },
-                                          transitionDuration: const Duration(
-                                              milliseconds: 380),
+                                          transitionDuration:
+                                              const Duration(milliseconds: 380),
                                         ),
                                       );
                                     },
@@ -287,9 +320,11 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                           : const SizedBox.shrink(),
                     ),
 
+                    // General error (e.g. wrong credentials from Firebase)
+                    _errorText(_generalError),
+
                     const SizedBox(height: 36),
 
-                    // ── Continue / Sign In button ──
                     SizedBox(
                       width: double.infinity,
                       height: 54,
@@ -329,6 +364,42 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _label(String text) => Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF8E8E93),
+          fontWeight: FontWeight.w500,
+        ),
+      );
+
+  Widget _errorText(String? error) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      child: error != null
+          ? Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline,
+                      size: 14, color: Color(0xFFFF3B30)),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      error,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFFF3B30),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }
