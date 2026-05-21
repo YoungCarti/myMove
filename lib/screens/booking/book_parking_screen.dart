@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class BookParkingScreen extends StatelessWidget {
-  const BookParkingScreen({Key? key}) : super(key: key);
+  const BookParkingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

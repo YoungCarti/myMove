@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'email_login_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -137,24 +137,8 @@ class OnboardingScreen extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).push(
-                            PageRouteBuilder(
-                              pageBuilder: (context, animation, _) =>
-                                  const EmailLoginScreen(),
-                              transitionsBuilder:
-                                  (context, animation, _, child) {
-                                return SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0, 1),
-                                    end: Offset.zero,
-                                  ).animate(CurvedAnimation(
-                                    parent: animation,
-                                    curve: Curves.easeOutCubic,
-                                  )),
-                                  child: child,
-                                );
-                              },
-                              transitionDuration:
-                                  const Duration(milliseconds: 380),
+                            MaterialPageRoute(
+                              builder: (context) => const EmailLoginScreen(),
                             ),
                           );
                         },

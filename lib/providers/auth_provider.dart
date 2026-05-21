@@ -37,7 +37,7 @@ class AuthProvider with ChangeNotifier {
       );
       _setLoading(false);
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       _setLoading(false);
       rethrow;
     } catch (e) {
@@ -77,7 +77,7 @@ class AuthProvider with ChangeNotifier {
 
       _setLoading(false);
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       _setLoading(false);
       rethrow;
     } catch (e) {
@@ -92,7 +92,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       _setLoading(false);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       _setLoading(false);
       rethrow;
     } catch (e) {

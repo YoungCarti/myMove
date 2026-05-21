@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 class ParkingProvider with ChangeNotifier {
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   bool get isLoading => _isLoading;
 
