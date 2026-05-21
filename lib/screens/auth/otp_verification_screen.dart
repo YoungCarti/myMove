@@ -31,6 +31,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   bool _showSuccess = false;
   String? _errorMessage;
 
+  DateTime? _otpIssuedAt;
+  static const Duration _otpExpiry = Duration(minutes: 10);
+
   // Resend Timer
   int _timerSeconds = 59;
   Timer? _resendTimer;
@@ -70,9 +73,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
   }
 
-  void _generateAndSendOtp() {
+  Future<void> _generateAndSendOtp() async {
+    _otpIssuedAt = DateTime.now();
+
     // Generate a secure 6-digit random code
-    final random = Random();
+    Random random;
+    try {
+      random = Random.secure();
+    } on UnsupportedError {
+      random = Random();
+    }
     final otpVal = 100000 + random.nextInt(900000);
     _generatedOtp = otpVal.toString();
 
@@ -82,16 +92,36 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
     _focusNodes[0].requestFocus();
 
-    // Send real email OTP via both Firestore mail collection & EmailJS triggers
-    EmailService.sendOtpViaFirestore(widget.email, widget.fullName, _generatedOtp);
-    EmailService.sendOtpViaEmailJS(
-      email: widget.email,
-      fullName: widget.fullName,
-      otp: _generatedOtp,
-    );
+    bool emailSentSuccessfully = false;
 
-    // Show a beautiful in-app notification confirming the email was sent
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Call the primary sender first: EmailService.sendOtpViaEmailJS
+    try {
+      emailSentSuccessfully = await EmailService.sendOtpViaEmailJS(
+        email: widget.email,
+        fullName: widget.fullName,
+        otp: _generatedOtp,
+      );
+    } catch (e) {
+      print('Primary sender (EmailJS) error: $e');
+    }
+
+    // If primary fails, call fallback sender: EmailService.sendOtpViaFirestore
+    if (!emailSentSuccessfully) {
+      try {
+        emailSentSuccessfully = await EmailService.sendOtpViaFirestore(
+          widget.email,
+          widget.fullName,
+          _generatedOtp,
+        );
+      } catch (e) {
+        print('Fallback sender (Firestore) error: $e');
+      }
+    }
+
+    if (!mounted) return;
+
+    if (emailSentSuccessfully) {
+      // Show a beautiful in-app notification confirming the email was sent
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -112,11 +142,44 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ),
         ),
       );
-    });
+    } else {
+      // Show an error SnackBar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.error_outline_rounded, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Failed to send verification code. Please check your internet connection.',
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFFF3B30),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   void _onVerify() async {
     setState(() => _errorMessage = null);
+
+    if (_otpIssuedAt == null || DateTime.now().difference(_otpIssuedAt!) > _otpExpiry) {
+      setState(() {
+        _errorMessage = 'The verification code has expired. Please request a new one.';
+        _isLoading = false;
+        _showSuccess = false;
+      });
+      return;
+    }
 
     // Get the entered OTP
     final enteredOtp = _controllers.map((c) => c.text).join();

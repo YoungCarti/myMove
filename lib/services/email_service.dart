@@ -59,7 +59,9 @@ class EmailService {
     final activePublicKey = publicKey ?? EmailKeys.publicKey;
 
     // If the developer hasn't set custom keys yet, we simulate or print to console
-    if (activeServiceId == 'YOUR_EMAILJS_SERVICE_ID' || activePublicKey == 'YOUR_EMAILJS_PUBLIC_KEY') {
+    if (activeServiceId == 'YOUR_EMAILJS_SERVICE_ID' || 
+        activeTemplateId == 'YOUR_EMAILJS_TEMPLATE_ID' || 
+        activePublicKey == 'YOUR_EMAILJS_PUBLIC_KEY') {
       print('EmailJS integration: Please configure your API keys in lib/services/email_keys.dart');
       return false;
     }

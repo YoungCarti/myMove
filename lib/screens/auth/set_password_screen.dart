@@ -35,7 +35,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
     super.dispose();
   }
 
-  void _onCreateAccount() {
+  void _onCreateAccount() async {
     final password = _passwordController.text;
     final confirm = _confirmController.text;
 
@@ -51,8 +51,14 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
       return;
     }
 
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     // Slide transition to OTP verification screen
-    Navigator.push(
+    await Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => OtpVerificationScreen(
@@ -73,6 +79,12 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
         transitionDuration: const Duration(milliseconds: 350),
       ),
     );
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
