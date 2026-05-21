@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'email_login_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -12,8 +13,10 @@ class OnboardingScreen extends StatelessWidget {
       body: Stack(
         children: [
           // ─── TOP: Full-screen background image ───────────────────────────
-          // To change this image: put your file in assets/images/ and swap
-          // Image.network(...) for Image.asset('assets/images/yourfile.jpg')
+          // To change the background image:
+          //   1. Put your file in assets/images/
+          //   2. Replace Image.network(...) with:
+          //      Image.asset('assets/images/yourfile.jpg', fit: BoxFit.cover)
           Positioned(
             top: 0,
             left: 0,
@@ -36,7 +39,7 @@ class OnboardingScreen extends StatelessWidget {
             ),
           ),
 
-          // ─── BOTTOM: White card sliding up ───────────────────────────────
+          // ─── BOTTOM: White card ──────────────────────────────────────────
           Positioned(
             bottom: 0,
             left: 0,
@@ -44,9 +47,7 @@ class OnboardingScreen extends StatelessWidget {
             child: Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
               child: SafeArea(
@@ -55,7 +56,7 @@ class OnboardingScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // ── App logo / icon ──
+                    // ── App icon ──
                     Container(
                       width: 44,
                       height: 44,
@@ -100,7 +101,7 @@ class OnboardingScreen extends StatelessWidget {
 
                     const SizedBox(height: 28),
 
-                    // ── Primary button: Sign Up ──
+                    // ── Primary: Sign Up ──
                     SizedBox(
                       width: double.infinity,
                       height: 54,
@@ -129,13 +130,33 @@ class OnboardingScreen extends StatelessWidget {
 
                     const SizedBox(height: 12),
 
-                    // ── Secondary button: Continue with Email ──
+                    // ── Secondary: Continue with Email → slide to new screen ──
                     SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pushReplacementNamed(context, '/login');
+                          Navigator.of(context).push(
+                            PageRouteBuilder(
+                              pageBuilder: (context, animation, _) =>
+                                  const EmailLoginScreen(),
+                              transitionsBuilder:
+                                  (context, animation, _, child) {
+                                return SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 1),
+                                    end: Offset.zero,
+                                  ).animate(CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeOutCubic,
+                                  )),
+                                  child: child,
+                                );
+                              },
+                              transitionDuration:
+                                  const Duration(milliseconds: 380),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFF2F2F7),
@@ -158,12 +179,14 @@ class OnboardingScreen extends StatelessWidget {
 
                     const SizedBox(height: 12),
 
-                    // ── Google Sign-In button ──
+                    // ── Google Sign-In ──
                     SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          // TODO: Google OAuth
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFF2F2F7),
                           foregroundColor: Colors.black,
@@ -175,13 +198,11 @@ class OnboardingScreen extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Google logo from Google's official CDN
                             Image.network(
                               'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
                               width: 22,
                               height: 22,
                               errorBuilder: (context, error, stackTrace) {
-                                // Fallback: coloured G text if network unavailable
                                 return const Text(
                                   'G',
                                   style: TextStyle(
