@@ -36,14 +36,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   static const Duration _otpExpiry = Duration(minutes: 15);
 
   // Resend Timer
-  int _timerSeconds = 59;
+  int _timerSeconds = 0;
   Timer? _resendTimer;
 
   @override
   void initState() {
     super.initState();
-    _generateAndSendOtp();
-    _startResendTimer();
+    _sendAndStartTimer();
   }
 
   @override
@@ -74,7 +73,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
   }
 
-  Future<void> _generateAndSendOtp() async {
+  void _clearResendTimer() {
+    _resendTimer?.cancel();
+    _resendTimer = null;
+    if (mounted) {
+      setState(() {
+        _timerSeconds = 0;
+      });
+    }
+  }
+
+  Future<void> _sendAndStartTimer() async {
+    final success = await _generateAndSendOtp();
+    if (success) {
+      _startResendTimer();
+    } else {
+      _clearResendTimer();
+    }
+  }
+
+  Future<bool> _generateAndSendOtp() async {
     if (mounted) {
       setState(() {
         _isLoading = true;
@@ -95,7 +113,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           _isLoading = false;
         });
       }
-      return;
+      return false;
     }
 
     final localIssuedAt = DateTime.now();
@@ -128,7 +146,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       }
     }
 
-    if (!mounted) return;
+    if (!mounted) return false;
 
     setState(() {
       _isLoading = false;
@@ -168,6 +186,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ),
         ),
       );
+      return true;
     } else {
       // Show an error SnackBar and keep previous OTP state intact
       ScaffoldMessenger.of(context).showSnackBar(
@@ -192,6 +211,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ),
         ),
       );
+      return false;
     }
   }
 
@@ -469,8 +489,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           )
                         : GestureDetector(
                             onTap: () {
-                              _generateAndSendOtp();
-                              _startResendTimer();
+                              _sendAndStartTimer();
                             },
                             child: const Text(
                               'Resend Verification Code',
