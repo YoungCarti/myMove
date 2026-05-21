@@ -4,6 +4,7 @@ import 'config/routes.dart';
 import 'config/theme.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/onboarding_screen.dart';
 import 'screens/home/home_screen.dart';
 
 class MyMoveApp extends StatelessWidget {
@@ -31,7 +32,7 @@ class MyMoveApp extends StatelessWidget {
           // Navigate based on auth status
           return authProvider.isAuthenticated 
               ? const HomeScreen() 
-              : const LoginScreen();
+              : const OnboardingScreen();
         },
       ),
       
