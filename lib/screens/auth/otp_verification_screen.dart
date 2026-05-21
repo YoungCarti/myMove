@@ -23,16 +23,17 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  late String _generatedOtp;
+  String? _generatedOtp;
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   
   bool _isLoading = false;
   bool _showSuccess = false;
   String? _errorMessage;
+  bool _isSendDisabled = false;
 
   DateTime? _otpIssuedAt;
-  static const Duration _otpExpiry = Duration(minutes: 10);
+  static const Duration _otpExpiry = Duration(minutes: 15);
 
   // Resend Timer
   int _timerSeconds = 59;
@@ -74,23 +75,32 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Future<void> _generateAndSendOtp() async {
-    _otpIssuedAt = DateTime.now();
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     // Generate a secure 6-digit random code
     Random random;
     try {
       random = Random.secure();
-    } on UnsupportedError {
-      random = Random();
+    } on UnsupportedError catch (e) {
+      print('Security Error: Cryptographically secure random number generator is not supported on this device: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Secure registration is not supported on this device due to a missing secure generator.';
+          _isSendDisabled = true;
+          _isLoading = false;
+        });
+      }
+      return;
     }
-    final otpVal = 100000 + random.nextInt(900000);
-    _generatedOtp = otpVal.toString();
 
-    // Reset controllers
-    for (var controller in _controllers) {
-      controller.clear();
-    }
-    _focusNodes[0].requestFocus();
+    final localIssuedAt = DateTime.now();
+    final otpVal = 100000 + random.nextInt(900000);
+    final localOtp = otpVal.toString();
 
     bool emailSentSuccessfully = false;
 
@@ -99,7 +109,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       emailSentSuccessfully = await EmailService.sendOtpViaEmailJS(
         email: widget.email,
         fullName: widget.fullName,
-        otp: _generatedOtp,
+        otp: localOtp,
       );
     } catch (e) {
       print('Primary sender (EmailJS) error: $e');
@@ -111,7 +121,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         emailSentSuccessfully = await EmailService.sendOtpViaFirestore(
           widget.email,
           widget.fullName,
-          _generatedOtp,
+          localOtp,
         );
       } catch (e) {
         print('Fallback sender (Firestore) error: $e');
@@ -120,7 +130,23 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     if (!mounted) return;
 
+    setState(() {
+      _isLoading = false;
+    });
+
     if (emailSentSuccessfully) {
+      setState(() {
+        _generatedOtp = localOtp;
+        _otpIssuedAt = localIssuedAt;
+        _errorMessage = null;
+      });
+
+      // Reset controllers only when successfully sent
+      for (var controller in _controllers) {
+        controller.clear();
+      }
+      _focusNodes[0].requestFocus();
+
       // Show a beautiful in-app notification confirming the email was sent
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -143,7 +169,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         ),
       );
     } else {
-      // Show an error SnackBar
+      // Show an error SnackBar and keep previous OTP state intact
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -189,7 +215,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       return;
     }
 
-    if (enteredOtp != _generatedOtp) {
+    if (_generatedOtp == null || enteredOtp != _generatedOtp) {
       setState(() => _errorMessage = 'Incorrect verification code. Please try again.');
       return;
     }
@@ -398,7 +424,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _onVerify,
+                  onPressed: (_isLoading || _isSendDisabled) ? null : _onVerify,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
@@ -430,29 +456,31 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
               // Resend Option
               Center(
-                child: _timerSeconds > 0
-                    ? Text(
-                        'Resend code in ${_timerSeconds}s',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF8E8E93),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      )
-                    : GestureDetector(
-                        onTap: () {
-                          _generateAndSendOtp();
-                          _startResendTimer();
-                        },
-                        child: const Text(
-                          'Resend Verification Code',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF2196F3),
-                            fontWeight: FontWeight.w600,
+                child: _isSendDisabled
+                    ? const SizedBox.shrink()
+                    : _timerSeconds > 0
+                        ? Text(
+                            'Resend code in ${_timerSeconds}s',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF8E8E93),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        : GestureDetector(
+                            onTap: () {
+                              _generateAndSendOtp();
+                              _startResendTimer();
+                            },
+                            child: const Text(
+                              'Resend Verification Code',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF2196F3),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
               ),
             ],
           ),
