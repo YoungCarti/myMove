@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import '../../providers/auth_provider.dart';
 
 class SetPasswordScreen extends StatefulWidget {
   final String fullName;
@@ -20,6 +23,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
+  bool _showSuccess = false;
 
   String? _errorMessage;
 
@@ -30,7 +34,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
     super.dispose();
   }
 
-  void _onCreateAccount() {
+  void _onCreateAccount() async {
     final password = _passwordController.text;
     final confirm = _confirmController.text;
 
@@ -48,15 +52,93 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    // TODO: Firebase Auth — createUserWithEmailAndPassword(email, password)
-    //       then update display name with fullName
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) setState(() => _isLoading = false);
-    });
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.register(
+        widget.email,
+        password,
+        widget.fullName,
+      );
+      if (success && mounted) {
+        setState(() {
+          _showSuccess = true;
+          _isLoading = false;
+        });
+
+        // Show the green success message for 1.8 seconds
+        await Future.delayed(const Duration(milliseconds: 1800));
+
+        if (mounted) {
+          // Pop back to root (which will now display HomeScreen due to state change)
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message ?? 'Registration failed.';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_showSuccess) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF34C759), // Premium iOS style green
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  size: 80,
+                  color: Color(0xFF34C759),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Created Account Successfully!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Preparing your dashboard...',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "340854856075",
+    "project_id": "mymove-cb624",
+    "storage_bucket": "mymove-cb624.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:340854856075:android:66f561a609df1b99e2778e",
+        "android_client_info": {
+          "package_name": "com.example.codes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRoILWxGX52GV5gsemBagyqTInF6xam6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import '../../providers/auth_provider.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({Key? key}) : super(key: key);
@@ -19,7 +22,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _onSendReset() {
+  void _onSendReset() async {
     final email = _emailController.text.trim();
     String? err;
     if (email.isEmpty) {
@@ -30,16 +33,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _emailError = err);
     if (err != null) return;
 
-    setState(() => _isLoading = true);
-    // TODO: Firebase Auth — sendPasswordResetEmail(email)
-    Future.delayed(const Duration(seconds: 1), () {
+    setState(() {
+      _isLoading = true;
+      _emailError = null;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.sendPasswordReset(email);
       if (mounted) {
         setState(() {
           _isLoading = false;
           _emailSent = true;
         });
       }
-    });
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _emailError = e.message ?? 'Failed to send reset link.';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _emailError = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    }
   }
 
   @override

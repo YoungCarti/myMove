@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import '../../providers/auth_provider.dart';
 import 'forgot_password_screen.dart';
 
 class EmailLoginScreen extends StatefulWidget {
@@ -26,7 +29,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     super.dispose();
   }
 
-  void _onContinue() {
+  void _onContinue() async {
     if (!_showPassword) {
       // ── Step 1: validate email ──
       final email = _emailController.text.trim();
@@ -41,6 +44,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       setState(() => _showPassword = true);
     } else {
       // ── Step 2: validate password ──
+      final email = _emailController.text.trim();
       final password = _passwordController.text;
       String? err;
       if (password.isEmpty) {
@@ -51,12 +55,34 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       setState(() => _passwordError = err);
       if (err != null) return;
 
-      setState(() => _isLoading = true);
-      // TODO: Firebase Auth — signInWithEmailAndPassword(email, password)
-      // On failure: setState(() { _generalError = e.message; _isLoading = false; });
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = true;
+        _generalError = null;
       });
+
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final success = await authProvider.signIn(email, password);
+        if (success && mounted) {
+          Navigator.of(context).pop();
+        }
+      } on FirebaseAuthException catch (e) {
+        if (mounted) {
+          setState(() {
+            _generalError = e.message ?? 'Authentication failed.';
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _generalError = e.toString().replaceAll('Exception: ', '');
+          });
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 

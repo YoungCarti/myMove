@@ -10,14 +10,15 @@ void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase with dummy options to bypass startup crash when config is missing
+  // Initialize Firebase with the real options for our project
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: "dummy-api-key-for-local-run",
-        appId: "1:1234567890:android:1234567890",
-        messagingSenderId: "1234567890",
-        projectId: "mymove-dummy",
+        apiKey: "AIzaSyDRoILWxGX52GV5gsemBagyqTInF6xam6k",
+        appId: "1:340854856075:android:66f561a609df1b99e2778e",
+        messagingSenderId: "340854856075",
+        projectId: "mymove-cb624",
+        storageBucket: "mymove-cb624.firebasestorage.app",
       ),
     );
   } catch (e) {
