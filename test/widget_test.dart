@@ -1,30 +1,47 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_move/app.dart';
+import 'package:my_move/providers/auth_provider.dart';
+import 'package:my_move/providers/parking_provider.dart';
+import 'package:my_move/providers/booking_provider.dart';
+import 'package:my_move/screens/auth/onboarding_screen.dart';
 
-import 'package:codes/main.dart';
+class MockFirebaseAuth extends Mock implements FirebaseAuth {}
+class MockFirebaseFirestore extends Mock implements FirebaseFirestore {}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('App smoke test', (WidgetTester tester) async {
+    final mockAuth = MockFirebaseAuth();
+    final mockFirestore = MockFirebaseFirestore();
+
+    // Stub authStateChanges to emit a null user (unauthenticated)
+    when(() => mockAuth.authStateChanges()).thenAnswer((_) => Stream<User?>.value(null));
+
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(
+            create: (_) => AuthProvider(
+              auth: mockAuth,
+              firestore: mockFirestore,
+            ),
+          ),
+          ChangeNotifierProvider(create: (_) => ParkingProvider()),
+          ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ],
+        child: const MyMoveApp(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Wait for the authStateChanges stream to emit and trigger a rebuild
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Assert that the app rendered the OnboardingScreen and its content
+    expect(find.byType(OnboardingScreen), findsOneWidget);
+    expect(find.text('Continue with Email'), findsOneWidget);
   });
 }

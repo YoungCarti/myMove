@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class QRDisplayScreen extends StatelessWidget {
-  const QRDisplayScreen({Key? key}) : super(key: key);
+  const QRDisplayScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

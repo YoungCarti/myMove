@@ -3,12 +3,11 @@ import 'package:provider/provider.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
 import 'providers/auth_provider.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/home/home_screen.dart';
 
 class MyMoveApp extends StatelessWidget {
-  const MyMoveApp({Key? key}) : super(key: key);
+  const MyMoveApp({super.key});
 
   @override
   Widget build(BuildContext context) {

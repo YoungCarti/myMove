@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ActiveBookingScreen extends StatelessWidget {
-  const ActiveBookingScreen({Key? key}) : super(key: key);
+  const ActiveBookingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

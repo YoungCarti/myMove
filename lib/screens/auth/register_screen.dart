@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'set_password_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -74,196 +74,153 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          // ─── Background image ─────────────────────────────────────────
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: screenHeight * 0.38,
-            child: Image.network(
-              'https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=800&q=80',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFE8D5F5), Color(0xFFD4E8FF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24, 20, 24, 32 + bottomInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ─── Header Navigation Row ─────────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.centerLeft,
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 20,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      _dot(active: true),
+                      _dot(active: false),
+                    ],
+                  ),
+                  const SizedBox(width: 44), // Balances back button for perfect centering
+                ],
+              ),
+              const SizedBox(height: 30),
+
+              // ─── Content ───
+              const Text(
+                'CREATE ACCOUNT',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                  letterSpacing: -0.5,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Let\'s get you started.\nFill in your details below.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF8E8E93),
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 42),
+
+              // Full Name
+              _label('Full Name'),
+              const SizedBox(height: 6),
+              _textField(
+                controller: _nameController,
+                hint: 'John Smith',
+                keyboardType: TextInputType.name,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                hasError: _nameError != null,
+                onChanged: (_) {
+                  if (_nameError != null) {
+                    setState(() => _nameError = null);
+                  }
+                },
+              ),
+              _errorText(_nameError),
+
+              const SizedBox(height: 24),
+
+              // Email
+              _label('Email'),
+              const SizedBox(height: 6),
+              _textField(
+                controller: _emailController,
+                hint: 'you@example.com',
+                keyboardType: TextInputType.emailAddress,
+                hasError: _emailError != null,
+                onChanged: (_) {
+                  if (_emailError != null) {
+                    setState(() => _emailError = null);
+                  }
+                },
+                onSubmitted: (_) => _onContinue(),
+              ),
+              _errorText(_emailError),
+
+              const SizedBox(height: 48),
+
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _onContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
-            ),
-          ),
 
-          // ─── Back button ─────────────────────────────────────────────
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
-            left: 16,
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 18,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
+              const SizedBox(height: 24),
 
-          // ─── Step dots ────────────────────────────────────────────────
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 18,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [_dot(active: true), _dot(active: false)],
-            ),
-          ),
-
-          // ─── White card ───────────────────────────────────────────────
-          Positioned(
-            top: screenHeight * 0.32,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  24, 32, 24,
-                  32 + MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'CREATE ACCOUNT',
+              Center(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: RichText(
+                    text: const TextSpan(
+                      text: 'Already have an account? ',
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black,
-                        letterSpacing: -0.5,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Let\'s get you started.\nFill in your details below.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF8E8E93),
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 36),
-
-                    // Full Name
-                    _label('Full Name'),
-                    const SizedBox(height: 6),
-                    _textField(
-                      controller: _nameController,
-                      hint: 'John Smith',
-                      keyboardType: TextInputType.name,
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.words,
-                      hasError: _nameError != null,
-                      onChanged: (_) {
-                        if (_nameError != null) {
-                          setState(() => _nameError = null);
-                        }
-                      },
-                    ),
-                    _errorText(_nameError),
-
-                    const SizedBox(height: 24),
-
-                    // Email
-                    _label('Email'),
-                    const SizedBox(height: 6),
-                    _textField(
-                      controller: _emailController,
-                      hint: 'you@example.com',
-                      keyboardType: TextInputType.emailAddress,
-                      hasError: _emailError != null,
-                      onChanged: (_) {
-                        if (_emailError != null) {
-                          setState(() => _emailError = null);
-                        }
-                      },
-                      onSubmitted: (_) => _onContinue(),
-                    ),
-                    _errorText(_emailError),
-
-                    const SizedBox(height: 36),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: _onContinue,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: const Text(
-                          'Continue',
+                          fontSize: 14, color: Color(0xFF8E8E93)),
+                      children: [
+                        TextSpan(
+                          text: 'Sign In',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    Center(
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: RichText(
-                          text: const TextSpan(
-                            text: 'Already have an account? ',
-                            style: TextStyle(
-                                fontSize: 14, color: Color(0xFF8E8E93)),
-                            children: [
-                              TextSpan(
-                                text: 'Sign In',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -354,7 +311,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       width: active ? 24 : 8,
       height: 8,
       decoration: BoxDecoration(
-        color: active ? Colors.white : Colors.white54,
+        color: active ? Colors.black : const Color(0xFFDDDDE3),
         borderRadius: BorderRadius.circular(4),
       ),
     );

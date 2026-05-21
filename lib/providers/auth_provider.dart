@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthProvider with ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
+  StreamSubscription<User?>? _authSubscription;
   
   User? _user;
   bool _isLoading = false;
@@ -13,9 +15,11 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _user != null;
 
-  AuthProvider() {
+  AuthProvider({FirebaseAuth? auth, FirebaseFirestore? firestore})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance {
     // Listen to auth state changes
-    _auth.authStateChanges().listen((User? user) {
+    _authSubscription = _auth.authStateChanges().listen((User? user) {
       _user = user;
       notifyListeners();
     });
@@ -37,7 +41,7 @@ class AuthProvider with ChangeNotifier {
       );
       _setLoading(false);
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       _setLoading(false);
       rethrow;
     } catch (e) {
@@ -77,7 +81,7 @@ class AuthProvider with ChangeNotifier {
 
       _setLoading(false);
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       _setLoading(false);
       rethrow;
     } catch (e) {
@@ -92,7 +96,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       _setLoading(false);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       _setLoading(false);
       rethrow;
     } catch (e) {
@@ -105,5 +109,11 @@ class AuthProvider with ChangeNotifier {
   Future<void> signOut() async {
     await _auth.signOut();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 }
