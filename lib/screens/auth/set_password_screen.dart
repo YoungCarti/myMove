@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../../providers/auth_provider.dart';
+import 'otp_verification_screen.dart';
 
 class SetPasswordScreen extends StatefulWidget {
   final String fullName;
@@ -34,7 +35,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
     super.dispose();
   }
 
-  void _onCreateAccount() async {
+  void _onCreateAccount() {
     final password = _passwordController.text;
     final confirm = _confirmController.text;
 
@@ -50,46 +51,28 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.register(
-        widget.email,
-        password,
-        widget.fullName,
-      );
-      if (success && mounted) {
-        setState(() {
-          _showSuccess = true;
-          _isLoading = false;
-        });
-
-        // Show the green success message for 1.8 seconds
-        await Future.delayed(const Duration(milliseconds: 1800));
-
-        if (mounted) {
-          // Pop back to root (which will now display HomeScreen due to state change)
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.message ?? 'Registration failed.';
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    // Slide transition to OTP verification screen
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => OtpVerificationScreen(
+          fullName: widget.fullName,
+          email: widget.email,
+          password: password,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeOutCubic;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 350),
+      ),
+    );
   }
 
   @override
