@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'forgot_password_screen.dart';
 
 class EmailLoginScreen extends StatefulWidget {
   const EmailLoginScreen({Key? key}) : super(key: key);
@@ -248,7 +249,28 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                                   alignment: Alignment.centerRight,
                                   child: GestureDetector(
                                     onTap: () {
-                                      // TODO: forgot password flow
+                                      Navigator.of(context).push(
+                                        PageRouteBuilder(
+                                          pageBuilder:
+                                              (context, animation, _) =>
+                                                  const ForgotPasswordScreen(),
+                                          transitionsBuilder:
+                                              (context, animation, _, child) {
+                                            return SlideTransition(
+                                              position: Tween<Offset>(
+                                                begin: const Offset(0, 1),
+                                                end: Offset.zero,
+                                              ).animate(CurvedAnimation(
+                                                parent: animation,
+                                                curve: Curves.easeOutCubic,
+                                              )),
+                                              child: child,
+                                            );
+                                          },
+                                          transitionDuration: const Duration(
+                                              milliseconds: 380),
+                                        ),
+                                      );
                                     },
                                     child: const Text(
                                       'Forgot password?',
