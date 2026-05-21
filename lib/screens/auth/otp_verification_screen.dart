@@ -489,6 +489,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           )
                         : GestureDetector(
                             onTap: () {
+                              if (_isLoading) return;
                               _sendAndStartTimer();
                             },
                             child: const Text(
