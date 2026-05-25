@@ -50,68 +50,24 @@ class OnboardingScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  const Spacer(),
+                  const Spacer(flex: 2),
 
-                  // ── App Brand Badge (Green Accent) ──
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.local_parking_rounded,
-                        size: 25,
-                        color: Color(0xFF34D399), // Emerald-400 (bright on dark)
+                  // ── Title (myMove word in the middle screen) ──
+                  const Center(
+                    child: Text(
+                      'myMove',
+                      style: TextStyle(
+                        fontFamily: 'Cattalague',
+                        fontSize: 40,
+                        color: Colors.white,
+                        height: 1.2,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const Spacer(flex: 2),
 
-                  // ── Title & Smart Badge ──
-                  Row(
-                    children: [
-                      const Text(
-                        'myMove',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.8,
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'SMART',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF6EE7B7), // Emerald-300
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // ── Subtitle ──
+                  // ── Subtitle (Description placed at its original bottom-left position) ──
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -137,7 +93,7 @@ class OnboardingScreen extends StatelessWidget {
                         Navigator.pushNamed(context, '/register');
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
+                        backgroundColor: const Color(0xFF0064E0),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(

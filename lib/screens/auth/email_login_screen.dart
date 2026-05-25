@@ -160,39 +160,11 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(24),
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF3B82F6), // Vibrant Blue
-                                      Color(0xFF10B981), // Emerald Green
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.local_parking_rounded,
-                                  size: 44,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
                               const Text(
                                 'myMove',
                                 style: TextStyle(
                                   fontFamily: 'Cattalague',
-                                  fontSize: 28,
+                                  fontSize: 40,
                                   color: Colors.white,
                                   height: 1.2,
                                 ),
