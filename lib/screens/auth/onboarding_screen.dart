@@ -13,7 +13,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _isGoogleLoading = false;
 
-  void _handleGoogleSignIn() async {
+  Future<void> _handleGoogleSignIn() async {
     if (_isGoogleLoading) return;
     setState(() {
       _isGoogleLoading = true;
@@ -35,10 +35,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         }
       }
     } catch (e) {
+      debugPrint('Google Sign-In failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google Sign-In failed: ${e.toString()}'),
+          const SnackBar(
+            content: Text('Authentication failed. Please try again.'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -218,7 +219,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     width: double.infinity,
                     height: 52,
                     child: OutlinedButton.icon(
-                      onPressed: _isGoogleLoading ? null : _handleGoogleSignIn,
+                      onPressed: _isGoogleLoading ? null : () async => await _handleGoogleSignIn(),
                       icon: _isGoogleLoading
                           ? const SizedBox(
                               width: 20,

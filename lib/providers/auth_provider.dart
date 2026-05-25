@@ -127,10 +127,15 @@ class AuthProvider with ChangeNotifier {
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
       final User? firebaseUser = userCredential.user;
 
-      if (firebaseUser != null) {
-        // Synchronously update _user here to guarantee the UI has the state instantly
-        _user = firebaseUser;
-        
+      if (firebaseUser == null) {
+        _setLoading(false);
+        return false;
+      }
+
+      // Synchronously update _user here to guarantee the UI has the state instantly
+      _user = firebaseUser;
+      
+      try {
         // 5. Check if the user document already exists in Firestore to avoid overwriting existing data
         final DocumentSnapshot userDoc = await _firestore.collection('users').doc(firebaseUser.uid).get();
 
@@ -147,6 +152,12 @@ class AuthProvider with ChangeNotifier {
             'updatedAt': FieldValue.serverTimestamp(),
           });
         }
+      } catch (firestoreError) {
+        // Rollback Firebase auth session on Firestore failure
+        _user = null;
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+        rethrow;
       }
 
       _setLoading(false);

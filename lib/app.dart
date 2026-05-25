@@ -29,7 +29,7 @@ class MyMoveApp extends StatelessWidget {
           }
           
           // Once checked, render HomeScreen or OnboardingScreen based on current user state
-          debugPrint("MyMoveApp Auth State Build: isAuthenticated=${authProvider.isAuthenticated}, user=${authProvider.user?.email}");
+          debugPrint("MyMoveApp Auth State Build: isAuthenticated=${authProvider.isAuthenticated}, uid=${authProvider.user?.uid}");
           return authProvider.isAuthenticated 
               ? const HomeScreen() 
               : const OnboardingScreen();
