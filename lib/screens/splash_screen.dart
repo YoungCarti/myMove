@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -17,6 +16,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _drawController;
+  late CurvedAnimation _progressAnim;
 
   @override
   void initState() {
@@ -26,6 +26,11 @@ class _SplashScreenState extends State<SplashScreen>
     _drawController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
+    );
+
+    _progressAnim = CurvedAnimation(
+      parent: _drawController,
+      curve: Curves.easeInOutSine,
     );
 
     // Start drawing after a short initial delay
@@ -45,6 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    _progressAnim.dispose();
     _drawController.dispose();
     super.dispose();
   }
@@ -70,10 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
           child: AnimatedBuilder(
             animation: _drawController,
             builder: (context, child) {
-              final progress = CurvedAnimation(
-                parent: _drawController,
-                curve: Curves.easeInOutSine,
-              ).value;
+              final progress = _progressAnim.value;
 
               return ClipRect(
                 clipper: _RevealClipper(progress),
