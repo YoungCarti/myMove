@@ -47,3 +47,9 @@ app.*.map.json
 # Secrets / API Keys
 /lib/services/email_keys.dart
 
+# Dart Analysis cache and server files
+.dart-tool/
+.dartServer/
+.dart_home/
+
+

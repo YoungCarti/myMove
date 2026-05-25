@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
-import '../../providers/auth_provider.dart';
 import 'otp_verification_screen.dart';
 
 class SetPasswordScreen extends StatefulWidget {
@@ -24,7 +21,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
-  bool _showSuccess = false;
+  final bool _showSuccess = false;
 
   String? _errorMessage;
 

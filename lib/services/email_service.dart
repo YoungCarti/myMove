@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'email_keys.dart';
@@ -39,7 +40,7 @@ class EmailService {
       });
       return true;
     } catch (e) {
-      print('Firestore mail error: $e');
+      debugPrint('Firestore mail error: $e');
       return false;
     }
   }
@@ -62,7 +63,7 @@ class EmailService {
     if (activeServiceId == 'YOUR_EMAILJS_SERVICE_ID' || 
         activeTemplateId == 'YOUR_EMAILJS_TEMPLATE_ID' || 
         activePublicKey == 'YOUR_EMAILJS_PUBLIC_KEY') {
-      print('EmailJS integration: Please configure your API keys in lib/services/email_keys.dart');
+      debugPrint('EmailJS integration: Please configure your API keys in lib/services/email_keys.dart');
       return false;
     }
 
@@ -95,7 +96,7 @@ class EmailService {
 
       return response.statusCode == 200;
     } catch (e) {
-      print('EmailJS send error: $e');
+      debugPrint('EmailJS send error: $e');
       return false;
     }
   }

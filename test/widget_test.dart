@@ -4,7 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_move/app.dart';
-import 'package:my_move/providers/auth_provider.dart';
+import 'package:my_move/providers/auth_provider.dart' as app_auth;
 import 'package:my_move/providers/parking_provider.dart';
 import 'package:my_move/providers/booking_provider.dart';
 import 'package:my_move/screens/auth/onboarding_screen.dart';
@@ -25,7 +25,7 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(
-            create: (_) => AuthProvider(
+            create: (_) => app_auth.AuthProvider(
               auth: mockAuth,
               firestore: mockFirestore,
             ),

@@ -105,7 +105,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     try {
       random = Random.secure();
     } on UnsupportedError catch (e) {
-      print('Security Error: Cryptographically secure random number generator is not supported on this device: $e');
+      debugPrint('Security Error: Cryptographically secure random number generator is not supported on this device: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'Secure registration is not supported on this device due to a missing secure generator.';
@@ -130,7 +130,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         otp: localOtp,
       );
     } catch (e) {
-      print('Primary sender (EmailJS) error: $e');
+      debugPrint('Primary sender (EmailJS) error: $e');
     }
 
     // If primary fails, call fallback sender: EmailService.sendOtpViaFirestore
@@ -142,7 +142,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           localOtp,
         );
       } catch (e) {
-        print('Fallback sender (Firestore) error: $e');
+        debugPrint('Fallback sender (Firestore) error: $e');
       }
     }
 
