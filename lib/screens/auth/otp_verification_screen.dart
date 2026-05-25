@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../../providers/auth_provider.dart';
@@ -412,6 +413,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       maxLength: 1,
+                      enabled: !_isLoading,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
@@ -429,6 +432,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             width: 1.0,
                           ),
                         ),
+                        disabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2E3033),
+                            width: 1.0,
+                          ),
+                        ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
@@ -438,6 +448,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         ),
                       ),
                       onChanged: (value) {
+                        if (_isLoading) return;
                         if (value.isNotEmpty) {
                           if (index < 5) {
                             _focusNodes[index + 1].requestFocus();
