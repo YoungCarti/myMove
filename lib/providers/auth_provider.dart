@@ -2,25 +2,34 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  final GoogleSignIn _googleSignIn;
   StreamSubscription<User?>? _authSubscription;
   
   User? _user;
   bool _isLoading = false;
+  bool _isInitialChecked = false;
 
   User? get user => _user;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _user != null;
+  bool get isInitialChecked => _isInitialChecked;
 
-  AuthProvider({FirebaseAuth? auth, FirebaseFirestore? firestore})
-      : _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance {
+  AuthProvider({
+    FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
+    GoogleSignIn? googleSignIn,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn() {
     // Listen to auth state changes
     _authSubscription = _auth.authStateChanges().listen((User? user) {
       _user = user;
+      _isInitialChecked = true;
       notifyListeners();
     });
   }
@@ -35,10 +44,11 @@ class AuthProvider with ChangeNotifier {
   Future<bool> signIn(String email, String password) async {
     _setLoading(true);
     try {
-      await _auth.signInWithEmailAndPassword(
+      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      _user = userCredential.user;
       _setLoading(false);
       return true;
     } on FirebaseAuthException {
@@ -77,6 +87,8 @@ class AuthProvider with ChangeNotifier {
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
+        
+        _user = _auth.currentUser;
       }
 
       _setLoading(false);
@@ -87,6 +99,64 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       _setLoading(false);
       throw Exception('Failed to register account: ${e.toString()}');
+    }
+  }
+
+  // Sign In with Google & create user profile in Cloud Firestore if new
+  Future<bool> signInWithGoogle() async {
+    _setLoading(true);
+    try {
+      // 1. Trigger the Google authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // User cancelled the sign-in flow
+        _setLoading(false);
+        return false;
+      }
+
+      // 2. Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // 3. Create a new credential
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // 4. Sign in to Firebase with the credential
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final User? firebaseUser = userCredential.user;
+
+      if (firebaseUser != null) {
+        // Synchronously update _user here to guarantee the UI has the state instantly
+        _user = firebaseUser;
+        
+        // 5. Check if the user document already exists in Firestore to avoid overwriting existing data
+        final DocumentSnapshot userDoc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+
+        if (!userDoc.exists) {
+          // Store user details in Cloud Firestore if this is a new sign-in
+          await _firestore.collection('users').doc(firebaseUser.uid).set({
+            'uid': firebaseUser.uid,
+            'name': firebaseUser.displayName ?? '',
+            'email': firebaseUser.email ?? '',
+            'role': 'user', // Default user role
+            'phoneNumber': firebaseUser.phoneNumber ?? '',
+            'profileImageUrl': firebaseUser.photoURL ?? '',
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      _setLoading(false);
+      return true;
+    } on FirebaseAuthException {
+      _setLoading(false);
+      rethrow;
+    } catch (e) {
+      _setLoading(false);
+      throw Exception('Failed to sign in with Google: ${e.toString()}');
     }
   }
 
@@ -107,7 +177,9 @@ class AuthProvider with ChangeNotifier {
 
   // Sign out of the app
   Future<void> signOut() async {
+    _user = null;
     await _auth.signOut();
+    await _googleSignIn.signOut();
     notifyListeners();
   }
 

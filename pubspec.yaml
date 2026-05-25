@@ -39,6 +39,7 @@ dependencies:
   # Firebase - Backend as a Service for authentication, database, and storage
   firebase_core: ^3.1.0           # Core Firebase SDK
   firebase_auth: ^5.1.0           # User authentication
+  google_sign_in: ^6.2.1          # Google Sign-In support
   cloud_firestore: ^5.0.0         # NoSQL database for user data, bookings
   firebase_database: ^11.0.0       # Realtime database for sensor data from ESP32
   firebase_storage: ^12.0.0        # File storage for images

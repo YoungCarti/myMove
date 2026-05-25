@@ -16,11 +16,11 @@ class MyMoveApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       
-      // Check if user is logged in
+      // Navigate dynamically based on initial auth check
       home: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
-          // Show splash screen while checking auth
-          if (authProvider.isLoading) {
+          // Show splash loading screen ONLY during the very first app startup auth check
+          if (!authProvider.isInitialChecked) {
             return const Scaffold(
               body: Center(
                 child: CircularProgressIndicator(),
@@ -28,7 +28,8 @@ class MyMoveApp extends StatelessWidget {
             );
           }
           
-          // Navigate based on auth status
+          // Once checked, render HomeScreen or OnboardingScreen based on current user state
+          debugPrint("MyMoveApp Auth State Build: isAuthenticated=${authProvider.isAuthenticated}, user=${authProvider.user?.email}");
           return authProvider.isAuthenticated 
               ? const HomeScreen() 
               : const OnboardingScreen();

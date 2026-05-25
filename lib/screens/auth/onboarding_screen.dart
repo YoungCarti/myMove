@@ -1,8 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import 'email_login_screen.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
+
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  bool _isGoogleLoading = false;
+
+  void _handleGoogleSignIn() async {
+    if (_isGoogleLoading) return;
+    setState(() {
+      _isGoogleLoading = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.signInWithGoogle();
+      if (success) {
+        // Consumer in app.dart will automatically navigate to HomeScreen
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google sign in was cancelled.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google Sign-In failed: ${e.toString()}'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,9 +137,11 @@ class OnboardingScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/register');
-                      },
+                      onPressed: _isGoogleLoading
+                          ? null
+                          : () {
+                              Navigator.pushNamed(context, '/register');
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0064E0),
                         foregroundColor: Colors.white,
@@ -99,6 +149,7 @@ class OnboardingScreen extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        disabledBackgroundColor: const Color(0xFF0064E0).withValues(alpha: 0.4),
                         textStyle: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -116,29 +167,37 @@ class OnboardingScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 52,
                     child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          PageRouteBuilder(
-                            pageBuilder: (context, animation, _) => const EmailLoginScreen(),
-                            transitionsBuilder: (context, animation, _, child) {
-                              return SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(1, 0),
-                                  end: Offset.zero,
-                                ).animate(CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeOutCubic,
-                                )),
-                                child: child,
+                      onPressed: _isGoogleLoading
+                          ? null
+                          : () {
+                              Navigator.of(context).push(
+                                PageRouteBuilder(
+                                  pageBuilder: (context, animation, _) => const EmailLoginScreen(),
+                                  transitionsBuilder: (context, animation, _, child) {
+                                    return SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(1, 0),
+                                        end: Offset.zero,
+                                      ).animate(CurvedAnimation(
+                                        parent: animation,
+                                        curve: Curves.easeOutCubic,
+                                      )),
+                                      child: child,
+                                    );
+                                  },
+                                  transitionDuration: const Duration(milliseconds: 350),
+                                ),
                               );
                             },
-                            transitionDuration: const Duration(milliseconds: 350),
-                          ),
-                        );
-                      },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+                        disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+                        side: BorderSide(
+                          color: _isGoogleLoading
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : Colors.white.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -159,28 +218,41 @@ class OnboardingScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 52,
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: Google OAuth
-                      },
-                      icon: Image.network(
-                        'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
-                        width: 20,
-                        height: 20,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Text(
-                            'G',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF4285F4),
+                      onPressed: _isGoogleLoading ? null : _handleGoogleSignIn,
+                      icon: _isGoogleLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Image.network(
+                              'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
+                              width: 20,
+                              height: 20,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Text(
+                                  'G',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF4285F4),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                      label: const Text('Sign in with Google'),
+                      label: Text(_isGoogleLoading ? 'Signing in...' : 'Sign in with Google'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+                        disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+                        side: BorderSide(
+                          color: _isGoogleLoading
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : Colors.white.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
