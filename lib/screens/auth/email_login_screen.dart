@@ -39,7 +39,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
     if (email.isEmpty) {
       emailErr = 'Please enter your email address.';
-    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email)) {
       emailErr = 'That doesn\'t look like a valid email.';
     }
 
@@ -79,15 +79,34 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
         }
       }
     } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException during login: ${e.code} - ${e.message}');
       if (mounted) {
         setState(() {
-          _generalError = e.message ?? 'Authentication failed.';
+          switch (e.code) {
+            case 'user-not-found':
+            case 'wrong-password':
+            case 'invalid-credential':
+              _generalError = 'Invalid email or password. Please try again.';
+              break;
+            case 'network-request-failed':
+              _generalError = 'Network error. Please check your internet connection.';
+              break;
+            case 'user-disabled':
+              _generalError = 'This user account has been disabled.';
+              break;
+            case 'too-many-requests':
+              _generalError = 'Too many failed login attempts. Please try again later.';
+              break;
+            default:
+              _generalError = 'Authentication failed. Please check your credentials.';
+          }
         });
       }
     } catch (e) {
+      debugPrint('Unexpected error during login: $e');
       if (mounted) {
         setState(() {
-          _generalError = e.toString().replaceAll('Exception: ', '');
+          _generalError = 'An unexpected error occurred. Please try again.';
         });
       }
     } finally {
@@ -189,8 +208,11 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           onChanged: (_) {
-                            if (_emailError != null) {
-                              setState(() => _emailError = null);
+                            if (_emailError != null || _generalError != null) {
+                              setState(() {
+                                _emailError = null;
+                                _generalError = null;
+                              });
                             }
                           },
                           style: const TextStyle(
