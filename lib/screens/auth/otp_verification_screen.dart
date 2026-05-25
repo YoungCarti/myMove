@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../../providers/auth_provider.dart';
@@ -178,7 +179,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF1C1C1E),
+          backgroundColor: const Color(0xFF1E1E1E),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
           shape: RoundedRectangleBorder(
@@ -203,7 +204,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
             ],
           ),
-          backgroundColor: const Color(0xFFFF3B30),
+          backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
           shape: RoundedRectangleBorder(
@@ -216,6 +217,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   void _onVerify() async {
+    if (_isLoading) return;
+
     setState(() => _errorMessage = null);
 
     if (_otpIssuedAt == null || DateTime.now().difference(_otpIssuedAt!) > _otpExpiry) {
@@ -266,15 +269,32 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         }
       }
     } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException during registration: ${e.code} - ${e.message}');
       if (mounted) {
         setState(() {
-          _errorMessage = e.message ?? 'Registration failed.';
+          switch (e.code) {
+            case 'email-already-in-use':
+              _errorMessage = 'This email address is already in use by another account.';
+              break;
+            case 'weak-password':
+              _errorMessage = 'The password is too weak.';
+              break;
+            case 'operation-not-allowed':
+              _errorMessage = 'Email/password accounts are not enabled.';
+              break;
+            case 'network-request-failed':
+              _errorMessage = 'Network error. Please check your internet connection.';
+              break;
+            default:
+              _errorMessage = 'Registration failed. Please try again.';
+          }
         });
       }
     } catch (e) {
+      debugPrint('Unexpected error during registration: $e');
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = 'An unexpected error occurred. Please try again.';
         });
       }
     } finally {
@@ -288,7 +308,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   Widget build(BuildContext context) {
     if (_showSuccess) {
       return Scaffold(
-        backgroundColor: const Color(0xFF34C759),
+        backgroundColor: const Color(0xFF121212),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -297,12 +317,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 width: 90,
                 height: 90,
                 decoration: const BoxDecoration(
-                  color: Colors.white24,
+                  color: Color(0xFF1E1E1E),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: Colors.white,
+                  Icons.check_circle_outline_rounded,
+                  color: Color(0xFF34C759), // Premium iOS style green
                   size: 64,
                 ),
               ),
@@ -321,7 +341,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 'Created account successfully',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Color(0xE6FFFFFF),
+                  color: Color(0xFF757575),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -334,7 +354,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF121212), // Sleek pitch black matching login
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -350,9 +370,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   height: 44,
                   alignment: Alignment.centerLeft,
                   child: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    size: 20,
-                    color: Colors.black,
+                    Icons.arrow_back,
+                    size: 26,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -362,19 +382,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               const Text(
                 'VERIFY EMAIL',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  color: Colors.black,
+                  color: Colors.white,
                   letterSpacing: -0.5,
                   height: 1.1,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 'We have sent a 6-digit verification code to\n${widget.email}',
                 style: const TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF8E8E93),
+                  color: Color(0xFF757575),
                   height: 1.45,
                 ),
               ),
@@ -393,29 +413,47 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       maxLength: 1,
+                      enabled: !_isLoading,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black,
+                        color: Colors.white,
                       ),
                       decoration: InputDecoration(
                         counterText: '',
                         filled: true,
-                        fillColor: const Color(0xFFF2F2F7),
+                        fillColor: const Color(0xFF1E1E1E),
                         contentPadding: EdgeInsets.zero,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2E3033),
+                            width: 1.0,
+                          ),
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2E3033),
+                            width: 1.0,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: Color(0xFF2196F3),
-                            width: 2,
+                            color: Color(0xFF3B82F6),
+                            width: 1.5,
                           ),
                         ),
                       ),
                       onChanged: (value) {
+                        if (_isLoading) return;
+                        if (_errorMessage != null) {
+                          setState(() {
+                            _errorMessage = null;
+                          });
+                        }
                         if (value.isNotEmpty) {
                           if (index < 5) {
                             _focusNodes[index + 1].requestFocus();
@@ -442,30 +480,31 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               // Verify button
               SizedBox(
                 width: double.infinity,
-                height: 54,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: (_isLoading || _isSendDisabled) ? null : _onVerify,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: const Color(0xFF0064E0), // Vibrant Blue
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(24),
                     ),
+                    disabledBackgroundColor: const Color(0xFF0064E0).withOpacity(0.4),
                     elevation: 0,
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          width: 24,
-                          height: 24,
+                          width: 20,
+                          height: 20,
                           child: CircularProgressIndicator(
                             color: Colors.white,
-                            strokeWidth: 2.5,
+                            strokeWidth: 2,
                           ),
                         )
                       : const Text(
                           'Verify & Create Account',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -483,7 +522,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             'Resend code in ${_timerSeconds}s',
                             style: const TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF8E8E93),
+                              color: Color(0xFF757575),
                               fontWeight: FontWeight.w500,
                             ),
                           )
@@ -496,7 +535,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               'Resend Verification Code',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF2196F3),
+                                color: Color(0xFF3B82F6),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -517,14 +556,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               padding: const EdgeInsets.only(top: 20),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, size: 16, color: Color(0xFFFF3B30)),
+                  const Icon(Icons.error_outline, size: 16, color: Color(0xFFEF4444)),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       error,
                       style: const TextStyle(
-                        color: Color(0xFFFF3B30),
-                        fontSize: 13,
+                        color: Color(0xFFEF4444),
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

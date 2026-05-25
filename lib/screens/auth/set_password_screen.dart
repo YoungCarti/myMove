@@ -33,22 +33,21 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
   }
 
   void _onCreateAccount() async {
+    if (_isLoading) return;
+
     final password = _passwordController.text;
     final confirm = _confirmController.text;
 
     setState(() => _errorMessage = null);
 
     if (password.length < 6) {
-      setState(
-          () => _errorMessage = 'Password must be at least 6 characters.');
+      setState(() => _errorMessage = 'Password must be at least 6 characters.');
       return;
     }
     if (password != confirm) {
       setState(() => _errorMessage = 'Passwords do not match.');
       return;
     }
-
-    if (_isLoading) return;
 
     setState(() {
       _isLoading = true;
@@ -134,7 +133,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF121212), // Sleek pitch black matching login
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -153,9 +152,9 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                       height: 44,
                       alignment: Alignment.centerLeft,
                       child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 20,
-                        color: Colors.black,
+                        Icons.arrow_back,
+                        size: 26,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -174,22 +173,21 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
               const Text(
                 'SET PASSWORD',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  color: Colors.black,
+                  color: Colors.white,
                   letterSpacing: -0.5,
                   height: 1.1,
                 ),
               ),
-
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Show who we're creating the account for
               RichText(
                 text: TextSpan(
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF8E8E93),
+                    color: Color(0xFF757575),
                     height: 1.45,
                   ),
                   children: [
@@ -197,94 +195,96 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                     TextSpan(
                       text: widget.email,
                       style: const TextStyle(
-                        color: Colors.black,
+                        color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 42),
 
               // Password
               _label('Password'),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               _passwordField(
                 controller: _passwordController,
                 hint: 'At least 6 characters',
                 obscure: _obscurePassword,
                 autofocus: true,
-                onToggle: () => setState(
-                    () => _obscurePassword = !_obscurePassword),
+                hasError: _errorMessage != null,
+                onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
+                onChanged: (_) {
+                  if (_errorMessage != null) {
+                    setState(() => _errorMessage = null);
+                  }
+                },
               ),
 
               const SizedBox(height: 24),
 
               // Confirm password
               _label('Confirm Password'),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               _passwordField(
                 controller: _confirmController,
                 hint: 'Repeat your password',
                 obscure: _obscureConfirm,
-                onToggle: () =>
-                    setState(() => _obscureConfirm = !_obscureConfirm),
-                onSubmitted: (_) => _onCreateAccount(),
+                hasError: _errorMessage != null,
+                onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                onChanged: (_) {
+                  if (_errorMessage != null) {
+                    setState(() => _errorMessage = null);
+                  }
+                },
+                onSubmitted: _isLoading ? null : (_) => _onCreateAccount(),
               ),
 
               // Error message
               if (_errorMessage != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFFFF3B30),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFEF4444),
+                    ),
                   ),
                 ),
               ],
-
-              const SizedBox(height: 12),
-
-              const Text(
-                'Must be at least 6 characters.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF8E8E93),
-                ),
-              ),
 
               const SizedBox(height: 48),
 
               // Create Account button
               SizedBox(
                 width: double.infinity,
-                height: 54,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _onCreateAccount,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: const Color(0xFF0064E0), // Vibrant Blue
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(24),
                     ),
-                    disabledBackgroundColor: Colors.black38,
+                    disabledBackgroundColor: const Color(0xFF0064E0).withOpacity(0.4),
                   ),
                   child: _isLoading
                       ? const SizedBox(
-                          width: 22,
-                          height: 22,
+                          width: 20,
+                          height: 20,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
+                            strokeWidth: 2,
                             color: Colors.white,
                           ),
                         )
                       : const Text(
                           'Create Account',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -301,7 +301,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
         text,
         style: const TextStyle(
           fontSize: 12,
-          color: Color(0xFF8E8E93),
+          color: Color(0xFF757575),
           fontWeight: FontWeight.w500,
         ),
       );
@@ -312,40 +312,59 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
     required bool obscure,
     required VoidCallback onToggle,
     bool autofocus = false,
+    bool hasError = false,
+    void Function(String)? onChanged,
     void Function(String)? onSubmitted,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
       autofocus: autofocus,
+      onChanged: onChanged,
       style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.black,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: Colors.white,
       ),
       decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFF1E1E1E),
         hintText: hint,
         hintStyle: const TextStyle(
-          color: Color(0xFFBDBDC7),
+          color: Color(0xFF757575),
+          fontSize: 15,
           fontWeight: FontWeight.w400,
         ),
         suffixIcon: GestureDetector(
           onTap: onToggle,
           child: Icon(
-            obscure
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
-            color: Colors.black45,
+            obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            color: const Color(0xFF757575),
             size: 20,
           ),
         ),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFFDDDDE3), width: 1.5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: hasError ? const Color(0xFFEF4444) : const Color(0xFF2E3033),
+            width: 1.0,
+          ),
         ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.black, width: 2),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: hasError ? const Color(0xFFEF4444) : const Color(0xFF2E3033),
+            width: 1.0,
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: hasError ? const Color(0xFFEF4444) : const Color(0xFF3B82F6),
+            width: 1.5,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       onSubmitted: onSubmitted,
     );
@@ -358,7 +377,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
       width: active ? 24 : 8,
       height: 8,
       decoration: BoxDecoration(
-        color: active ? Colors.black : const Color(0xFFDDDDE3),
+        color: active ? Colors.white : const Color(0xFF2E3033),
         borderRadius: BorderRadius.circular(4),
       ),
     );

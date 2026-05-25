@@ -34,7 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (email.isEmpty) {
       emailErr = 'Please enter your email address.';
-    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email)) {
       emailErr = 'Please enter a valid email address.';
     }
 
@@ -77,7 +77,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF121212), // Sleek pitch black matching login
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -96,9 +96,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       height: 44,
                       alignment: Alignment.centerLeft,
                       child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 20,
-                        color: Colors.black,
+                        Icons.arrow_back,
+                        size: 26,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -117,27 +117,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const Text(
                 'CREATE ACCOUNT',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
-                  color: Colors.black,
+                  color: Colors.white,
                   letterSpacing: -0.5,
                   height: 1.1,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               const Text(
                 'Let\'s get you started.\nFill in your details below.',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF8E8E93),
+                  color: Color(0xFF757575),
                   height: 1.45,
                 ),
               ),
               const SizedBox(height: 42),
 
-              // Full Name
+              // Full Name Label
               _label('Full Name'),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               _textField(
                 controller: _nameController,
                 hint: 'John Smith',
@@ -155,9 +155,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               const SizedBox(height: 24),
 
-              // Email
+              // Email Label
               _label('Email'),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               _textField(
                 controller: _emailController,
                 hint: 'you@example.com',
@@ -174,23 +174,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               const SizedBox(height: 48),
 
+              // Continue Button
               SizedBox(
                 width: double.infinity,
-                height: 54,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: _onContinue,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: const Color(0xFF0064E0), // Vibrant Blue
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(24),
                     ),
                   ),
                   child: const Text(
                     'Continue',
                     style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -204,12 +207,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     text: const TextSpan(
                       text: 'Already have an account? ',
                       style: TextStyle(
-                          fontSize: 14, color: Color(0xFF8E8E93)),
+                        fontSize: 14,
+                        color: Color(0xFF757575),
+                      ),
                       children: [
                         TextSpan(
                           text: 'Sign In',
                           style: TextStyle(
-                            color: Colors.black,
+                            color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -229,7 +234,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         text,
         style: const TextStyle(
           fontSize: 12,
-          color: Color(0xFF8E8E93),
+          color: Color(0xFF757575),
           fontWeight: FontWeight.w500,
         ),
       );
@@ -239,20 +244,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       duration: const Duration(milliseconds: 200),
       child: error != null
           ? Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline,
-                      size: 14, color: Color(0xFFFF3B30)),
-                  const SizedBox(width: 5),
-                  Text(
-                    error,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFFF3B30),
-                    ),
-                  ),
-                ],
+              padding: const EdgeInsets.only(top: 6, left: 4),
+              child: Text(
+                error,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFFEF4444),
+                ),
               ),
             )
           : const SizedBox.shrink(),
@@ -276,29 +274,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
       textCapitalization: textCapitalization,
       onChanged: onChanged,
       style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.black,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: Colors.white,
       ),
       decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFF1E1E1E),
         hintText: hint,
         hintStyle: const TextStyle(
-          color: Color(0xFFBDBDC7),
+          color: Color(0xFF757575),
+          fontSize: 15,
           fontWeight: FontWeight.w400,
         ),
-        enabledBorder: UnderlineInputBorder(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: hasError ? const Color(0xFFFF3B30) : const Color(0xFFDDDDE3),
+            color: hasError ? const Color(0xFFEF4444) : const Color(0xFF2E3033),
+            width: 1.0,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: hasError ? const Color(0xFFEF4444) : const Color(0xFF2E3033),
+            width: 1.0,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: hasError ? const Color(0xFFEF4444) : const Color(0xFF3B82F6),
             width: 1.5,
           ),
         ),
-        focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(
-            color: hasError ? const Color(0xFFFF3B30) : Colors.black,
-            width: 2,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       onSubmitted: onSubmitted,
     );
@@ -311,7 +321,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       width: active ? 24 : 8,
       height: 8,
       decoration: BoxDecoration(
-        color: active ? Colors.black : const Color(0xFFDDDDE3),
+        color: active ? Colors.white : const Color(0xFF2E3033),
         borderRadius: BorderRadius.circular(4),
       ),
     );
