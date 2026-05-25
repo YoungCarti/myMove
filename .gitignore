@@ -52,4 +52,8 @@ app.*.map.json
 .dartServer/
 .dart_home/
 
+# Local custom paths
+/packages/
+/.home/
+
 
