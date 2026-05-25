@@ -55,5 +55,6 @@ app.*.map.json
 # Local custom paths
 /packages/
 /.home/
+.venv/
 
 
