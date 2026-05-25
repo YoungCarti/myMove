@@ -449,6 +449,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                       onChanged: (value) {
                         if (_isLoading) return;
+                        if (_errorMessage != null) {
+                          setState(() {
+                            _errorMessage = null;
+                          });
+                        }
                         if (value.isNotEmpty) {
                           if (index < 5) {
                             _focusNodes[index + 1].requestFocus();
