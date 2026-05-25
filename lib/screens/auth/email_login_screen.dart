@@ -29,6 +29,8 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   }
 
   void _onLogin() async {
+    if (_isLoading) return;
+
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
@@ -36,9 +38,15 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     String? passwordErr;
 
     if (email.isEmpty) {
-      emailErr = 'Please enter your email address.';
-    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
-      emailErr = 'That doesn\'t look like a valid email.';
+      emailErr = 'Please enter your username, email, or mobile number.';
+    } else {
+      final isEmail = RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email);
+      final isUsername = RegExp(r'^[a-zA-Z0-9._-]{3,}$').hasMatch(email);
+      final isPhone = RegExp(r'^\+?[0-9]{7,15}$').hasMatch(email);
+
+      if (!isEmail && !isUsername && !isPhone) {
+        emailErr = 'Please enter a valid username, email, or mobile number.';
+      }
     }
 
     if (password.isEmpty) {
@@ -62,8 +70,19 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final success = await authProvider.signIn(email, password);
-      if (success && mounted) {
-        Navigator.of(context).pop();
+      if (success) {
+        if (mounted) {
+          setState(() {
+            _generalError = null;
+          });
+          Navigator.of(context).pop();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _generalError = 'Login failed: please check your login credentials and password.';
+          });
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
@@ -279,7 +298,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                             ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           ),
-                          onSubmitted: (_) => _onLogin(),
+                          onSubmitted: _isLoading ? null : (_) => _onLogin(),
                         ),
                         _errorText(_passwordError),
                         _errorText(_generalError),
