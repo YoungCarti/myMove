@@ -370,7 +370,7 @@ class AuthProvider with ChangeNotifier {
       return true;
     } catch (e) {
       // If there's an error (e.g. offline/network), default to false/allow to continue
-      return true;
+      return false;
     }
   }
 
@@ -529,6 +529,9 @@ class AuthProvider with ChangeNotifier {
   Future<void> toggle2FA(bool enabled) async {
     final currentUser = _user;
     if (currentUser == null) throw Exception('No user signed in.');
+    if (!enabled) {
+      throw Exception('Use disable2FA() with a verification code to turn off Two-Factor Authentication.');
+    }
     _setLoading(true);
     try {
       await _firestore.collection('users').doc(currentUser.uid).update({
@@ -539,6 +542,32 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       _setLoading(false);
       throw Exception('Failed to update 2FA status: ${e.toString()}');
+    }
+  }
+
+  // Disable 2FA with verification code
+  Future<void> disable2FA(String code) async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    
+    final secret = totpSecret;
+    if (secret.isEmpty) throw Exception('2FA is not configured for this account.');
+    
+    _setLoading(true);
+    try {
+      final isValid = TOTP.verifyCode(secret, code);
+      if (!isValid) {
+        throw Exception('Invalid 6-digit code. Please try again.');
+      }
+      
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'is2FAEnabled': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      _setLoading(false);
+    } catch (e) {
+      _setLoading(false);
+      throw Exception('Failed to disable 2FA: ${e.toString().replaceAll('Exception: ', '')}');
     }
   }
 

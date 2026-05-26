@@ -100,6 +100,7 @@ class AccountSettingsScreen extends StatelessWidget {
   }
 
   void _showDisable2FADialog(BuildContext context, AuthProvider authProvider) {
+    final TextEditingController codeController = TextEditingController();
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -119,13 +120,45 @@ class AccountSettingsScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Text(
-            'Are you sure you want to disable Two-Factor Authentication? Your account will be less secure.',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-              height: 1.4,
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Are you sure you want to disable Two-Factor Authentication? Your account will be less secure.',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Enter 6-digit Authenticator Code',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                style: const TextStyle(color: Colors.white, letterSpacing: 4.0),
+                decoration: InputDecoration(
+                  hintText: '000000',
+                  hintStyle: const TextStyle(color: Colors.white30, letterSpacing: 4.0),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  counterText: '',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -140,6 +173,16 @@ class AccountSettingsScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () async {
+                final code = codeController.text.trim();
+                if (code.length != 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid 6-digit code.'),
+                      backgroundColor: Color(0xFFFF453A),
+                    ),
+                  );
+                  return;
+                }
                 Navigator.of(dialogContext).pop(); // Close dialog
                 try {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -149,7 +192,7 @@ class AccountSettingsScreen extends StatelessWidget {
                       duration: Duration(seconds: 1),
                     ),
                   );
-                  await authProvider.toggle2FA(false);
+                  await authProvider.disable2FA(code);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(

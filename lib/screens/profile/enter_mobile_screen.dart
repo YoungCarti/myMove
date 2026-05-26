@@ -124,7 +124,7 @@ class _EnterMobileNumberScreenState extends State<EnterMobileNumberScreen> {
   @override
   Widget build(BuildContext context) {
     final phone = _phoneController.text.trim();
-    final isValid = phone.isNotEmpty && RegExp(r'^\+?[0-9\s\-]{7,15}$').hasMatch(phone);
+    final isValid = phone.isNotEmpty && RegExp(r'^\+[0-9\s\-]{7,15}$').hasMatch(phone);
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),

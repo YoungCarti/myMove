@@ -15,6 +15,7 @@ class OtpVerificationScreen extends StatefulWidget {
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final List<FocusNode> _keyboardFocusNodes = List.generate(6, (_) => FocusNode());
   
   bool _isLoading = false;
   String? _errorText;
@@ -52,6 +53,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       controller.dispose();
     }
     for (var node in _focusNodes) {
+      node.dispose();
+    }
+    for (var node in _keyboardFocusNodes) {
       node.dispose();
     }
     _timer?.cancel();
@@ -107,9 +111,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       );
       
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         // Return true to EnterMobileNumberScreen to signal success
         Navigator.of(context).pop(true);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Mobile number verified and updated successfully.'),
             backgroundColor: Color(0xFF32D74B),
@@ -149,8 +154,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         verificationCompleted: (PhoneAuthCredential credential) {
           if (mounted) {
             setState(() => _isLoading = false);
+            final messenger = ScaffoldMessenger.of(context);
             Navigator.of(context).pop(true);
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               const SnackBar(
                 content: Text('Mobile number automatically verified and updated.'),
                 backgroundColor: Color(0xFF32D74B),
@@ -266,7 +272,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           width: 46,
                           height: 58,
                           child: KeyboardListener(
-                            focusNode: FocusNode(), // Dummy focus node for listener key trapping
+                            focusNode: _keyboardFocusNodes[index],
                             onKeyEvent: (KeyEvent event) {
                               if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
                                 if (_controllers[index].text.isEmpty && index > 0) {

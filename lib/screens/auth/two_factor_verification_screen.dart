@@ -15,6 +15,7 @@ class TwoFactorVerificationScreen extends StatefulWidget {
 class _TwoFactorVerificationScreenState extends State<TwoFactorVerificationScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final List<FocusNode> _keyboardFocusNodes = List.generate(6, (_) => FocusNode());
   
   bool _isLoading = false;
   String? _errorText;
@@ -33,6 +34,9 @@ class _TwoFactorVerificationScreenState extends State<TwoFactorVerificationScree
       controller.dispose();
     }
     for (var node in _focusNodes) {
+      node.dispose();
+    }
+    for (var node in _keyboardFocusNodes) {
       node.dispose();
     }
     super.dispose();
@@ -181,7 +185,7 @@ class _TwoFactorVerificationScreenState extends State<TwoFactorVerificationScree
                           width: 46,
                           height: 58,
                           child: KeyboardListener(
-                            focusNode: FocusNode(), // Dummy focus node for listener key trapping
+                            focusNode: _keyboardFocusNodes[index], // Use persistent focus node
                             onKeyEvent: (KeyEvent event) {
                               if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
                                 if (_controllers[index].text.isEmpty && index > 0) {
