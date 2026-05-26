@@ -4,6 +4,7 @@ import 'config/routes.dart';
 import 'config/theme.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth/onboarding_screen.dart';
+import 'screens/auth/two_factor_verification_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/splash_screen.dart';
 
@@ -44,6 +45,11 @@ class _MyMoveAppState extends State<MyMoveApp> {
                       child: CircularProgressIndicator(),
                     ),
                   );
+                }
+
+                // If 2FA is pending, route to 2FA Verification screen immediately
+                if (authProvider.is2FAPending) {
+                  return const TwoFactorVerificationScreen();
                 }
                 
                 // Once checked, render HomeScreen or OnboardingScreen based on current user state

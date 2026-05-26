@@ -13,52 +13,85 @@ class HomeScreen extends StatelessWidget {
     final userEmail = user?.email ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FC),
+      backgroundColor: const Color(0xFF121212),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0, top: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ─── Header Section ──────────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Welcome back,',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF8E8E93),
-                          fontWeight: FontWeight.w500,
+                      // ─── Circle Profile Picture ───
+                      GestureDetector(
+                        onTap: () => Navigator.pushNamed(context, '/profile'),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF1C1C1E), Color(0xFF3A3A3C)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              width: 1.5,
+                            ),
+                            image: user?.photoURL != null && user!.photoURL!.isNotEmpty
+                                ? DecorationImage(
+                                    image: NetworkImage(user.photoURL!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: user?.photoURL != null && user!.photoURL!.isNotEmpty
+                              ? null
+                              : Center(
+                                  child: Text(
+                                    userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        userName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
-                          letterSpacing: -0.5,
+                      const SizedBox(width: 10),
+                      // ─── myMove Cursive Font ───
+                      const Text(
+                        'myMove',
+                        style: TextStyle(
+                          fontFamily: 'Cattalague',
+                          fontSize: 20,
+                          color: Colors.white,
+                          height: 1.2,
                         ),
                       ),
                     ],
                   ),
+                  // ─── Settings Gear ───
                   GestureDetector(
                     onTap: () => Navigator.pushNamed(context, '/profile'),
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Colors.white.withValues(alpha: 0.07),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.settings_rounded,
-                        size: 22,
-                        color: Colors.black,
+                        size: 20,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -230,11 +263,11 @@ class HomeScreen extends StatelessWidget {
       onTap: () => Navigator.pushNamed(context, route),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -248,7 +281,7 @@ class HomeScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
+                color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -265,7 +298,7 @@ class HomeScreen extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
-                    color: Colors.black,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 2),
