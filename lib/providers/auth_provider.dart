@@ -3,21 +3,42 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../utils/totp_utils.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
   final GoogleSignIn _googleSignIn;
   StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<DocumentSnapshot>? _userDocSubscription;
   
   User? _user;
+  Map<String, dynamic>? _firestoreUserData;
   bool _isLoading = false;
   bool _isInitialChecked = false;
+  bool _didJustSignOut = false;
+  bool _is2FAPending = false;
 
   User? get user => _user;
+  Map<String, dynamic>? get firestoreUserData => _firestoreUserData;
   bool get isLoading => _isLoading;
-  bool get isAuthenticated => _user != null;
+  bool get isAuthenticated => _user != null && !_is2FAPending;
   bool get isInitialChecked => _isInitialChecked;
+  bool get didJustSignOut => _didJustSignOut;
+  bool get is2FAPending => _is2FAPending;
+  bool get is2FAEnabled => _firestoreUserData?['is2FAEnabled'] ?? false;
+  String get totpSecret => _firestoreUserData?['totpSecret'] ?? '';
+
+  // Reactive user profile getters
+  String get displayName => _firestoreUserData?['name'] ?? _user?.displayName ?? '';
+  String get username => _firestoreUserData?['username'] ?? '';
+  String get phoneNumber => _firestoreUserData?['phoneNumber'] ?? _user?.phoneNumber ?? '';
+  String get email => _firestoreUserData?['email'] ?? _user?.email ?? '';
+  String get profileImageUrl => _firestoreUserData?['profileImageUrl'] ?? _user?.photoURL ?? '';
+
+  void resetDidJustSignOut() {
+    _didJustSignOut = false;
+  }
 
   AuthProvider({
     FirebaseAuth? auth,
@@ -27,9 +48,52 @@ class AuthProvider with ChangeNotifier {
         _firestore = firestore ?? FirebaseFirestore.instance,
         _googleSignIn = googleSignIn ?? GoogleSignIn() {
     // Listen to auth state changes
-    _authSubscription = _auth.authStateChanges().listen((User? user) {
+    _authSubscription = _auth.authStateChanges().listen((User? user) async {
+      if (user != null && !_isInitialChecked) {
+        // App just loaded and we detected an active Firebase session.
+        // We must check if they have 2FA enabled before letting them into the app.
+        try {
+          final doc = await _firestore.collection('users').doc(user.uid).get();
+          if (doc.exists) {
+            final data = doc.data();
+            final is2FA = data?['is2FAEnabled'] ?? false;
+            final secret = (data?['totpSecret'] ?? '').toString().trim();
+            if (is2FA && secret.isNotEmpty) {
+              _is2FAPending = true;
+            }
+          }
+        } catch (e) {
+          debugPrint("Error performing 2FA startup check: $e");
+        }
+      }
+
       _user = user;
       _isInitialChecked = true;
+      _setupFirestoreSubscription(user);
+      notifyListeners();
+    });
+  }
+
+  // Setup/cancel Firestore subscription reactively
+  void _setupFirestoreSubscription(User? user) {
+    _userDocSubscription?.cancel();
+    _userDocSubscription = null;
+    if (user == null) {
+      _firestoreUserData = null;
+      notifyListeners();
+      return;
+    }
+
+    _userDocSubscription = _firestore
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        _firestoreUserData = snapshot.data();
+      } else {
+        _firestoreUserData = null;
+      }
       notifyListeners();
     });
   }
@@ -41,14 +105,64 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Sign In using Firebase Auth
-  Future<bool> signIn(String email, String password) async {
+  Future<bool> signIn(String emailOrUsername, String password) async {
     _setLoading(true);
     try {
+      String emailToUse = emailOrUsername.trim();
+      
+      // Check if it looks like an email. If not, treat as a username.
+      final bool isEmail = RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(emailToUse);
+      if (!isEmail) {
+        String lookupUsername = emailToUse;
+        if (lookupUsername.startsWith('@')) {
+          lookupUsername = lookupUsername.substring(1);
+        }
+        lookupUsername = lookupUsername.trim().toLowerCase();
+        
+        if (lookupUsername.isEmpty) {
+          throw Exception('Please enter a valid email or username.');
+        }
+
+        final query = await _firestore
+            .collection('users')
+            .where('username_lowercase', isEqualTo: lookupUsername)
+            .limit(1)
+            .get();
+
+        if (query.docs.isEmpty) {
+          throw Exception('No user found with the username "@${emailOrUsername.startsWith('@') ? emailOrUsername.substring(1) : emailOrUsername}".');
+        }
+
+        final userData = query.docs.first.data();
+        final userEmail = userData['email'] as String?;
+        if (userEmail == null || userEmail.isEmpty) {
+          throw Exception('This username does not have a registered email address.');
+        }
+        emailToUse = userEmail;
+      }
+
       final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
+        email: emailToUse,
         password: password,
       );
+      final user = userCredential.user;
+      
+      if (user != null) {
+        final doc = await _firestore.collection('users').doc(user.uid).get();
+        final data = doc.data();
+        final is2FA = data?['is2FAEnabled'] ?? false;
+        final secret = (data?['totpSecret'] ?? '').toString().trim();
+        if (is2FA && secret.isNotEmpty) {
+          _user = user;
+          _firestoreUserData = data;
+          _is2FAPending = true;
+          _setLoading(false);
+          return true;
+        }
+      }
+      
       _user = userCredential.user;
+      _is2FAPending = false;
       _setLoading(false);
       return true;
     } on FirebaseAuthException {
@@ -56,6 +170,9 @@ class AuthProvider with ChangeNotifier {
       rethrow;
     } catch (e) {
       _setLoading(false);
+      if (e is Exception || e is FirebaseAuthException) {
+        rethrow;
+      }
       throw Exception('An unexpected error occurred. Please try again.');
     }
   }
@@ -82,6 +199,8 @@ class AuthProvider with ChangeNotifier {
           'name': name,
           'email': email,
           'role': 'user', // Default user role
+          'username': '',
+          'username_lowercase': '',
           'phoneNumber': '',
           'profileImageUrl': '',
           'createdAt': FieldValue.serverTimestamp(),
@@ -138,19 +257,34 @@ class AuthProvider with ChangeNotifier {
       try {
         // 5. Check if the user document already exists in Firestore to avoid overwriting existing data
         final DocumentSnapshot userDoc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+        Map<String, dynamic>? userData;
 
         if (!userDoc.exists) {
           // Store user details in Cloud Firestore if this is a new sign-in
-          await _firestore.collection('users').doc(firebaseUser.uid).set({
+          userData = {
             'uid': firebaseUser.uid,
             'name': firebaseUser.displayName ?? '',
             'email': firebaseUser.email ?? '',
             'role': 'user', // Default user role
+            'username': '',
+            'username_lowercase': '',
             'phoneNumber': firebaseUser.phoneNumber ?? '',
             'profileImageUrl': firebaseUser.photoURL ?? '',
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
-          });
+          };
+          await _firestore.collection('users').doc(firebaseUser.uid).set(userData);
+        } else {
+          userData = userDoc.data() as Map<String, dynamic>?;
+        }
+
+        final is2FA = userData?['is2FAEnabled'] ?? false;
+        final secret = (userData?['totpSecret'] ?? '').toString().trim();
+        if (is2FA && secret.isNotEmpty) {
+          _firestoreUserData = userData;
+          _is2FAPending = true;
+          _setLoading(false);
+          return true;
         }
       } catch (firestoreError) {
         // Rollback Firebase auth session on Firestore failure
@@ -189,14 +323,288 @@ class AuthProvider with ChangeNotifier {
   // Sign out of the app
   Future<void> signOut() async {
     _user = null;
+    _is2FAPending = false;
+    _didJustSignOut = true;
+    _setupFirestoreSubscription(null);
     await _auth.signOut();
     await _googleSignIn.signOut();
     notifyListeners();
   }
 
+  // Check if username is already taken by another user (case-insensitively)
+  Future<bool> isUsernameAvailable(String username) async {
+    final cleaned = username.trim().toLowerCase();
+    if (cleaned.isEmpty) return false;
+    
+    final currentUser = _user;
+    
+    try {
+      // First try checking the case-insensitive field
+      final queryLower = await _firestore
+          .collection('users')
+          .where('username_lowercase', isEqualTo: cleaned)
+          .get();
+          
+      if (queryLower.docs.isNotEmpty) {
+        if (currentUser != null) {
+          // If the only user having it is the current user, it's available
+          return queryLower.docs.every((doc) => doc.id == currentUser.uid);
+        }
+        return false;
+      }
+      
+      // Fallback: check exact field case-insensitively by doing an exact query
+      // (in case some existing profiles don't have username_lowercase yet)
+      final queryExact = await _firestore
+          .collection('users')
+          .where('username', isEqualTo: username.trim())
+          .get();
+          
+      if (queryExact.docs.isNotEmpty) {
+        if (currentUser != null) {
+          return queryExact.docs.every((doc) => doc.id == currentUser.uid);
+        }
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      // If there's an error (e.g. offline/network), default to false/allow to continue
+      return true;
+    }
+  }
+
+  // Update Username in Firestore
+  Future<void> updateUsername(String newUsername) async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    
+    _setLoading(true);
+    try {
+      // Verify availability
+      final isAvailable = await isUsernameAvailable(newUsername);
+      if (!isAvailable) {
+        throw Exception('This username is already taken. Please choose another.');
+      }
+
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'username': newUsername.trim(),
+        'username_lowercase': newUsername.trim().toLowerCase(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      _setLoading(false);
+    } catch (e) {
+      _setLoading(false);
+      throw Exception('Failed to update username: ${e.toString().replaceAll('Exception: ', '')}');
+    }
+  }
+
+  // Verify Phone Number with Firebase Auth (Sends real SMS)
+  Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required PhoneVerificationCompleted verificationCompleted,
+    required PhoneVerificationFailed verificationFailed,
+    required PhoneCodeSent codeSent,
+    required PhoneCodeAutoRetrievalTimeout codeAutoRetrievalTimeout,
+    int? forceResendingToken,
+  }) async {
+    _setLoading(true);
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // If auto-verification succeeds (Android only)
+          try {
+            final currentUser = _user;
+            if (currentUser != null) {
+              await currentUser.linkWithCredential(credential);
+              await _firestore.collection('users').doc(currentUser.uid).update({
+                'phoneNumber': phoneNumber.trim(),
+                'updatedAt': FieldValue.serverTimestamp(),
+              });
+            }
+            verificationCompleted(credential);
+          } catch (e) {
+            // Log/ignore errors during auto-linking or handle fallback
+          } finally {
+            _setLoading(false);
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          _setLoading(false);
+          verificationFailed(e);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          _setLoading(false);
+          codeSent(verificationId, resendToken);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _setLoading(false);
+          codeAutoRetrievalTimeout(verificationId);
+        },
+        forceResendingToken: forceResendingToken,
+      );
+    } catch (e) {
+      _setLoading(false);
+      rethrow;
+    }
+  }
+
+  // Link verified SMS credential to user account and save in Firestore
+  Future<void> linkPhoneNumber({
+    required String verificationId,
+    required String smsCode,
+    required String phoneNumber,
+  }) async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    _setLoading(true);
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      
+      // Link Phone to existing Auth account
+      await currentUser.linkWithCredential(credential);
+      
+      // Save phone number in Firestore
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'phoneNumber': phoneNumber.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      _setLoading(false);
+    } catch (e) {
+      _setLoading(false);
+      // Fallback: If credential was already linked, or if there is another error,
+      // we still want to make sure the Firestore is updated if it matches.
+      if (e is FirebaseAuthException && e.code == 'provider-already-linked') {
+        await _firestore.collection('users').doc(currentUser.uid).update({
+          'phoneNumber': phoneNumber.trim(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  // Update Phone Number directly in Firestore (fallback / administrative)
+  Future<void> updatePhoneNumber(String newPhoneNumber) async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    _setLoading(true);
+    try {
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'phoneNumber': newPhoneNumber.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      _setLoading(false);
+    } catch (e) {
+      _setLoading(false);
+      throw Exception('Failed to update phone number: ${e.toString()}');
+    }
+  }
+
+  // Delete user account from Firestore and Firebase Auth
+  Future<void> deleteAccount() async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    _setLoading(true);
+    try {
+      // 1. Delete user record in Firestore
+      await _firestore.collection('users').doc(currentUser.uid).delete();
+      // 2. Delete user account in Firebase Auth
+      await currentUser.delete();
+      // 3. Sign out clean up
+      await signOut();
+      _setLoading(false);
+    } catch (e) {
+      _setLoading(false);
+      throw Exception('Failed to delete account: ${e.toString()}');
+    }
+  }
+
+  // Toggle 2FA in Firestore
+  Future<void> toggle2FA(bool enabled) async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    _setLoading(true);
+    try {
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'is2FAEnabled': enabled,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      _setLoading(false);
+    } catch (e) {
+      _setLoading(false);
+      throw Exception('Failed to update 2FA status: ${e.toString()}');
+    }
+  }
+
+  // Cancel 2FA process during login
+  Future<void> cancel2FA() async {
+    _is2FAPending = false;
+    await signOut();
+  }
+
+  // Verify 2FA Authenticator code during login
+  Future<void> verify2FACTOTPCode(String code) async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    
+    final secret = totpSecret;
+    if (secret.isEmpty) throw Exception('2FA is not configured for this account.');
+    
+    _setLoading(true);
+    try {
+      final isValid = TOTP.verifyCode(secret, code);
+      if (!isValid) {
+        throw Exception('Invalid 6-digit code. Please try again.');
+      }
+      
+      // Success! Clear the pending 2FA state
+      _is2FAPending = false;
+      _setLoading(false);
+      notifyListeners();
+    } catch (e) {
+      _setLoading(false);
+      rethrow;
+    }
+  }
+
+  // Setup 2FA: Verify the setup code, and if valid, enable 2FA and save the secret in Firestore
+  Future<void> setup2FA({
+    required String secret,
+    required String code,
+  }) async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    
+    _setLoading(true);
+    try {
+      final isValid = TOTP.verifyCode(secret, code);
+      if (!isValid) {
+        throw Exception('Invalid 6-digit code. Please check your authenticator app and try again.');
+      }
+      
+      // Save secret and enable 2FA in Firestore
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'totpSecret': secret,
+        'is2FAEnabled': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      _setLoading(false);
+    } catch (e) {
+      _setLoading(false);
+      rethrow;
+    }
+  }
+
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _userDocSubscription?.cancel();
     super.dispose();
   }
 }

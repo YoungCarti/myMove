@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -12,6 +13,33 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _isGoogleLoading = false;
+  bool _showToast = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.didJustSignOut) {
+        _showSignOutMessage();
+      }
+    });
+  }
+
+  void _showSignOutMessage() {
+    Provider.of<AuthProvider>(context, listen: false).resetDidJustSignOut();
+    setState(() {
+      _showToast = true;
+    });
+
+    Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showToast = false;
+        });
+      }
+    });
+  }
 
   Future<void> _handleGoogleSignIn() async {
     if (_isGoogleLoading) return;
@@ -267,6 +295,52 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
 
                   const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
+          
+          // ─── Sign Out Success Toast ───
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeOutBack,
+            top: _showToast ? 50 : -80,
+            left: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF32D74B),
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Successfully Signed Out',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -12,18 +12,18 @@ class EmailLoginScreen extends StatefulWidget {
 }
 
 class _EmailLoginScreenState extends State<EmailLoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  String? _emailError;
+  String? _identifierError;
   String? _passwordError;
   String? _generalError;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -31,16 +31,33 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   void _onLogin() async {
     if (_isLoading) return;
 
-    final email = _emailController.text.trim();
+    final identifier = _identifierController.text.trim();
     final password = _passwordController.text;
 
-    String? emailErr;
+    String? identifierErr;
     String? passwordErr;
 
-    if (email.isEmpty) {
-      emailErr = 'Please enter your email address.';
-    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email)) {
-      emailErr = 'That doesn\'t look like a valid email.';
+    if (identifier.isEmpty) {
+      identifierErr = 'Please enter your email or username.';
+    } else {
+      final bool isEmailAttempt = identifier.contains('@') && !identifier.startsWith('@');
+      if (isEmailAttempt) {
+        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(identifier)) {
+          identifierErr = 'That doesn\'t look like a valid email.';
+        }
+      } else {
+        String cleanUsername = identifier;
+        if (cleanUsername.startsWith('@')) {
+          cleanUsername = cleanUsername.substring(1);
+        }
+        if (cleanUsername.isEmpty) {
+          identifierErr = 'Please enter a valid username.';
+        } else if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(cleanUsername)) {
+          identifierErr = 'Username can only contain letters, numbers, and underscores.';
+        } else if (cleanUsername.length < 3) {
+          identifierErr = 'Username must be at least 3 characters.';
+        }
+      }
     }
 
     if (password.isEmpty) {
@@ -50,12 +67,12 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     }
 
     setState(() {
-      _emailError = emailErr;
+      _identifierError = identifierErr;
       _passwordError = passwordErr;
       _generalError = null;
     });
 
-    if (emailErr != null || passwordErr != null) return;
+    if (identifierErr != null || passwordErr != null) return;
 
     setState(() {
       _isLoading = true;
@@ -63,7 +80,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.signIn(email, password);
+      final success = await authProvider.signIn(identifier, password);
       if (success) {
         if (mounted) {
           setState(() {
@@ -74,7 +91,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       } else {
         if (mounted) {
           setState(() {
-            _generalError = 'Login failed: please check your email and password.';
+            _generalError = 'Login failed: please check your credentials.';
           });
         }
       }
@@ -86,7 +103,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
             case 'user-not-found':
             case 'wrong-password':
             case 'invalid-credential':
-              _generalError = 'Invalid email or password. Please try again.';
+              _generalError = 'Invalid email/username or password. Please try again.';
               break;
             case 'network-request-failed':
               _generalError = 'Network error. Please check your internet connection.';
@@ -106,7 +123,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       debugPrint('Unexpected error during login: $e');
       if (mounted) {
         setState(() {
-          _generalError = 'An unexpected error occurred. Please try again.';
+          _generalError = e.toString().replaceAll('Exception: ', '');
         });
       }
     } finally {
@@ -175,14 +192,14 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
                         const Spacer(flex: 4), // Space between logo and inputs
 
-                        // ─── Email Field ───
+                        // ─── Username or Email Field ───
                         TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
+                          controller: _identifierController,
+                          keyboardType: TextInputType.text,
                           onChanged: (_) {
-                            if (_emailError != null || _generalError != null) {
+                            if (_identifierError != null || _generalError != null) {
                               setState(() {
-                                _emailError = null;
+                                _identifierError = null;
                                 _generalError = null;
                               });
                             }
@@ -195,7 +212,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: const Color(0xFF1E1E1E),
-                            hintText: 'Email address',
+                            hintText: 'Username or email',
                             hintStyle: const TextStyle(
                               color: Color(0xFF757575),
                               fontSize: 15,
@@ -224,7 +241,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                           ),
                         ),
-                        _errorText(_emailError),
+                        _errorText(_identifierError),
 
                         const SizedBox(height: 12),
 
@@ -303,9 +320,9 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              disabledBackgroundColor: const Color(0xFF0064E0).withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              disabledBackgroundColor: const Color(0xFF0064E0).withOpacity(0.4),
                             ),
                             child: _isLoading
                                 ? const SizedBox(

@@ -10,6 +10,12 @@ import '../screens/booking/active_booking_screen.dart';
 import '../screens/qr/qr_scanner_screen.dart';
 import '../screens/qr/qr_display_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/profile/settings_screen.dart';
+import '../screens/profile/update_username_screen.dart';
+import '../screens/profile/enter_mobile_screen.dart';
+import '../screens/profile/otp_verification_screen.dart';
+import '../screens/profile/setup_2fa_screen.dart';
+
 
 class AppRoutes {
   // Route names
@@ -24,6 +30,12 @@ class AppRoutes {
   static const String qrScanner = '/qr-scanner';
   static const String qrDisplay = '/qr-display';
   static const String profile = '/profile';
+  static const String accountSettings = '/account-settings';
+  static const String updateUsername = '/update_username';
+  static const String enterMobile = '/enter_mobile';
+  static const String otpVerification = '/otp_verification';
+  static const String setup2FA = '/setup_2fa';
+
 
   // Route map
   static Map<String, WidgetBuilder> routes = {
@@ -38,5 +50,10 @@ class AppRoutes {
     qrScanner: (context) => const QRScannerScreen(),
     qrDisplay: (context) => const QRDisplayScreen(),
     profile: (context) => const ProfileScreen(),
+    accountSettings: (context) => const AccountSettingsScreen(),
+    updateUsername: (context) => const UpdateUsernameScreen(),
+    enterMobile: (context) => const EnterMobileNumberScreen(),
+    otpVerification: (context) => const OtpVerificationScreen(),
+    setup2FA: (context) => const Setup2FAScreen(),
   };
 }
