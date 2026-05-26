@@ -48,26 +48,17 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                   GestureDetector(
-                    onTap: () => authProvider.signOut(),
+                    onTap: () => Navigator.pushNamed(context, '/profile'),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(20),
+                        shape: BoxShape.circle,
                       ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.logout_rounded, size: 16, color: Colors.black),
-                          SizedBox(width: 6),
-                          Text(
-                            'Sign Out',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
+                      child: const Icon(
+                        Icons.settings_rounded,
+                        size: 22,
+                        color: Colors.black,
                       ),
                     ),
                   ),
