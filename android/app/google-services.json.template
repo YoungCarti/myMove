@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "340854856075",
-    "project_id": "mymove-cb624",
-    "storage_bucket": "mymove-cb624.firebasestorage.app"
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "YOUR_PROJECT_ID",
+    "storage_bucket": "YOUR_PROJECT_ID.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:340854856075:android:66f561a609df1b99e2778e",
+        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_APP_ID",
         "android_client_info": {
           "package_name": "com.example.codes"
         }
       },
       "oauth_client": [
         {
-          "client_id": "340854856075-mpe4tpu3llsmes6306u07c25j3jbfcbg.apps.googleusercontent.com",
+          "client_id": "YOUR_OAUTH_CLIENT_ID_1.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.codes",
-            "certificate_hash": "3bb3b6094c3c1762a694a24395e1f14f13c61a82"
+            "certificate_hash": "YOUR_CERTIFICATE_HASH"
           }
         },
         {
-          "client_id": "340854856075-5fkd1esjf1e7v82q0uug14qpcrdgcaff.apps.googleusercontent.com",
+          "client_id": "YOUR_OAUTH_CLIENT_ID_2.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDRoILWxGX52GV5gsemBagyqTInF6xam6k"
+          "current_key": "YOUR_API_KEY"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "340854856075-5fkd1esjf1e7v82q0uug14qpcrdgcaff.apps.googleusercontent.com",
+              "client_id": "YOUR_OAUTH_CLIENT_ID_2.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
