@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../config/routes.dart';
@@ -95,17 +96,25 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Stack(
         children: [
           // ─── Full Screen Map ─────────────────────────────────────────────
-          GoogleMap(
-            onMapCreated: _onMapCreated,
-            initialCameraPosition: CameraPosition(
-              target: _center,
-              zoom: 14.0,
+          if (defaultTargetPlatform == TargetPlatform.android)
+            GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _center,
+                zoom: 14.0,
+              ),
+              mapType: MapType.hybrid,
+              myLocationEnabled: _locationPermissionGranted,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+            )
+          else
+            const Center(
+              child: Text(
+                'Map is only supported on Android.',
+                style: TextStyle(color: Colors.white54, fontSize: 16),
+              ),
             ),
-            mapType: MapType.hybrid,
-            myLocationEnabled: _locationPermissionGranted,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-          ),
           
           // ─── Header Overlay ──────────────────────────────────────────────
           SafeArea(
@@ -283,20 +292,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _isLoadingLocation ? null : _goToCurrentLocation,
-        backgroundColor: const Color(0xFF1C1C1E),
-        child: _isLoadingLocation
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : const Icon(Icons.my_location_rounded, color: Colors.white),
-      ),
+      floatingActionButton: defaultTargetPlatform == TargetPlatform.android
+          ? FloatingActionButton(
+              onPressed: _isLoadingLocation ? null : _goToCurrentLocation,
+              backgroundColor: const Color(0xFF1C1C1E),
+              child: _isLoadingLocation
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : const Icon(Icons.my_location_rounded, color: Colors.white),
+            )
+          : null,
     );
   }
 }
