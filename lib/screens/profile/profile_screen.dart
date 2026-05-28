@@ -211,7 +211,9 @@ class ProfileScreen extends StatelessWidget {
                       icon: Icons.verified_user_rounded,
                       iconColor: const Color(0xFF32D74B),
                       title: 'Permissions',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.permissions);
+                      },
                     ),
                   ],
                 ),
