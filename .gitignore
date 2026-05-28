@@ -57,4 +57,7 @@ app.*.map.json
 /.home/
 .venv/
 
-
+# Firebase configuration files (Secrets)
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
