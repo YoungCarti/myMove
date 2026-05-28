@@ -1,0 +1,13 @@
+Review the code changes in the current pull request.
+
+Please identify any bugs, security vulnerabilities, or code quality issues in the changes.
+Categorize each issue with a priority: HIGH, MEDIUM, or LOW.
+
+For each issue, please provide:
+1. A clear description of the issue.
+2. The specific file and lines of code involved.
+3. A suggested fix.
+4. An exact prompt that I can copy and paste to my AI assistant to help me fix it and push directly to this PR.
+
+Example Prompt Format:
+"Please fix the bug in [filename] on line [line number]. The issue is [description]. Implement the suggested fix: [suggested fix] and push the changes to the current branch."

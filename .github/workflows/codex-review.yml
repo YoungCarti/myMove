@@ -1,0 +1,26 @@
+name: Codex PR Review
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  codex-review:
+    if: github.event.label.name == 'codex-review'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Run Codex Review
+        uses: openai/codex-action@v1
+        with:
+          prompt-file: .github/codex/prompts/review.txt
+          safety-strategy: drop-sudo
+          sandbox: read-only
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
