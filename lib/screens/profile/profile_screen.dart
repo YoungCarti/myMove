@@ -114,7 +114,9 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      onTap: () {}, // Navigate to Edit Profile
+                      onTap: () {
+                        Navigator.pushNamed(context, '/edit-profile');
+                      },
                       title: const Text(
                         'Edit Profile',
                         style: TextStyle(

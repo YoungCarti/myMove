@@ -11,6 +11,7 @@ import '../screens/qr/qr_scanner_screen.dart';
 import '../screens/qr/qr_display_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/settings_screen.dart';
+import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/update_username_screen.dart';
 import '../screens/profile/enter_mobile_screen.dart';
 import '../screens/profile/otp_verification_screen.dart';
@@ -30,6 +31,7 @@ class AppRoutes {
   static const String qrScanner = '/qr-scanner';
   static const String qrDisplay = '/qr-display';
   static const String profile = '/profile';
+  static const String editProfile = '/edit-profile';
   static const String accountSettings = '/account-settings';
   static const String updateUsername = '/update_username';
   static const String enterMobile = '/enter_mobile';
@@ -50,6 +52,7 @@ class AppRoutes {
     qrScanner: (context) => const QRScannerScreen(),
     qrDisplay: (context) => const QRDisplayScreen(),
     profile: (context) => const ProfileScreen(),
+    editProfile: (context) => const EditProfileScreen(),
     accountSettings: (context) => const AccountSettingsScreen(),
     updateUsername: (context) => const UpdateUsernameScreen(),
     enterMobile: (context) => const EnterMobileNumberScreen(),
