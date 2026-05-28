@@ -198,7 +198,9 @@ class ProfileScreen extends StatelessWidget {
                       icon: Icons.notifications_rounded,
                       iconColor: const Color(0xFFFF453A),
                       title: 'Notifications',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.notifications);
+                      },
                     ),
                     Divider(
                       color: Colors.white.withValues(alpha: 0.08),
