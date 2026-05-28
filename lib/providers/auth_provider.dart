@@ -479,13 +479,40 @@ class AuthProvider with ChangeNotifier {
         await currentUser.updatePhotoURL(imageUrl);
       }
       
+      List<Map<String, dynamic>> sanitizedVehicles = [];
+      bool primaryFound = false;
+      for (var v in vehicles) {
+        final make = (v['make'] as String?)?.trim() ?? '';
+        final plate = (v['plate'] as String?)?.trim() ?? '';
+        if (make.isEmpty && plate.isEmpty) continue;
+        
+        bool isPrimary = v['isPrimary'] == true;
+        if (isPrimary) {
+          if (primaryFound) {
+            isPrimary = false; // only one primary allowed
+          } else {
+            primaryFound = true;
+          }
+        }
+        
+        sanitizedVehicles.add({
+          'make': make,
+          'plate': plate,
+          'isPrimary': isPrimary,
+        });
+      }
+      
+      if (sanitizedVehicles.isNotEmpty && !primaryFound) {
+        sanitizedVehicles.first['isPrimary'] = true;
+      }
+
       final Map<String, dynamic> updates = {
         'name': name.trim(),
         'bio': bio.trim(),
-        'vehicles': vehicles,
+        'vehicles': sanitizedVehicles,
         // Update top-level fields for backwards compatibility with any other code
-        'vehicleMake': vehicles.isNotEmpty ? vehicles.firstWhere((v) => v['isPrimary'] == true, orElse: () => vehicles.first)['make'] : '',
-        'vehiclePlate': vehicles.isNotEmpty ? vehicles.firstWhere((v) => v['isPrimary'] == true, orElse: () => vehicles.first)['plate'] : '',
+        'vehicleMake': sanitizedVehicles.isNotEmpty ? sanitizedVehicles.firstWhere((v) => v['isPrimary'] == true, orElse: () => sanitizedVehicles.first)['make'] : '',
+        'vehiclePlate': sanitizedVehicles.isNotEmpty ? sanitizedVehicles.firstWhere((v) => v['isPrimary'] == true, orElse: () => sanitizedVehicles.first)['plate'] : '',
         'updatedAt': FieldValue.serverTimestamp(),
       };
       
