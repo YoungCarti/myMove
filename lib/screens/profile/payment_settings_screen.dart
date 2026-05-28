@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../config/routes.dart';
+import 'add_card_bottom_sheet.dart';
 
 class PaymentSettingsScreen extends StatelessWidget {
   const PaymentSettingsScreen({super.key});
@@ -34,7 +36,7 @@ class PaymentSettingsScreen extends StatelessWidget {
                 icon: Icons.add_card_outlined, // Add Payment Method icon
                 title: 'Add Payment Method',
                 onTap: () {
-                  // TODO: Navigate to Add Payment Method
+                  AddCardBottomSheet.show(context);
                 },
               ),
               const SizedBox(height: 16),
@@ -47,7 +49,7 @@ class PaymentSettingsScreen extends StatelessWidget {
                   size: 20,
                 ),
                 onTap: () {
-                  // TODO: Navigate to Payment History
+                  Navigator.of(context).pushNamed(AppRoutes.paymentHistory);
                 },
               ),
             ],
