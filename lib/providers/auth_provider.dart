@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../utils/totp_utils.dart';
 
@@ -35,6 +37,41 @@ class AuthProvider with ChangeNotifier {
   String get phoneNumber => _firestoreUserData?['phoneNumber'] ?? _user?.phoneNumber ?? '';
   String get email => _firestoreUserData?['email'] ?? _user?.email ?? '';
   String get profileImageUrl => _firestoreUserData?['profileImageUrl'] ?? _user?.photoURL ?? '';
+  String get bio => _firestoreUserData?['bio'] ?? '';
+
+  List<Map<String, dynamic>> get vehicles {
+    if (_firestoreUserData == null) return [];
+    if (_firestoreUserData!['vehicles'] != null) {
+      return List<Map<String, dynamic>>.from(_firestoreUserData!['vehicles'].map((e) => Map<String, dynamic>.from(e)));
+    }
+    // Fallback/Migration for older accounts
+    final oldMake = _firestoreUserData!['vehicleMake'] as String?;
+    final oldPlate = _firestoreUserData!['vehiclePlate'] as String?;
+    if ((oldMake != null && oldMake.isNotEmpty) || (oldPlate != null && oldPlate.isNotEmpty)) {
+      return [
+        {
+          'make': oldMake ?? '',
+          'plate': oldPlate ?? '',
+          'isPrimary': true,
+        }
+      ];
+    }
+    return [];
+  }
+
+  String get vehicleMake {
+    final v = vehicles;
+    if (v.isEmpty) return '';
+    final primary = v.firstWhere((e) => e['isPrimary'] == true, orElse: () => v.first);
+    return primary['make'] as String? ?? '';
+  }
+
+  String get vehiclePlate {
+    final v = vehicles;
+    if (v.isEmpty) return '';
+    final primary = v.firstWhere((e) => e['isPrimary'] == true, orElse: () => v.first);
+    return primary['plate'] as String? ?? '';
+  }
 
   void resetDidJustSignOut() {
     _didJustSignOut = false;
@@ -203,6 +240,9 @@ class AuthProvider with ChangeNotifier {
           'username_lowercase': '',
           'phoneNumber': '',
           'profileImageUrl': '',
+          'bio': '',
+          'vehicleMake': '',
+          'vehiclePlate': '',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -270,6 +310,9 @@ class AuthProvider with ChangeNotifier {
             'username_lowercase': '',
             'phoneNumber': firebaseUser.phoneNumber ?? '',
             'profileImageUrl': firebaseUser.photoURL ?? '',
+            'bio': '',
+            'vehicleMake': '',
+            'vehiclePlate': '',
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           };
@@ -396,6 +439,92 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       _setLoading(false);
       throw Exception('Failed to update username: ${e.toString().replaceAll('Exception: ', '')}');
+    }
+  }
+
+  // Update Profile details in Firestore
+  Future<void> updateProfile({
+    required String name,
+    required String bio,
+    required List<Map<String, dynamic>> vehicles,
+    File? profileImage,
+  }) async {
+    final currentUser = _user;
+    if (currentUser == null) throw Exception('No user signed in.');
+    
+    _setLoading(true);
+    try {
+      String? imageUrl;
+      
+      if (profileImage != null) {
+        try {
+          final ref = FirebaseStorage.instance
+              .ref()
+              .child('profile_images')
+              .child('${currentUser.uid}.jpg');
+              
+          final uploadTask = ref.putFile(profileImage);
+          final snapshot = await uploadTask.whenComplete(() {});
+          imageUrl = await snapshot.ref.getDownloadURL();
+        } catch (e) {
+          if (e.toString().contains('object-not-found') || e.toString().contains('-13010')) {
+             throw Exception('Storage not initialized. Please enable Firebase Storage in the Firebase Console.');
+          }
+          throw Exception('Failed to upload image: $e');
+        }
+      }
+
+      await currentUser.updateDisplayName(name.trim());
+      if (imageUrl != null) {
+        await currentUser.updatePhotoURL(imageUrl);
+      }
+      
+      List<Map<String, dynamic>> sanitizedVehicles = [];
+      bool primaryFound = false;
+      for (var v in vehicles) {
+        final make = (v['make'] as String?)?.trim() ?? '';
+        final plate = (v['plate'] as String?)?.trim() ?? '';
+        if (make.isEmpty && plate.isEmpty) continue;
+        
+        bool isPrimary = v['isPrimary'] == true;
+        if (isPrimary) {
+          if (primaryFound) {
+            isPrimary = false; // only one primary allowed
+          } else {
+            primaryFound = true;
+          }
+        }
+        
+        sanitizedVehicles.add({
+          'make': make,
+          'plate': plate,
+          'isPrimary': isPrimary,
+        });
+      }
+      
+      if (sanitizedVehicles.isNotEmpty && !primaryFound) {
+        sanitizedVehicles.first['isPrimary'] = true;
+      }
+
+      final Map<String, dynamic> updates = {
+        'name': name.trim(),
+        'bio': bio.trim(),
+        'vehicles': sanitizedVehicles,
+        // Update top-level fields for backwards compatibility with any other code
+        'vehicleMake': sanitizedVehicles.isNotEmpty ? sanitizedVehicles.firstWhere((v) => v['isPrimary'] == true, orElse: () => sanitizedVehicles.first)['make'] : '',
+        'vehiclePlate': sanitizedVehicles.isNotEmpty ? sanitizedVehicles.firstWhere((v) => v['isPrimary'] == true, orElse: () => sanitizedVehicles.first)['plate'] : '',
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      
+      if (imageUrl != null) {
+        updates['profileImageUrl'] = imageUrl;
+      }
+
+      await _firestore.collection('users').doc(currentUser.uid).update(updates);
+      _setLoading(false);
+    } catch (e) {
+      _setLoading(false);
+      throw Exception('Failed to update profile: ${e.toString()}');
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../config/routes.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -114,7 +115,9 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      onTap: () {}, // Navigate to Edit Profile
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.editProfile);
+                      },
                       title: const Text(
                         'Edit Profile',
                         style: TextStyle(
