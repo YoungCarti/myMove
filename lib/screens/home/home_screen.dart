@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../config/routes.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -12,10 +13,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late GoogleMapController mapController;
+  GoogleMapController? mapController;
   final LatLng _center = const LatLng(3.1390, 101.6869); // Kuala Lumpur default
   int _selectedIndex = 0;
   bool _isLoadingLocation = false;
+  bool _locationPermissionGranted = false;
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -60,7 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       Position position = await Geolocator.getCurrentPosition();
-      mapController.animateCamera(
+      if (mounted) {
+        setState(() {
+          _locationPermissionGranted = true;
+        });
+      }
+      mapController?.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
             target: LatLng(position.latitude, position.longitude),
@@ -95,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
               zoom: 14.0,
             ),
             mapType: MapType.hybrid,
-            myLocationEnabled: true,
+            myLocationEnabled: _locationPermissionGranted,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
           ),
@@ -228,7 +235,21 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() {
               _selectedIndex = index;
             });
-            // Implement actual navigation handling here if needed
+            
+            if (index == 1) {
+              Navigator.pushNamed(context, AppRoutes.searchParking).then((_) {
+                if (mounted) setState(() => _selectedIndex = 0);
+              });
+            } else if (index == 2) {
+              // Vehicles are managed in edit profile
+              Navigator.pushNamed(context, AppRoutes.editProfile).then((_) {
+                if (mounted) setState(() => _selectedIndex = 0);
+              });
+            } else if (index == 3) {
+              Navigator.pushNamed(context, AppRoutes.profile).then((_) {
+                if (mounted) setState(() => _selectedIndex = 0);
+              });
+            }
           },
           items: const [
             BottomNavigationBarItem(
