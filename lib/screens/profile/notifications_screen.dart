@@ -75,7 +75,7 @@ class NotificationsScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     GestureDetector(
                       onTap: () {
-                        // Action to enable notifications
+                        // TODO: request notification permissions via requestNotificationPermissions()
                       },
                       child: const Text(
                         "Enable Notifications",
@@ -219,7 +219,7 @@ class NotificationsScreen extends StatelessWidget {
 
   Widget _buildDivider() {
     return Divider(
-      color: Colors.white.withValues(alpha: 0.08),
+      color: Colors.white.withOpacity(0.08),
       height: 1,
       indent: 16,
     );
