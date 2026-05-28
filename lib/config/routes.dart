@@ -18,6 +18,7 @@ import '../screens/profile/otp_verification_screen.dart';
 import '../screens/profile/setup_2fa_screen.dart';
 import '../screens/profile/payment_settings_screen.dart';
 import '../screens/profile/payment_history_screen.dart';
+import '../screens/profile/notifications_screen.dart';
 
 
 class AppRoutes {
@@ -41,6 +42,7 @@ class AppRoutes {
   static const String setup2FA = '/setup_2fa';
   static const String paymentSettings = '/payment-settings';
   static const String paymentHistory = '/payment-history';
+  static const String notifications = '/notifications';
 
 
   // Route map
@@ -64,5 +66,6 @@ class AppRoutes {
     setup2FA: (context) => const Setup2FAScreen(),
     paymentSettings: (context) => const PaymentSettingsScreen(),
     paymentHistory: (context) => const PaymentHistoryScreen(),
+    notifications: (context) => const NotificationsScreen(),
   };
 }
