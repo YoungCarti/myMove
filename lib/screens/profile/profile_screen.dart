@@ -163,7 +163,9 @@ class ProfileScreen extends StatelessWidget {
                       icon: Icons.account_balance_wallet_rounded,
                       iconColor: const Color(0xFFBF5AF2),
                       title: 'Payment',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.paymentSettings);
+                      },
                     ),
                   ],
                 ),

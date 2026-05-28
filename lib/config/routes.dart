@@ -16,6 +16,7 @@ import '../screens/profile/update_username_screen.dart';
 import '../screens/profile/enter_mobile_screen.dart';
 import '../screens/profile/otp_verification_screen.dart';
 import '../screens/profile/setup_2fa_screen.dart';
+import '../screens/profile/payment_settings_screen.dart';
 
 
 class AppRoutes {
@@ -37,6 +38,7 @@ class AppRoutes {
   static const String enterMobile = '/enter_mobile';
   static const String otpVerification = '/otp_verification';
   static const String setup2FA = '/setup_2fa';
+  static const String paymentSettings = '/payment-settings';
 
 
   // Route map
@@ -58,5 +60,6 @@ class AppRoutes {
     enterMobile: (context) => const EnterMobileNumberScreen(),
     otpVerification: (context) => const OtpVerificationScreen(),
     setup2FA: (context) => const Setup2FAScreen(),
+    paymentSettings: (context) => const PaymentSettingsScreen(),
   };
 }
