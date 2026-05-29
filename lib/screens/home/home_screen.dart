@@ -26,11 +26,45 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _locationPermissionGranted = false;
 
   Set<Marker> _markers = {};
+  List<ParkingLocation> _allLocations = [];
+  List<ParkingLocation> _searchResults = [];
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _loadParkingMarker();
+    _searchController.addListener(() {
+      _onSearchChanged(_searchController.text);
+    });
+    _searchFocusNode.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+      });
+      return;
+    }
+    
+    final lowercaseQuery = query.toLowerCase();
+    setState(() {
+      _searchResults = _allLocations.where((location) {
+        return location.name.toLowerCase().contains(lowercaseQuery) || 
+               location.address.toLowerCase().contains(lowercaseQuery);
+      }).toList();
+    });
   }
 
   Future<BitmapDescriptor> _createParkingMarkerIcon() async {
@@ -87,8 +121,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _markers.clear();
+          _allLocations.clear();
           for (var doc in snapshot.docs) {
             final location = ParkingLocation.fromFirestore(doc);
+            _allLocations.add(location);
             _markers.add(
               Marker(
                 markerId: MarkerId(location.id),
@@ -181,8 +217,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
     final userName = user?.displayName ?? 'myMove User';
+    final bool isSearching = _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       extendBody: true,
       backgroundColor: const Color(0xFF121212),
       body: Stack(
@@ -192,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
             GoogleMap(
               onMapCreated: _onMapCreated,
               onTap: (LatLng position) {
-                // Map tapped
+                FocusScope.of(context).unfocus();
               },
               initialCameraPosition: CameraPosition(
                 target: _center,
@@ -216,59 +254,94 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-              child: Container(
-                height: 52,
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1C1C1E).withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    height: 52,
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1E).withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        width: 1,
+                      ),
                     ),
-                  ],
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
+                    child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // ─── Profile Picture ───
-                    GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/profile'),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            width: 1.5,
-                          ),
-                          image: user?.photoURL != null && user!.photoURL!.isNotEmpty
-                              ? DecorationImage(
-                                  image: NetworkImage(user.photoURL!),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: user?.photoURL != null && user!.photoURL!.isNotEmpty
-                            ? null
-                            : Center(
-                                child: Text(
-                                  userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                    // ─── Profile Picture or Back Button ───
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(scale: animation, child: child),
+                        );
+                      },
+                      child: isSearching
+                          ? GestureDetector(
+                              key: const ValueKey('back_btn'),
+                              onTap: () {
+                                _searchFocusNode.unfocus();
+                                _searchController.clear();
+                                setState(() {
+                                  _searchResults.clear();
+                                });
+                              },
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                color: Colors.transparent,
+                                child: const Icon(
+                                  Icons.arrow_back_ios_new_rounded,
+                                  size: 20,
+                                  color: Colors.white,
                                 ),
                               ),
-                      ),
+                            )
+                          : GestureDetector(
+                              key: const ValueKey('profile_btn'),
+                              onTap: () => Navigator.pushNamed(context, '/profile'),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    width: 1.5,
+                                  ),
+                                  image: user?.photoURL != null && user!.photoURL!.isNotEmpty
+                                      ? DecorationImage(
+                                          image: NetworkImage(user.photoURL!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
+                                ),
+                                child: user?.photoURL != null && user!.photoURL!.isNotEmpty
+                                    ? null
+                                    : Center(
+                                        child: Text(
+                                          userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ),
                     ),
                     
                     const SizedBox(width: 12),
@@ -276,6 +349,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     // ─── Search Bar ───
                     Expanded(
                       child: TextField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
                         style: const TextStyle(color: Colors.white, fontSize: 15),
                         decoration: InputDecoration(
                           hintText: 'Search parking spot...',
@@ -294,27 +369,104 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                     
                     // ─── Settings Gear ───
-                    GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/profile'),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.transparent,
-                        ),
-                        child: const Icon(
-                          Icons.settings_rounded,
-                          size: 22,
-                          color: Colors.white,
-                        ),
-                      ),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      transitionBuilder: (child, animation) {
+                        return SizeTransition(
+                          sizeFactor: animation,
+                          axis: Axis.horizontal,
+                          child: FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: isSearching
+                          ? const SizedBox(key: ValueKey('hidden_settings'))
+                          : GestureDetector(
+                              key: const ValueKey('visible_settings'),
+                              onTap: () => Navigator.pushNamed(context, '/profile'),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.transparent,
+                                ),
+                                child: const Icon(
+                                  Icons.settings_rounded,
+                                  size: 22,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                     ),
                   ],
                 ),
               ),
-            ),
+              if (_searchResults.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1C1E).withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      width: 1,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        final location = _searchResults[index];
+                        return ListTile(
+                          leading: const Icon(Icons.local_parking_rounded, color: Colors.blueAccent),
+                          title: Text(location.name, style: const TextStyle(color: Colors.white)),
+                          subtitle: Text(
+                            location.address,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+                          ),
+                          onTap: () {
+                            _searchFocusNode.unfocus();
+                            _searchController.clear();
+                            setState(() {
+                              _searchResults.clear();
+                            });
+                            mapController?.animateCamera(
+                              CameraUpdate.newLatLngZoom(
+                                LatLng(location.latitude, location.longitude),
+                                16.0,
+                              ),
+                            );
+                            LandmarkCard.show(context, location);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  ),
+                ),
+              ],
+            ],
           ),
+        ),
+      ),
           
           // ─── Landmark Card ───────────────────────────────────────────────
           // LandmarkCard is now shown via showModalBottomSheet
