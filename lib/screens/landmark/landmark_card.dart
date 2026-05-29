@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../models/parking_location.dart';
+import 'booking_detail_screen.dart';
 
-class LandmarkCard extends StatelessWidget {
+class LandmarkCard extends StatefulWidget {
   final VoidCallback onCancel;
-  final VoidCallback onBook;
+  final Function(String?) onBook;
   final ParkingLocation location;
 
   const LandmarkCard({
@@ -21,17 +23,72 @@ class LandmarkCard extends StatelessWidget {
       builder: (context) => LandmarkCard(
         location: location,
         onCancel: () => Navigator.of(context).pop(),
-        onBook: () {
-          // Book logic
+        onBook: (String? calculatedDistance) {
           Navigator.of(context).pop();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingDetailScreen(
+                location: location,
+                initialCalculatedDistance: calculatedDistance,
+              ),
+            ),
+          );
         },
       ),
     );
   }
 
   @override
+  State<LandmarkCard> createState() => _LandmarkCardState();
+}
+
+class _LandmarkCardState extends State<LandmarkCard> {
+  bool _isLoading = false;
+
+  Future<void> _handleBook() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    String? calculatedDistance;
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission != LocationPermission.denied && permission != LocationPermission.deniedForever) {
+          Position position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+          double distanceInMeters = Geolocator.distanceBetween(
+            position.latitude,
+            position.longitude,
+            widget.location.latitude,
+            widget.location.longitude,
+          );
+          if (distanceInMeters < 1000) {
+            calculatedDistance = '${distanceInMeters.toStringAsFixed(0)} m away';
+          } else {
+            calculatedDistance = '${(distanceInMeters / 1000).toStringAsFixed(1)} km away';
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore errors, fallback to null
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+      widget.onBook(calculatedDistance);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final location = widget.location;
     
     return Container(
       decoration: BoxDecoration(
@@ -158,7 +215,7 @@ class LandmarkCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: onCancel,
+                    onPressed: widget.onCancel,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.white.withValues(alpha: 0.05),
@@ -179,7 +236,7 @@ class LandmarkCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: onBook,
+                    onPressed: _isLoading ? null : _handleBook,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.blueAccent,
@@ -187,21 +244,30 @@ class LandmarkCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(24),
                       ),
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Book Parking',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Book Parking',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                            ],
                           ),
-                        ),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-                      ],
-                    ),
                   ),
                 ),
               ],
