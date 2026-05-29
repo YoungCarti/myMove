@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../config/routes.dart';
+import '../landmark/landmark_card.dart';
+import '../../models/parking_location.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
@@ -78,25 +81,38 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadParkingMarker() async {
     final BitmapDescriptor customIcon = await _createParkingMarkerIcon();
     
-    if (mounted) {
-      setState(() {
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('landmark_parking'),
-            position: const LatLng(2.995679399002651, 101.444528953514),
-            infoWindow: const InfoWindow(
-              title: 'Parking Spot',
-              snippet: 'Available Parking',
-            ),
-            icon: customIcon,
-          ),
-        );
-      });
+    try {
+      final snapshot = await FirebaseFirestore.instance.collection('parking_locations').get();
+      
+      if (mounted) {
+        setState(() {
+          _markers.clear();
+          for (var doc in snapshot.docs) {
+            final location = ParkingLocation.fromFirestore(doc);
+            _markers.add(
+              Marker(
+                markerId: MarkerId(location.id),
+                position: LatLng(location.latitude, location.longitude),
+                icon: customIcon,
+                onTap: () {
+                  LandmarkCard.show(context, location);
+                },
+              ),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error loading markers: $e");
+      }
     }
   }
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
+    // Automatically go to current location when the map is ready
+    _goToCurrentLocation();
   }
 
   Future<void> _goToCurrentLocation() async {
@@ -175,6 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
           if (defaultTargetPlatform == TargetPlatform.android)
             GoogleMap(
               onMapCreated: _onMapCreated,
+              onTap: (LatLng position) {
+                // Map tapped
+              },
               initialCameraPosition: CameraPosition(
                 target: _center,
                 zoom: 14.0,
@@ -296,6 +315,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          
+          // ─── Landmark Card ───────────────────────────────────────────────
+          // LandmarkCard is now shown via showModalBottomSheet
         ],
       ),
       
@@ -325,65 +347,65 @@ class _HomeScreenState extends State<HomeScreen> {
               removeBottom: true,
               child: Theme(
                 data: Theme.of(context).copyWith(
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                ),
+                child: BottomNavigationBar(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  type: BottomNavigationBarType.fixed,
+                  selectedItemColor: Colors.white,
+                  unselectedItemColor: Colors.white.withValues(alpha: 0.4),
+                  showSelectedLabels: true,
+                  showUnselectedLabels: true,
+                  selectedFontSize: 10,
+                  unselectedFontSize: 10,
+                  currentIndex: _selectedIndex,
+                  onTap: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                    
+                    if (index == 1) {
+                      // TODO: Update route for Booking if needed
+                      Navigator.pushNamed(context, AppRoutes.searchParking).then((_) {
+                        if (mounted) setState(() => _selectedIndex = 0);
+                      });
+                    } else if (index == 2) {
+                      // TODO: Update route for QR Code if needed
+                      Navigator.pushNamed(context, AppRoutes.editProfile).then((_) {
+                        if (mounted) setState(() => _selectedIndex = 0);
+                      });
+                    }
+                  },
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Padding(
+                        padding: EdgeInsets.only(bottom: 4.0),
+                        child: Icon(Icons.map_rounded),
+                      ),
+                      label: 'Map',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Padding(
+                        padding: EdgeInsets.only(bottom: 4.0),
+                        child: Icon(Icons.calendar_month_rounded),
+                      ),
+                      label: 'Booking',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Padding(
+                        padding: EdgeInsets.only(bottom: 4.0),
+                        child: Icon(Icons.qr_code_2_rounded),
+                      ),
+                      label: 'QR Code',
+                    ),
+                  ],
+                ),
               ),
-              child: BottomNavigationBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                type: BottomNavigationBarType.fixed,
-                selectedItemColor: Colors.white,
-                unselectedItemColor: Colors.white.withValues(alpha: 0.4),
-                showSelectedLabels: true,
-                showUnselectedLabels: true,
-                selectedFontSize: 10,
-                unselectedFontSize: 10,
-                currentIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-            
-            if (index == 1) {
-              // TODO: Update route for Booking if needed
-              Navigator.pushNamed(context, AppRoutes.searchParking).then((_) {
-                if (mounted) setState(() => _selectedIndex = 0);
-              });
-            } else if (index == 2) {
-              // TODO: Update route for QR Code if needed
-              Navigator.pushNamed(context, AppRoutes.editProfile).then((_) {
-                if (mounted) setState(() => _selectedIndex = 0);
-              });
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.map_rounded),
-              ),
-              label: 'Map',
             ),
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.calendar_month_rounded),
-              ),
-              label: 'Booking',
-            ),
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.qr_code_2_rounded),
-              ),
-              label: 'QR Code',
-            ),
-          ],
+          ),
         ),
-      ),
-      ),
-      ),
-      ),
       ),
       floatingActionButton: defaultTargetPlatform == TargetPlatform.android
           ? FloatingActionButton(
