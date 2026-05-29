@@ -5,6 +5,8 @@ import '../../providers/auth_provider.dart';
 import '../../config/routes.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,10 +17,83 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   GoogleMapController? mapController;
-  final LatLng _center = const LatLng(3.1390, 101.6869); // Kuala Lumpur default
+  final LatLng _center = const LatLng(3.0186971028116116, 101.43081077040469); // Kuala Lumpur default
   int _selectedIndex = 0;
   bool _isLoadingLocation = false;
   bool _locationPermissionGranted = false;
+
+  Set<Marker> _markers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParkingMarker();
+  }
+
+  Future<BitmapDescriptor> _createParkingMarkerIcon() async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    const double width = 100.0;
+    const double height = 140.0;
+
+    // Background color (Original Google Maps Red)
+    final Paint paint = Paint()..color = const Color(0xFFEA4335);
+
+    // Draw the pin shape (Circle + Triangle for the pointy bottom)
+    final Path circlePath = Path();
+    circlePath.addOval(const Rect.fromLTWH(0, 0, width, width));
+    
+    final Path pointerPath = Path();
+    pointerPath.moveTo(width * 0.15, width * 0.75);
+    pointerPath.lineTo(width / 2, height); // Bottom point
+    pointerPath.lineTo(width * 0.85, width * 0.75);
+    pointerPath.close();
+
+    canvas.drawPath(circlePath, paint);
+    canvas.drawPath(pointerPath, paint);
+
+    // 'P' text
+    final TextPainter textPainter = TextPainter(textDirection: TextDirection.ltr);
+    textPainter.text = const TextSpan(
+      text: 'P',
+      style: TextStyle(
+        fontSize: 55.0,
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    textPainter.layout();
+    
+    // Position text in the center of the top circular part
+    textPainter.paint(
+      canvas,
+      Offset((width - textPainter.width) / 2, (width / 2) - (textPainter.height / 2)),
+    );
+
+    final ui.Image image = await pictureRecorder.endRecording().toImage(width.toInt(), height.toInt());
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+  }
+
+  Future<void> _loadParkingMarker() async {
+    final BitmapDescriptor customIcon = await _createParkingMarkerIcon();
+    
+    if (mounted) {
+      setState(() {
+        _markers.add(
+          Marker(
+            markerId: const MarkerId('landmark_parking'),
+            position: const LatLng(2.995679399002651, 101.444528953514),
+            infoWindow: const InfoWindow(
+              title: 'Parking Spot',
+              snippet: 'Available Parking',
+            ),
+            icon: customIcon,
+          ),
+        );
+      });
+    }
+  }
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -92,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final userName = user?.displayName ?? 'myMove User';
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: const Color(0xFF121212),
       body: Stack(
         children: [
@@ -107,6 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
               myLocationEnabled: _locationPermissionGranted,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
+              markers: _markers,
             )
           else
             const Center(
@@ -120,104 +197,102 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // ─── Profile and myMove Title ───
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1C1C1E).withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+              child: Container(
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C1C1E).withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Circle Profile Picture
-                        GestureDetector(
-                          onTap: () => Navigator.pushNamed(context, '/profile'),
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF1C1C1E), Color(0xFF3A3A3C)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.1),
-                                width: 1.5,
-                              ),
-                              image: user?.photoURL != null && user!.photoURL!.isNotEmpty
-                                  ? DecorationImage(
-                                      image: NetworkImage(user.photoURL!),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: user?.photoURL != null && user!.photoURL!.isNotEmpty
-                                ? null
-                                : Center(
-                                    child: Text(
-                                      userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
+                  ],
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // ─── Profile Picture ───
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/profile'),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            width: 1.5,
+                          ),
+                          image: user?.photoURL != null && user!.photoURL!.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(user.photoURL!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: user?.photoURL != null && user!.photoURL!.isNotEmpty
+                            ? null
+                            : Center(
+                                child: Text(
+                                  userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
                                   ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // myMove Cursive Font
-                        const Text(
-                          'myMove',
-                          style: TextStyle(
-                            fontFamily: 'Cattalague',
-                            fontSize: 20,
-                            color: Colors.white,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // ─── Settings Gear ───
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/profile'),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1C1C1E).withValues(alpha: 0.85),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.settings_rounded,
-                        size: 20,
-                        color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
-                  ),
-                ],
+                    
+                    const SizedBox(width: 12),
+                    
+                    // ─── Search Bar ───
+                    Expanded(
+                      child: TextField(
+                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                        decoration: InputDecoration(
+                          hintText: 'Search parking spot...',
+                          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 15),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          isDense: true,
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // ─── Settings Gear ───
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/profile'),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.transparent,
+                        ),
+                        child: const Icon(
+                          Icons.settings_rounded,
+                          size: 22,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -225,37 +300,58 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       
       // ─── Bottom Navigation Bar ───────────────────────────────────────────
-      bottomNavigationBar: Theme(
-        data: Theme.of(context).copyWith(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: const Color(0xFF1C1C1E),
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white.withValues(alpha: 0.4),
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          selectedFontSize: 10,
-          unselectedFontSize: 10,
-          currentIndex: _selectedIndex,
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1C1E).withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: MediaQuery.removePadding(
+              context: context,
+              removeBottom: true,
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+              ),
+              child: BottomNavigationBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                type: BottomNavigationBarType.fixed,
+                selectedItemColor: Colors.white,
+                unselectedItemColor: Colors.white.withValues(alpha: 0.4),
+                showSelectedLabels: true,
+                showUnselectedLabels: true,
+                selectedFontSize: 10,
+                unselectedFontSize: 10,
+                currentIndex: _selectedIndex,
           onTap: (index) {
             setState(() {
               _selectedIndex = index;
             });
             
             if (index == 1) {
+              // TODO: Update route for Booking if needed
               Navigator.pushNamed(context, AppRoutes.searchParking).then((_) {
                 if (mounted) setState(() => _selectedIndex = 0);
               });
             } else if (index == 2) {
-              // Vehicles are managed in edit profile
+              // TODO: Update route for QR Code if needed
               Navigator.pushNamed(context, AppRoutes.editProfile).then((_) {
-                if (mounted) setState(() => _selectedIndex = 0);
-              });
-            } else if (index == 3) {
-              Navigator.pushNamed(context, AppRoutes.profile).then((_) {
                 if (mounted) setState(() => _selectedIndex = 0);
               });
             }
@@ -271,26 +367,23 @@ class _HomeScreenState extends State<HomeScreen> {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.local_parking_rounded),
+                child: Icon(Icons.calendar_month_rounded),
               ),
-              label: 'Park',
+              label: 'Booking',
             ),
             BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.directions_car_rounded),
+                child: Icon(Icons.qr_code_2_rounded),
               ),
-              label: 'Vehicles',
-            ),
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.person_rounded),
-              ),
-              label: 'Profile',
+              label: 'QR Code',
             ),
           ],
         ),
+      ),
+      ),
+      ),
+      ),
       ),
       floatingActionButton: defaultTargetPlatform == TargetPlatform.android
           ? FloatingActionButton(
