@@ -137,6 +137,10 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
         });
+        
+        if (_searchController.text.isNotEmpty) {
+          _onSearchChanged(_searchController.text);
+        }
       }
     } catch (e) {
       if (kDebugMode) {
