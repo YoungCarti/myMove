@@ -33,5 +33,10 @@ service cloud.firestore {
       // All writes (create, update, delete, spot assignment) are handled securely by Cloud Functions
       allow write: if false; 
     }
+
+    // Spot locks are internal to Cloud Functions — no client access
+    match /spot_locks/{lockId} {
+      allow read, write: if false;
+    }
   }
 }

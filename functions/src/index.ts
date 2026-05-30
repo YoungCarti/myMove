@@ -176,6 +176,28 @@ export const assignSpot = onCall(
           throw new HttpsError("permission-denied", "Not your booking.");
         }
 
+        // P2 FIX: Reject expired pending bookings before activation.
+        // Firestore TTL deletion is async and can lag, so a booking
+        // past its expiresAt could still exist. Check it explicitly.
+        if (bookingData.status !== "pending") {
+          throw new HttpsError(
+            "failed-precondition",
+            "This booking is no longer pending."
+          );
+        }
+
+        if (bookingData.expiresAt) {
+          const expiresAtDate = bookingData.expiresAt.toDate ?
+            bookingData.expiresAt.toDate() :
+            new Date(bookingData.expiresAt);
+          if (expiresAtDate <= new Date()) {
+            throw new HttpsError(
+              "deadline-exceeded",
+              "This booking has expired. Please create a new one."
+            );
+          }
+        }
+
         if (bookingData.spotId) {
           // If already assigned to the same spot, just return success
           if (bookingData.spotId === spotId) return {success: true};
@@ -193,6 +215,24 @@ export const assignSpot = onCall(
           throw new HttpsError("not-found", "Parking location not found.");
         }
         const totalCapacity = locationDoc.data()?.availableSpots ?? 0;
+
+        // P1 FIX: Read a spot lock document to create transactional
+        // contention. Two concurrent assignSpot calls for the same
+        // spot+location+time will both read this doc, then one write
+        // will win and the other will be forced to retry by Firestore
+        // OCC, at which point the retry will see the spot is taken.
+        const lockId =
+          `${bookingData.locationId}_${spotId}_` +
+          `${bookingData.startDateTime}`;
+        const lockRef = db.collection("spot_locks").doc(lockId);
+        const lockDoc = await transaction.get(lockRef);
+
+        if (lockDoc.exists) {
+          throw new HttpsError(
+            "resource-exhausted",
+            "Sorry, this spot is already taken for the selected time."
+          );
+        }
 
         // 2. Check overlapping active bookings for the entire location
         const overlappingQuery = db.collection("bookings")
@@ -230,6 +270,17 @@ export const assignSpot = onCall(
             "Sorry, this location is sold out for the selected time."
           );
         }
+
+        // Write the lock doc so any concurrent transaction retries
+        // and sees it exists, then gets rejected above.
+        transaction.set(lockRef, {
+          bookingId: bookingId,
+          locationId: bookingData.locationId,
+          spotId: spotId,
+          startDateTime: bookingData.startDateTime,
+          endDateTime: bookingData.endDateTime,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
 
         transaction.update(bookingRef, {
           spotId,
