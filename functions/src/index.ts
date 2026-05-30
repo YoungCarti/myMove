@@ -4,6 +4,24 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 const db = admin.firestore();
 
+const VALID_SPOT_IDS = new Set([
+  "A1", "A2", "A3", "A4", "A5", "A6", "A7",
+  "B1", "B2", "B3", "B4", "B5", "B6", "B7",
+]);
+
+async function getUsernameMatches(trimmed: string, cleaned: string) {
+  const usersRef = db.collection("users");
+  const [lowercaseSnapshot, legacySnapshot] = await Promise.all([
+    usersRef.where("username_lowercase", "==", cleaned).limit(1).get(),
+    usersRef.where("username", "==", trimmed).limit(1).get(),
+  ]);
+
+  const matches = new Map<string, admin.firestore.QueryDocumentSnapshot>();
+  lowercaseSnapshot.docs.forEach((doc) => matches.set(doc.id, doc));
+  legacySnapshot.docs.forEach((doc) => matches.set(doc.id, doc));
+  return Array.from(matches.values());
+}
+
 // Safely resolve a username to an email address without exposing
 // user documents to unauthenticated clients.
 export const lookupUsername = onCall(
@@ -28,19 +46,16 @@ export const lookupUsername = onCall(
       );
     }
 
-    const snapshot = await db.collection("users")
-      .where("username_lowercase", "==", cleaned)
-      .limit(1)
-      .get();
+    const matches = await getUsernameMatches(username.trim(), cleaned);
 
-    if (snapshot.empty) {
+    if (matches.length === 0) {
       throw new HttpsError(
         "not-found",
         `No user found with the username "@${cleaned}".`
       );
     }
 
-    const userData = snapshot.docs[0].data();
+    const userData = matches[0].data();
     const email = userData.email as string | undefined;
     if (!email) {
       throw new HttpsError(
@@ -73,24 +88,21 @@ export const checkUsernameAvailable = onCall(
       );
     }
 
-    const cleaned = username.trim().toLowerCase();
+    const trimmed = username.trim();
+    const cleaned = trimmed.toLowerCase();
     if (cleaned.length === 0) {
       return {available: false};
     }
 
-    const snapshot = await db.collection("users")
-      .where("username_lowercase", "==", cleaned)
-      .limit(1)
-      .get();
+    const matches = await getUsernameMatches(trimmed, cleaned);
 
-    if (snapshot.empty) {
+    if (matches.length === 0) {
       return {available: true};
     }
 
-    // If the only match is the requesting user, it's still available
-    const isOwnUsername =
-      snapshot.docs.length === 1 &&
-      snapshot.docs[0].id === request.auth.uid;
+    // If every match is the requesting user, it's still available. This
+    // keeps legacy profiles without username_lowercase from being duplicated.
+    const isOwnUsername = matches.every((doc) => doc.id === request.auth?.uid);
 
     return {available: isOwnUsername};
   }
@@ -244,10 +256,19 @@ export const assignSpot = onCall(
     }
 
     const {bookingId, spotId} = request.data;
-    if (!bookingId || !spotId) {
+    if (typeof bookingId !== "string" || typeof spotId !== "string" ||
+      bookingId.trim().length === 0 || spotId.trim().length === 0) {
       throw new HttpsError(
         "invalid-argument",
         "Missing bookingId or spotId."
+      );
+    }
+
+    const requestedSpotId = spotId.trim().toUpperCase();
+    if (!VALID_SPOT_IDS.has(requestedSpotId)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Please select a valid parking spot."
       );
     }
 
@@ -292,7 +313,7 @@ export const assignSpot = onCall(
 
         if (bookingData.spotId) {
           // If already assigned to the same spot, just return success
-          if (bookingData.spotId === spotId) return {success: true};
+          if (bookingData.spotId === requestedSpotId) return {success: true};
           throw new HttpsError(
             "already-exists",
             "A spot is already assigned to this booking."
@@ -335,7 +356,7 @@ export const assignSpot = onCall(
           const bStart = new Date(doc.data().startDateTime);
           if (bStart < end) {
             overlappingCount++;
-            if (doc.data().spotId === spotId) {
+            if (doc.data().spotId === requestedSpotId) {
               isTaken = true;
             }
           }
@@ -367,7 +388,7 @@ export const assignSpot = onCall(
         });
 
         transaction.update(bookingRef, {
-          spotId,
+          spotId: requestedSpotId,
           status: "active",
           expiresAt: admin.firestore.FieldValue.delete(),
         });

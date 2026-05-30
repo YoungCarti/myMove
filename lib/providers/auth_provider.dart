@@ -366,7 +366,7 @@ class AuthProvider with ChangeNotifier {
     
     try {
       final callable = FirebaseFunctions.instance.httpsCallable('checkUsernameAvailable');
-      final result = await callable.call({'username': cleaned});
+      final result = await callable.call({'username': username.trim()});
       return result.data['available'] as bool;
     } catch (e) {
       // If there's an error (e.g. offline/network), default to false
