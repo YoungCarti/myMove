@@ -683,8 +683,8 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                             'locationName': widget.location.name,
                             'vehicleMake': _selectedVehicle?['make'],
                             'vehiclePlate': _selectedVehicle?['plate'],
-                            'startDateTime': startDateTime.toIso8601String(),
-                            'endDateTime': endDateTime.toIso8601String(),
+                            'startDateTime': startDateTime.toUtc().toIso8601String(),
+                            'endDateTime': endDateTime.toUtc().toIso8601String(),
                           });
 
                           // Assuming the cloud function completes successfully.

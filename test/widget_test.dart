@@ -37,8 +37,12 @@ void main() {
       ),
     );
 
-    // Wait for the authStateChanges stream to emit and trigger a rebuild
-    await tester.pumpAndSettle();
+    // The SplashScreen uses Future.delayed + AnimationController + another
+    // Future.delayed. Pump many small frames over ~7s to reliably advance
+    // past all timers and animation ticks.
+    for (int i = 0; i < 70; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
 
     // Assert that the app rendered the OnboardingScreen and its content
     expect(find.byType(OnboardingScreen), findsOneWidget);

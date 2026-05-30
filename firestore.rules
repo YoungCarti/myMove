@@ -46,8 +46,8 @@ service cloud.firestore {
       allow write: if false; 
     }
 
-    // Spot locks are internal to Cloud Functions — no client access
-    match /spot_locks/{lockId} {
+    // Location locks are internal to Cloud Functions — no client access
+    match /location_locks/{lockId} {
       allow read, write: if false;
     }
   }

@@ -308,23 +308,15 @@ export const assignSpot = onCall(
         }
         const totalCapacity = locationDoc.data()?.availableSpots ?? 0;
 
-        // P1 FIX: Read a spot lock document to create transactional
-        // contention. Two concurrent assignSpot calls for the same
-        // spot+location+time will both read this doc, then one write
-        // will win and the other will be forced to retry by Firestore
-        // OCC, at which point the retry will see the spot is taken.
-        const lockId =
-          `${bookingData.locationId}_${spotId}_` +
-          `${bookingData.startDateTime}`;
-        const lockRef = db.collection("spot_locks").doc(lockId);
+        // CONTENTION FIX: Read+write a single location-level lock
+        // document. ALL concurrent assignSpot transactions for this
+        // location must go through this document, so Firestore OCC
+        // will force one to retry if they overlap. This handles:
+        //  - Same spot, overlapping intervals with different starts
+        //  - Different spots when only one capacity slot remains
+        const lockRef = db.collection("location_locks")
+          .doc(bookingData.locationId);
         const lockDoc = await transaction.get(lockRef);
-
-        if (lockDoc.exists) {
-          throw new HttpsError(
-            "resource-exhausted",
-            "Sorry, this spot is already taken for the selected time."
-          );
-        }
 
         // 2. Check overlapping active bookings for the entire location
         const overlappingQuery = db.collection("bookings")
@@ -363,15 +355,15 @@ export const assignSpot = onCall(
           );
         }
 
-        // Write the lock doc so any concurrent transaction retries
-        // and sees it exists, then gets rejected above.
+        // Bump the lock version so any concurrent transaction that
+        // read it will be forced to retry by Firestore OCC.
+        const currentVersion = lockDoc.exists ?
+          (lockDoc.data()?.version ?? 0) :
+          0;
         transaction.set(lockRef, {
-          bookingId: bookingId,
-          locationId: bookingData.locationId,
-          spotId: spotId,
-          startDateTime: bookingData.startDateTime,
-          endDateTime: bookingData.endDateTime,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          version: currentVersion + 1,
+          lastBookingId: bookingId,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
         transaction.update(bookingRef, {
