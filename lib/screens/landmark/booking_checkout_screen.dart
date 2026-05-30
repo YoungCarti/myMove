@@ -723,9 +723,15 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                           setState(() {
                             _isLoading = false;
                           });
+                          
+                          String errorMessage = 'Error: ${e.toString().replaceAll('Exception: ', '')}';
+                          if (e is FirebaseFunctionsException) {
+                            errorMessage = e.message ?? 'An error occurred with the booking.';
+                          }
+                          
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+                              content: Text(errorMessage),
                               backgroundColor: Colors.redAccent,
                             ),
                           );

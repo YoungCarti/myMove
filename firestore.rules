@@ -14,8 +14,14 @@ service cloud.firestore {
     }
 
     // Authenticated users can send emails via the Firebase extension
+    // Unauthenticated users can only send the specific OTP registration email
     match /mail/{mailId} {
-      allow create: if request.auth != null;
+      allow create: if request.auth != null || (
+        request.resource.data.keys().hasAll(['to', 'message']) &&
+        request.resource.data.message.keys().hasAll(['subject', 'html']) &&
+        request.resource.data.message.subject == 'myMove - Verify Your Email' &&
+        request.resource.data.to is string
+      );
       allow read, update, delete: if false;
     }
 

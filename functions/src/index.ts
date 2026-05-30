@@ -185,11 +185,19 @@ export const assignSpot = onCall(
           );
         }
 
-        // Check if spot is taken by any overlapping booking
+        // 1. Fetch location to get total capacity
+        const locationRef = db.collection("parking_locations")
+          .doc(bookingData.locationId);
+        const locationDoc = await transaction.get(locationRef);
+        if (!locationDoc.exists) {
+          throw new HttpsError("not-found", "Parking location not found.");
+        }
+        const totalCapacity = locationDoc.data()?.availableSpots ?? 0;
+
+        // 2. Check overlapping active bookings for the entire location
         const overlappingQuery = db.collection("bookings")
           .where("locationId", "==", bookingData.locationId)
           .where("status", "==", "active")
-          .where("spotId", "==", spotId)
           .where("endDateTime", ">", bookingData.startDateTime);
 
         const overlappingSnapshot = await transaction.get(overlappingQuery);
@@ -197,10 +205,15 @@ export const assignSpot = onCall(
         const end = new Date(bookingData.endDateTime);
 
         let isTaken = false;
+        let overlappingCount = 0;
+
         overlappingSnapshot.forEach((doc) => {
           const bStart = new Date(doc.data().startDateTime);
           if (bStart < end) {
-            isTaken = true;
+            overlappingCount++;
+            if (doc.data().spotId === spotId) {
+              isTaken = true;
+            }
           }
         });
 
@@ -208,6 +221,13 @@ export const assignSpot = onCall(
           throw new HttpsError(
             "resource-exhausted",
             "Sorry, this spot is already taken for the selected time."
+          );
+        }
+
+        if (overlappingCount >= totalCapacity) {
+          throw new HttpsError(
+            "resource-exhausted",
+            "Sorry, this location is sold out for the selected time."
           );
         }
 
