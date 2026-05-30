@@ -8,6 +8,15 @@ const VALID_SPOT_IDS = new Set([
   "A1", "A2", "A3", "A4", "A5", "A6", "A7",
   "B1", "B2", "B3", "B4", "B5", "B6", "B7",
 ]);
+const MAX_SELECTABLE_SPOTS = VALID_SPOT_IDS.size;
+
+function getEffectiveCapacity(rawCapacity: unknown): number {
+  const numericCapacity = typeof rawCapacity === "number" ? rawCapacity : 0;
+  return Math.min(
+    Math.max(Math.floor(numericCapacity), 0),
+    MAX_SELECTABLE_SPOTS
+  );
+}
 
 async function getUsernameMatches(trimmed: string, cleaned: string) {
   const usersRef = db.collection("users");
@@ -167,7 +176,9 @@ export const createBooking = onCall(
         }
 
         const locationData = locationDoc.data();
-        const totalCapacity = locationData?.availableSpots ?? 0;
+        const totalCapacity = getEffectiveCapacity(
+          locationData?.availableSpots
+        );
 
         // Price calculation using the location's stored hourly rate
         const hourlyRate = locationData?.pricePerHour ?? 2.0;
@@ -327,7 +338,9 @@ export const assignSpot = onCall(
         if (!locationDoc.exists) {
           throw new HttpsError("not-found", "Parking location not found.");
         }
-        const totalCapacity = locationDoc.data()?.availableSpots ?? 0;
+        const totalCapacity = getEffectiveCapacity(
+          locationDoc.data()?.availableSpots
+        );
 
         // CONTENTION FIX: Read+write a single location-level lock
         // document. ALL concurrent assignSpot transactions for this
