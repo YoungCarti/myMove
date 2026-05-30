@@ -18,7 +18,6 @@ class BookingCheckoutSheet extends StatefulWidget {
 }
 
 class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
-  List<Map<String, dynamic>> _vehicles = [];
   Map<String, dynamic>? _selectedVehicle;
 
   // Date selection (allow multiple dates)
@@ -42,17 +41,23 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_vehicles.isEmpty) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      _vehicles = authProvider.vehicles;
-      
-      if (_vehicles.isNotEmpty) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final vehicles = authProvider.vehicles;
+    
+    if (vehicles.isNotEmpty) {
+      bool isSelectedStillValid = _selectedVehicle != null && vehicles.any((v) => v['plate'] == _selectedVehicle!['plate']);
+      if (!isSelectedStillValid) {
         // Try to find primary vehicle, or fallback to first
-        _selectedVehicle = _vehicles.firstWhere(
+        _selectedVehicle = vehicles.firstWhere(
           (v) => v['isPrimary'] == true, 
-          orElse: () => _vehicles.first
+          orElse: () => vehicles.first
         );
+      } else {
+        // Update to latest instance in case other fields changed
+        _selectedVehicle = vehicles.firstWhere((v) => v['plate'] == _selectedVehicle!['plate']);
       }
+    } else {
+      _selectedVehicle = null;
     }
   }
 
@@ -130,8 +135,8 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
     }
   }
 
-  Widget _buildVehicleDropdown() {
-    if (_vehicles.isEmpty) {
+  Widget _buildVehicleDropdown(List<Map<String, dynamic>> vehicles) {
+    if (vehicles.isEmpty) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
@@ -169,7 +174,7 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
       color: const Color(0xFF2C2C2E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       itemBuilder: (BuildContext context) {
-        return _vehicles.map((Map<String, dynamic> vehicle) {
+        return vehicles.map((Map<String, dynamic> vehicle) {
           return PopupMenuItem<Map<String, dynamic>>(
             value: vehicle,
             child: Row(
@@ -548,7 +553,7 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              _buildVehicleDropdown(),
+              _buildVehicleDropdown(Provider.of<AuthProvider>(context).vehicles),
               
               const SizedBox(height: 24),
               
@@ -656,19 +661,34 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
                               throw Exception('Parking location does not exist.');
                             }
                             
-                            final int currentSpots = locationDoc.data()?['availableSpots'] ?? 0;
+                            // Treat availableSpots as the static total capacity of the lot
+                            final int totalCapacity = locationDoc.data()?['availableSpots'] ?? 0;
                             
-                            // 2. Verify availability
-                            if (currentSpots <= 0) {
-                              throw Exception('Sorry, this parking location just sold out.');
+                            // 2. Query active overlapping bookings
+                            // We need bookings that end AFTER our start time
+                            final overlappingQuery = FirebaseFirestore.instance
+                                .collection('bookings')
+                                .where('locationId', isEqualTo: widget.location.id)
+                                .where('status', isEqualTo: 'active')
+                                .where('endDateTime', isGreaterThan: startDateTime.toIso8601String());
+                                
+                            final bookingsSnapshot = await transaction.get(overlappingQuery);
+                            
+                            int overlappingCount = 0;
+                            for (var doc in bookingsSnapshot.docs) {
+                              final bookingStart = DateTime.parse(doc['startDateTime']);
+                              // Check if the existing booking starts BEFORE our end time
+                              if (bookingStart.isBefore(endDateTime)) {
+                                overlappingCount++;
+                              }
+                            }
+                            
+                            // 3. Verify availability
+                            if (overlappingCount >= totalCapacity) {
+                              throw Exception('Sorry, this parking location is sold out for the selected time.');
                             }
 
-                            // 3. Decrement available spots
-                            transaction.update(locationRef, {
-                              'availableSpots': currentSpots - 1,
-                            });
-
-                            // 4. Create the booking
+                            // 4. Create the booking (we no longer permanently decrement availableSpots)
                             transaction.set(bookingRef, {
                               'userId': userId,
                               'locationId': widget.location.id,
