@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../models/parking_location.dart';
+import 'booking_checkout_screen.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final ParkingLocation location;
@@ -255,6 +256,35 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         ),
                       ),
                       
+                      const SizedBox(height: 16),
+                      
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'RM${widget.location.pricePerHour.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Colors.blueAccent,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              height: 1.0,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 3.0),
+                            child: Text(
+                              'per hour',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      
                       const SizedBox(height: 32),
                       
                       const Text(
@@ -272,42 +302,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 15,
                           height: 1.6,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.blueAccent.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.blueAccent.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              'RM${widget.location.pricePerHour.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                color: Colors.blueAccent,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'per hour',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                       
@@ -433,7 +427,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // TODO: Implement Continue logic
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookingCheckoutScreen(
+                              location: widget.location,
+                            ),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),

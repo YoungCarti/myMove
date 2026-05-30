@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../../providers/auth_provider.dart';
 
 class TwoFactorVerificationScreen extends StatefulWidget {
@@ -146,7 +145,7 @@ class _TwoFactorVerificationScreenState extends State<TwoFactorVerificationScree
                           shape: BoxShape.circle,
                           color: const Color(0xFF1E1E1E),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                             width: 1,
                           ),
                         ),
@@ -278,7 +277,7 @@ class _TwoFactorVerificationScreenState extends State<TwoFactorVerificationScree
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
-                    disabledBackgroundColor: Colors.white.withOpacity(0.3),
+                    disabledBackgroundColor: Colors.white.withValues(alpha: 0.3),
                     disabledForegroundColor: Colors.black38,
                     elevation: 0,
                     shape: RoundedRectangleBorder(

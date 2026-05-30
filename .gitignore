@@ -61,3 +61,10 @@ app.*.map.json
 google-services.json
 GoogleService-Info.plist
 firebase_options.dart
+
+# Firebase Functions
+functions/node_modules/
+functions/lib/
+functions/.firebase/
+functions/firebase-debug.log
+functions/firebase-debug.*.log

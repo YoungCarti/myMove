@@ -1,18 +1,54 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 6, 20);
+    // Users can read and write their own profile data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Anyone can view parking locations, but only admin/functions can modify
+    match /parking_locations/{locationId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Mail documents can ONLY be created with the exact OTP email shape.
+    // This prevents abuse of the Trigger Email extension as a spam relay.
+    // Both authenticated and unauthenticated users are held to the same
+    // strict schema — the only legitimate writer is sendOtpViaFirestore.
+    match /mail/{mailId} {
+      allow create: if
+        // Exactly 2 top-level keys: 'to' and 'message'
+        request.resource.data.keys().hasAll(['to', 'message']) &&
+        request.resource.data.keys().hasOnly(['to', 'message']) &&
+        // 'to' must be a non-empty string (email address)
+        request.resource.data.to is string &&
+        request.resource.data.to.size() > 0 &&
+        // 'message' must have exactly 'subject' and 'html'
+        request.resource.data.message.keys().hasAll(['subject', 'html']) &&
+        request.resource.data.message.keys().hasOnly(['subject', 'html']) &&
+        // Subject must be the exact OTP subject line
+        request.resource.data.message.subject == 'myMove - Verify Your Email' &&
+        // HTML body must be a string, capped at 5 KB to prevent abuse
+        request.resource.data.message.html is string &&
+        request.resource.data.message.html.size() > 0 &&
+        request.resource.data.message.html.size() < 5000;
+      allow read, update, delete: if false;
+    }
+
+    // Bookings are strictly managed by Cloud Functions
+    match /bookings/{bookingId} {
+      // Users can only read their own bookings
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // All writes (create, update, delete, spot assignment) are handled securely by Cloud Functions
+      allow write: if false; 
+    }
+
+    // Location locks are internal to Cloud Functions — no client access
+    match /location_locks/{lockId} {
+      allow read, write: if false;
     }
   }
 }

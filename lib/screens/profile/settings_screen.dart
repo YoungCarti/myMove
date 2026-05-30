@@ -15,7 +15,7 @@ class AccountSettingsScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               width: 1,
             ),
           ),
@@ -109,7 +109,7 @@ class AccountSettingsScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               width: 1,
             ),
           ),
@@ -150,7 +150,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   hintText: '000000',
                   hintStyle: const TextStyle(color: Colors.white30, letterSpacing: 4.0),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.05),
+                  fillColor: Colors.white.withValues(alpha: 0.05),
                   counterText: '',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -321,7 +321,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   color: const Color(0xFF1E1E1E),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.04),
+                    color: Colors.white.withValues(alpha: 0.04),
                     width: 1,
                   ),
                 ),
@@ -427,7 +427,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   color: const Color(0xFF1E1E1E),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.04),
+                    color: Colors.white.withValues(alpha: 0.04),
                     width: 1,
                   ),
                 ),
@@ -436,8 +436,8 @@ class AccountSettingsScreen extends StatelessWidget {
                   valueWidget: Switch(
                     value: is2FAEnabled,
                     onChanged: (bool value) => handle2FAToggle(value),
-                    activeColor: const Color(0xFF32D74B),
-                    activeTrackColor: const Color(0xFF32D74B).withOpacity(0.3),
+                    activeThumbColor: const Color(0xFF32D74B),
+                    activeTrackColor: const Color(0xFF32D74B).withValues(alpha: 0.3),
                     inactiveThumbColor: Colors.white60,
                     inactiveTrackColor: Colors.white12,
                   ),
@@ -454,7 +454,7 @@ class AccountSettingsScreen extends StatelessWidget {
                   color: const Color(0xFF1E1E1E),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFFFF453A).withOpacity(0.15),
+                    color: const Color(0xFFFF453A).withValues(alpha: 0.15),
                     width: 1,
                   ),
                 ),
@@ -531,7 +531,7 @@ class AccountSettingsScreen extends StatelessWidget {
   // Custom Divider to match the dark color
   Widget _buildDivider() {
     return Divider(
-      color: Colors.white.withOpacity(0.04),
+      color: Colors.white.withValues(alpha: 0.04),
       height: 1,
       indent: 16,
       endIndent: 16,
