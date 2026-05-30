@@ -109,8 +109,11 @@ export const createBooking = onCall(
           endDateTime: endDateTime,
           calculatedHours: hours,
           totalPrice: calculatedPrice,
-          status: "active",
+          status: "pending",
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: admin.firestore.Timestamp.fromDate(
+            new Date(Date.now() + 15 * 60 * 1000)
+          ),
         };
 
         transaction.set(newBookingRef, bookingData);
@@ -165,8 +168,11 @@ export const assignSpot = onCall(
           throw new HttpsError("not-found", "Booking not found.");
         }
 
-        const bookingData = bookingDoc.data()!;
-        if (bookingData.userId !== request.auth!.uid) {
+        const bookingData = bookingDoc.data();
+        if (!bookingData) {
+          throw new HttpsError("not-found", "Booking data is missing.");
+        }
+        if (bookingData.userId !== request.auth?.uid) {
           throw new HttpsError("permission-denied", "Not your booking.");
         }
 
@@ -188,7 +194,6 @@ export const assignSpot = onCall(
 
         const overlappingSnapshot = await transaction.get(overlappingQuery);
 
-        const start = new Date(bookingData.startDateTime);
         const end = new Date(bookingData.endDateTime);
 
         let isTaken = false;
@@ -206,14 +211,21 @@ export const assignSpot = onCall(
           );
         }
 
-        transaction.update(bookingRef, {spotId});
+        transaction.update(bookingRef, {
+          spotId,
+          status: "active",
+          expiresAt: admin.firestore.FieldValue.delete(),
+        });
         return {success: true};
       });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error instanceof HttpsError) throw error;
       console.error("Assign spot failed:", error);
-      throw new HttpsError("internal", error.message || "Failed to assign spot.");
+      throw new HttpsError(
+        "internal",
+        error.message || "Failed to assign spot."
+      );
     }
   }
 );

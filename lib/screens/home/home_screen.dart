@@ -9,7 +9,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,8 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingLocation = false;
   bool _locationPermissionGranted = false;
 
-  Set<Marker> _markers = {};
-  List<ParkingLocation> _allLocations = [];
+  final Set<Marker> _markers = {};
+  final List<ParkingLocation> _allLocations = [];
   List<ParkingLocation> _searchResults = [];
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -70,8 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<BitmapDescriptor> _createParkingMarkerIcon() async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
-    const double width = 100.0;
-    const double height = 140.0;
+    const double width = 40.0;
+    const double height = 56.0;
 
     // Background color (Original Google Maps Red)
     final Paint paint = Paint()..color = const Color(0xFFEA4335);
@@ -94,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
     textPainter.text = const TextSpan(
       text: 'P',
       style: TextStyle(
-        fontSize: 55.0,
+        fontSize: 22.0,
         color: Colors.white,
         fontWeight: FontWeight.bold,
       ),
@@ -109,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final ui.Image image = await pictureRecorder.endRecording().toImage(width.toInt(), height.toInt());
     final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+    return BitmapDescriptor.bytes(byteData!.buffer.asUint8List());
   }
 
   Future<void> _loadParkingMarker() async {

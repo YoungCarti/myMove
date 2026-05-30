@@ -115,8 +115,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     child: CupertinoSwitch(
                       value: switchValue ?? false,
                       onChanged: onSwitchChanged,
-                      activeColor: const Color(0xFF32D74B),
-                      trackColor: const Color(0xFF3A3A3C),
+                      activeTrackColor: const Color(0xFF32D74B),
+                      inactiveTrackColor: const Color(0xFF3A3A3C),
                     ),
                   ),
               ],

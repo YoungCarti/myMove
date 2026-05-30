@@ -82,7 +82,7 @@ class _Setup2FAScreenState extends State<Setup2FAScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: BorderSide(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               width: 1,
             ),
           ),
@@ -122,7 +122,14 @@ class _Setup2FAScreenState extends State<Setup2FAScreen> {
                     version: QrVersions.auto,
                     size: 200.0,
                     gapless: false,
-                    foregroundColor: const Color(0xFF121212),
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: Color(0xFF121212),
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: Color(0xFF121212),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -182,17 +189,19 @@ class _Setup2FAScreenState extends State<Setup2FAScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: !_showEnterCodeScreen,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (didPop) {
+          return;
+        }
         if (_showEnterCodeScreen) {
           setState(() {
             _showEnterCodeScreen = false;
             _errorText = null;
             _codeController.clear();
           });
-          return false;
         }
-        return true;
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF121212),
@@ -468,7 +477,7 @@ class _Setup2FAScreenState extends State<Setup2FAScreen> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         width: 1,
                       ),
                     ),
@@ -520,8 +529,8 @@ class _Setup2FAScreenState extends State<Setup2FAScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007AFF),
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: const Color(0xFF007AFF).withOpacity(0.4),
-                disabledForegroundColor: Colors.white.withOpacity(0.6),
+                disabledBackgroundColor: const Color(0xFF007AFF).withValues(alpha: 0.4),
+                disabledForegroundColor: Colors.white.withValues(alpha: 0.6),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),

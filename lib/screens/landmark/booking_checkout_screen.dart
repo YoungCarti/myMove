@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/parking_location.dart';
@@ -150,9 +149,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.blueAccent.withOpacity(0.1),
+          color: Colors.blueAccent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -201,7 +200,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                     ),
                     Text(
                       vehicle['plate'] ?? '',
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
                     ),
                   ],
                 ),
@@ -213,9 +212,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.blueAccent.withOpacity(0.1),
+          color: Colors.blueAccent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+          border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -237,7 +236,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                   Text(
                     _selectedVehicle?['plate'] ?? '',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 14,
                     ),
                   ),
@@ -268,9 +267,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.redAccent.withOpacity(0.1),
+          color: Colors.redAccent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
         ),
         child: const Row(
           children: [
@@ -292,9 +291,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.redAccent.withOpacity(0.1),
+          color: Colors.redAccent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
         ),
         child: const Row(
           children: [
@@ -318,9 +317,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.orangeAccent.withOpacity(0.1),
+          color: Colors.orangeAccent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orangeAccent.withOpacity(0.5)),
+          border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
@@ -342,7 +341,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.blueAccent.withOpacity(0.1),
+          color: Colors.blueAccent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -378,7 +377,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
           child: Text(
             day,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -417,16 +416,16 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
       if (isStart || isEnd) {
         bgColor = Colors.blueAccent;
       } else if (isBetween) {
-        bgColor = Colors.blueAccent.withOpacity(0.2); // Faded blue for in-between dates
+        bgColor = Colors.blueAccent.withValues(alpha: 0.2); // Faded blue for in-between dates
       }
 
       Color textColor;
       if (isPast) {
-        textColor = Colors.white.withOpacity(0.2);
+        textColor = Colors.white.withValues(alpha: 0.2);
       } else if (isStart || isEnd) {
         textColor = Colors.white;
       } else {
-        textColor = Colors.white.withOpacity(0.9);
+        textColor = Colors.white.withValues(alpha: 0.9);
       }
       
       dayWidgets.add(
@@ -518,9 +517,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.1),
+                color: Colors.blueAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -643,7 +642,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                     child: Text(
                       'for $_calculatedHours hour(s)',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -691,51 +690,52 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                           // Assuming the cloud function completes successfully.
                           // It will return { success: true, bookingId: ..., price: ... }
 
-                          if (mounted) {
-                            if (response.data['success'] == true) {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ParkingSpotScreen(
-                                    bookingId: response.data['bookingId'],
-                                    locationName: widget.location.name,
-                                    startDateTime: startDateTime,
-                                    endDateTime: endDateTime,
-                                    price: response.data['price'].toDouble(),
-                                  ),
+                          if (!context.mounted) return;
+
+                          if (response.data['success'] == true) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ParkingSpotScreen(
+                                  bookingId: response.data['bookingId'],
+                                  locationName: widget.location.name,
+                                  startDateTime: startDateTime,
+                                  endDateTime: endDateTime,
+                                  price: response.data['price'].toDouble(),
+                                  occupiedSpots: List<String>.from(response.data['occupiedSpots'] ?? []),
                                 ),
-                              );
-                            } else {
-                              setState(() {
-                                _isLoading = false;
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(response.data['error'] ?? 'Booking failed'),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (mounted) {
+                              ),
+                            );
+                          } else {
                             setState(() {
                               _isLoading = false;
                             });
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+                                content: Text(response.data['error'] ?? 'Booking failed'),
                                 backgroundColor: Colors.redAccent,
                               ),
                             );
                           }
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          
+                          setState(() {
+                            _isLoading = false;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
                         }
                       },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     backgroundColor: Colors.blueAccent,
-                    disabledBackgroundColor: Colors.white.withOpacity(0.1),
-                    disabledForegroundColor: Colors.white.withOpacity(0.3),
+                    disabledBackgroundColor: Colors.white.withValues(alpha: 0.1),
+                    disabledForegroundColor: Colors.white.withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),

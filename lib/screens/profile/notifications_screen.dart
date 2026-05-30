@@ -219,7 +219,7 @@ class NotificationsScreen extends StatelessWidget {
 
   Widget _buildDivider() {
     return Divider(
-      color: Colors.white.withOpacity(0.08),
+      color: Colors.white.withValues(alpha: 0.08),
       height: 1,
       indent: 16,
     );

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,7 +42,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _bioController;
 
-  List<_VehicleEditState> _vehicles = [];
+  final List<_VehicleEditState> _vehicles = [];
 
   late String _initialName;
   late String _initialBio;

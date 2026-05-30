@@ -78,7 +78,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.greenAccent.withOpacity(0.1),
+                    color: Colors.greenAccent.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
@@ -108,7 +108,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
                       'Your parking spot at ${widget.locationName} has been successfully reserved.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 16,
                       ),
                     ),
@@ -120,7 +120,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E1E),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                       ),
                       child: Column(
                         children: [
@@ -203,7 +203,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: 15,
           ),
         ),

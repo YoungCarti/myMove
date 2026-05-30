@@ -51,6 +51,8 @@ dependencies:
 
   # Maps & Location - Google Maps integration and location services
   google_maps_flutter: ^2.17.1      # Display maps and parking locations
+  google_maps_flutter_android: ^2.14.0
+  google_maps_flutter_platform_interface: ^2.8.0
   location: ^5.0.3                 # Get device location
   geolocator: ^10.1.0              # Calculate distances and geolocation
 

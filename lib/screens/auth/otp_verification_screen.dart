@@ -489,7 +489,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    disabledBackgroundColor: const Color(0xFF0064E0).withOpacity(0.4),
+                    disabledBackgroundColor: const Color(0xFF0064E0).withValues(alpha: 0.4),
                     elevation: 0,
                   ),
                   child: _isLoading

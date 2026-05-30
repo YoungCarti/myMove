@@ -336,15 +336,13 @@ class _AddCardBottomSheetState extends State<AddCardBottomSheet> {
                       try {
                         // Simulate card addition
                         await Future.delayed(const Duration(seconds: 1));
-                        if (mounted) {
-                          Navigator.pop(context, true);
-                        }
+                        if (!context.mounted) return;
+                        Navigator.pop(context, true);
                       } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Failed to add card')),
-                          );
-                        }
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Failed to add card')),
+                        );
                       } finally {
                         if (mounted) {
                           setState(() => _isSubmitting = false);
@@ -359,7 +357,7 @@ class _AddCardBottomSheetState extends State<AddCardBottomSheet> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     elevation: 0,
-                    disabledBackgroundColor: const Color(0xFF0A84FF).withOpacity(0.5),
+                    disabledBackgroundColor: const Color(0xFF0A84FF).withValues(alpha: 0.5),
                   ),
                   child: _isSubmitting
                       ? const SizedBox(
@@ -393,7 +391,7 @@ class _AddCardBottomSheetState extends State<AddCardBottomSheet> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(2),
-        border: Border.all(color: Colors.grey.withOpacity(0.3), width: 0.5),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.3), width: 0.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(1.5),

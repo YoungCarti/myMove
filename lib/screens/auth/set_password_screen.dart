@@ -270,7 +270,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    disabledBackgroundColor: const Color(0xFF0064E0).withOpacity(0.4),
+                    disabledBackgroundColor: const Color(0xFF0064E0).withValues(alpha: 0.4),
                   ),
                   child: _isLoading
                       ? const SizedBox(

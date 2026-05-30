@@ -312,7 +312,7 @@ class _UpdateUsernameScreenState extends State<UpdateUsernameScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
-                    disabledBackgroundColor: Colors.white.withOpacity(0.3),
+                    disabledBackgroundColor: Colors.white.withValues(alpha: 0.3),
                     disabledForegroundColor: Colors.black38,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
