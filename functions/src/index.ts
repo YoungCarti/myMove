@@ -4,6 +4,98 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 const db = admin.firestore();
 
+// Safely resolve a username to an email address without exposing
+// user documents to unauthenticated clients.
+export const lookupUsername = onCall(
+  {enforceAppCheck: false, invoker: "public"},
+  async (request) => {
+    const {username} = request.data;
+    if (!username || typeof username !== "string") {
+      throw new HttpsError(
+        "invalid-argument",
+        "A username string is required."
+      );
+    }
+
+    let cleaned = username.trim().toLowerCase();
+    if (cleaned.startsWith("@")) {
+      cleaned = cleaned.substring(1);
+    }
+    if (cleaned.length === 0) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Please enter a valid username."
+      );
+    }
+
+    const snapshot = await db.collection("users")
+      .where("username_lowercase", "==", cleaned)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      throw new HttpsError(
+        "not-found",
+        `No user found with the username "@${cleaned}".`
+      );
+    }
+
+    const userData = snapshot.docs[0].data();
+    const email = userData.email as string | undefined;
+    if (!email) {
+      throw new HttpsError(
+        "not-found",
+        "This username does not have a registered email address."
+      );
+    }
+
+    // Only return the email — never expose other profile fields
+    return {email};
+  }
+);
+
+// Check if a username is available. Authenticated users only.
+export const checkUsernameAvailable = onCall(
+  {enforceAppCheck: false, invoker: "public"},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be logged in to check username availability."
+      );
+    }
+
+    const {username} = request.data;
+    if (!username || typeof username !== "string") {
+      throw new HttpsError(
+        "invalid-argument",
+        "A username string is required."
+      );
+    }
+
+    const cleaned = username.trim().toLowerCase();
+    if (cleaned.length === 0) {
+      return {available: false};
+    }
+
+    const snapshot = await db.collection("users")
+      .where("username_lowercase", "==", cleaned)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return {available: true};
+    }
+
+    // If the only match is the requesting user, it's still available
+    const isOwnUsername =
+      snapshot.docs.length === 1 &&
+      snapshot.docs[0].id === request.auth.uid;
+
+    return {available: isOwnUsername};
+  }
+);
+
 export const createBooking = onCall(
   {enforceAppCheck: false, invoker: "public"},
   async (request) => {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../utils/totp_utils.dart';
@@ -150,32 +151,15 @@ class AuthProvider with ChangeNotifier {
       // Check if it looks like an email. If not, treat as a username.
       final bool isEmail = RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(emailToUse);
       if (!isEmail) {
-        String lookupUsername = emailToUse;
-        if (lookupUsername.startsWith('@')) {
-          lookupUsername = lookupUsername.substring(1);
+        // Use Cloud Function to safely resolve username to email
+        // without exposing user documents to unauthenticated queries.
+        try {
+          final callable = FirebaseFunctions.instance.httpsCallable('lookupUsername');
+          final result = await callable.call({'username': emailToUse});
+          emailToUse = result.data['email'] as String;
+        } on FirebaseFunctionsException catch (e) {
+          throw Exception(e.message ?? 'Username lookup failed.');
         }
-        lookupUsername = lookupUsername.trim().toLowerCase();
-        
-        if (lookupUsername.isEmpty) {
-          throw Exception('Please enter a valid email or username.');
-        }
-
-        final query = await _firestore
-            .collection('users')
-            .where('username_lowercase', isEqualTo: lookupUsername)
-            .limit(1)
-            .get();
-
-        if (query.docs.isEmpty) {
-          throw Exception('No user found with the username "@${emailOrUsername.startsWith('@') ? emailOrUsername.substring(1) : emailOrUsername}".');
-        }
-
-        final userData = query.docs.first.data();
-        final userEmail = userData['email'] as String?;
-        if (userEmail == null || userEmail.isEmpty) {
-          throw Exception('This username does not have a registered email address.');
-        }
-        emailToUse = userEmail;
       }
 
       final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
@@ -375,44 +359,17 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Check if username is already taken by another user (case-insensitively)
+  // Uses a Cloud Function to avoid needing collection-level read access.
   Future<bool> isUsernameAvailable(String username) async {
     final cleaned = username.trim().toLowerCase();
     if (cleaned.isEmpty) return false;
     
-    final currentUser = _user;
-    
     try {
-      // First try checking the case-insensitive field
-      final queryLower = await _firestore
-          .collection('users')
-          .where('username_lowercase', isEqualTo: cleaned)
-          .get();
-          
-      if (queryLower.docs.isNotEmpty) {
-        if (currentUser != null) {
-          // If the only user having it is the current user, it's available
-          return queryLower.docs.every((doc) => doc.id == currentUser.uid);
-        }
-        return false;
-      }
-      
-      // Fallback: check exact field case-insensitively by doing an exact query
-      // (in case some existing profiles don't have username_lowercase yet)
-      final queryExact = await _firestore
-          .collection('users')
-          .where('username', isEqualTo: username.trim())
-          .get();
-          
-      if (queryExact.docs.isNotEmpty) {
-        if (currentUser != null) {
-          return queryExact.docs.every((doc) => doc.id == currentUser.uid);
-        }
-        return false;
-      }
-      
-      return true;
+      final callable = FirebaseFunctions.instance.httpsCallable('checkUsernameAvailable');
+      final result = await callable.call({'username': cleaned});
+      return result.data['available'] as bool;
     } catch (e) {
-      // If there's an error (e.g. offline/network), default to false/allow to continue
+      // If there's an error (e.g. offline/network), default to false
       return false;
     }
   }
