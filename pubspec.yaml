@@ -41,6 +41,7 @@ dependencies:
   firebase_auth: ^5.1.0           # User authentication
   google_sign_in: ^6.2.1          # Google Sign-In support
   cloud_firestore: ^5.0.0         # NoSQL database for user data, bookings
+  cloud_functions: ^5.0.0         # Calling Firebase Cloud Functions
   firebase_database: ^11.0.0       # Realtime database for sensor data from ESP32
   firebase_storage: ^12.0.0        # File storage for images
   firebase_messaging: ^15.0.0     # Push notifications

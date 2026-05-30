@@ -2,22 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/parking_location.dart';
+import '../parking/parking_spot_screen.dart';
 
-class BookingCheckoutSheet extends StatefulWidget {
+class BookingCheckoutScreen extends StatefulWidget {
   final ParkingLocation location;
 
-  const BookingCheckoutSheet({
+  const BookingCheckoutScreen({
     super.key,
     required this.location,
   });
 
   @override
-  State<BookingCheckoutSheet> createState() => _BookingCheckoutSheetState();
+  State<BookingCheckoutScreen> createState() => _BookingCheckoutScreenState();
 }
 
-class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
+class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   Map<String, dynamic>? _selectedVehicle;
 
   // Date selection (allow multiple dates)
@@ -543,18 +545,25 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
+    return Scaffold(
+      backgroundColor: const Color(0xFF1C1C1E),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        title: const Text(
+          'Checkout',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
       ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SafeArea(
+      body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.all(24),
@@ -562,19 +571,6 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              
               // 1. Choose Vehicle
               const Text(
                 'Choose Vehicle',
@@ -682,68 +678,44 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
                           final startDateTime = DateTime(startDate.year, startDate.month, startDate.day, _startTime.hour, _startTime.minute);
                           final endDateTime = DateTime(endDate.year, endDate.month, endDate.day, _endTime.hour, _endTime.minute);
 
-                          final locationRef = FirebaseFirestore.instance.collection('parking_locations').doc(widget.location.id);
-                          final bookingRef = FirebaseFirestore.instance.collection('bookings').doc();
-
-                          await FirebaseFirestore.instance.runTransaction((transaction) async {
-                            // 1. Read the current parking location document
-                            final locationDoc = await transaction.get(locationRef);
-                            
-                            if (!locationDoc.exists) {
-                              throw Exception('Parking location does not exist.');
-                            }
-                            
-                            // Treat availableSpots as the static total capacity of the lot
-                            final int totalCapacity = locationDoc.data()?['availableSpots'] ?? 0;
-                            
-                            // 2. Query active overlapping bookings
-                            // We need bookings that end AFTER our start time
-                            final overlappingQuery = FirebaseFirestore.instance
-                                .collection('bookings')
-                                .where('locationId', isEqualTo: widget.location.id)
-                                .where('status', isEqualTo: 'active')
-                                .where('endDateTime', isGreaterThan: startDateTime.toIso8601String());
-                                
-                            final bookingsSnapshot = await transaction.get(overlappingQuery);
-                            
-                            int overlappingCount = 0;
-                            for (var doc in bookingsSnapshot.docs) {
-                              final bookingStart = DateTime.parse(doc['startDateTime']);
-                              // Check if the existing booking starts BEFORE our end time
-                              if (bookingStart.isBefore(endDateTime)) {
-                                overlappingCount++;
-                              }
-                            }
-                            
-                            // 3. Verify availability
-                            if (overlappingCount >= totalCapacity) {
-                              throw Exception('Sorry, this parking location is sold out for the selected time.');
-                            }
-
-                            // 4. Create the booking (we no longer permanently decrement availableSpots)
-                            transaction.set(bookingRef, {
-                              'userId': userId,
-                              'locationId': widget.location.id,
-                              'locationName': widget.location.name,
-                              'vehicleMake': _selectedVehicle?['make'],
-                              'vehiclePlate': _selectedVehicle?['plate'],
-                              'startDateTime': startDateTime.toIso8601String(),
-                              'endDateTime': endDateTime.toIso8601String(),
-                              'totalPrice': _totalPrice,
-                              'calculatedHours': _calculatedHours,
-                              'status': 'active', // or 'pending' if payment is next
-                              'createdAt': FieldValue.serverTimestamp(),
-                            });
+                          final callable = FirebaseFunctions.instance.httpsCallable('createBooking');
+                          final response = await callable.call({
+                            'locationId': widget.location.id,
+                            'locationName': widget.location.name,
+                            'vehicleMake': _selectedVehicle?['make'],
+                            'vehiclePlate': _selectedVehicle?['plate'],
+                            'startDateTime': startDateTime.toIso8601String(),
+                            'endDateTime': endDateTime.toIso8601String(),
                           });
 
+                          // Assuming the cloud function completes successfully.
+                          // It will return { success: true, bookingId: ..., price: ... }
+
                           if (mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Booking successful!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            if (response.data['success'] == true) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ParkingSpotScreen(
+                                    bookingId: response.data['bookingId'],
+                                    locationName: widget.location.name,
+                                    startDateTime: startDateTime,
+                                    endDateTime: endDateTime,
+                                    price: response.data['price'].toDouble(),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              setState(() {
+                                _isLoading = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(response.data['error'] ?? 'Booking failed'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
                           }
                         } catch (e) {
                           if (mounted) {

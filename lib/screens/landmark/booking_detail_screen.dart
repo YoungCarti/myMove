@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../models/parking_location.dart';
-import 'booking_checkout_sheet.dart';
+import 'booking_checkout_screen.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final ParkingLocation location;
@@ -427,12 +427,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (context) => BookingCheckoutSheet(
-                            location: widget.location,
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookingCheckoutScreen(
+                              location: widget.location,
+                            ),
                           ),
                         );
                       },

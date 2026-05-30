@@ -4,7 +4,7 @@ import '../screens/auth/register_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/parking/search_parking_screen.dart';
 import '../screens/parking/parking_details_screen.dart';
-import '../screens/parking/parking_spot_screen.dart';
+
 import '../screens/booking/book_parking_screen.dart';
 import '../screens/booking/active_booking_screen.dart';
 import '../screens/qr/qr_scanner_screen.dart';
@@ -29,7 +29,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String searchParking = '/search-parking';
   static const String parkingDetails = '/parking-details';
-  static const String parkingSpot = '/parking-spot';
+
   static const String bookParking = '/book-parking';
   static const String activeBooking = '/active-booking';
   static const String qrScanner = '/qr-scanner';
@@ -54,7 +54,7 @@ class AppRoutes {
     home: (context) => const HomeScreen(),
     searchParking: (context) => const SearchParkingScreen(),
     parkingDetails: (context) => const ParkingDetailsScreen(),
-    parkingSpot: (context) => const ParkingSpotScreen(),
+
     bookParking: (context) => const BookParkingScreen(),
     activeBooking: (context) => const ActiveBookingScreen(),
     qrScanner: (context) => const QRScannerScreen(),
