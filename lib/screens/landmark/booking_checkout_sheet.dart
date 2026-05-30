@@ -77,6 +77,14 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
     return (diffMinutes / 60).ceil();
   }
 
+  bool get _isPastBooking {
+    if (_selectedDates.isEmpty) return false;
+    final sortedDates = _selectedDates.toList()..sort();
+    final startDate = sortedDates.first;
+    final startDateTime = DateTime(startDate.year, startDate.month, startDate.day, _startTime.hour, _startTime.minute);
+    return startDateTime.isBefore(DateTime.now());
+  }
+
   double get _totalPrice {
     return _calculatedHours * widget.location.pricePerHour;
   }
@@ -252,6 +260,30 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
     final endDateTime = DateTime(endDate.year, endDate.month, endDate.day, _endTime.hour, _endTime.minute);
 
     int diffMinutes = endDateTime.difference(startDateTime).inMinutes;
+
+    if (_isPastBooking) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Invalid time. Start time has already passed.',
+                style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (diffMinutes <= 0) {
       return Container(
@@ -630,7 +662,7 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _calculatedHours <= 0 || _selectedVehicle == null || _isLoading || widget.location.availableSpots <= 0
+                  onPressed: _calculatedHours <= 0 || _isPastBooking || _selectedVehicle == null || _isLoading || widget.location.availableSpots <= 0
                     ? null
                     : () async {
                         setState(() {
