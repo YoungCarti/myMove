@@ -625,7 +625,7 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _calculatedHours <= 0 || _selectedVehicle == null || _isLoading
+                  onPressed: _calculatedHours <= 0 || _selectedVehicle == null || _isLoading || widget.location.availableSpots <= 0
                     ? null
                     : () async {
                         setState(() {
@@ -645,18 +645,43 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
                           final startDateTime = DateTime(startDate.year, startDate.month, startDate.day, _startTime.hour, _startTime.minute);
                           final endDateTime = DateTime(endDate.year, endDate.month, endDate.day, _endTime.hour, _endTime.minute);
 
-                          await FirebaseFirestore.instance.collection('bookings').add({
-                            'userId': userId,
-                            'locationId': widget.location.id,
-                            'locationName': widget.location.name,
-                            'vehicleMake': _selectedVehicle?['make'],
-                            'vehiclePlate': _selectedVehicle?['plate'],
-                            'startDateTime': startDateTime.toIso8601String(),
-                            'endDateTime': endDateTime.toIso8601String(),
-                            'totalPrice': _totalPrice,
-                            'calculatedHours': _calculatedHours,
-                            'status': 'active', // or 'pending' if payment is next
-                            'createdAt': FieldValue.serverTimestamp(),
+                          final locationRef = FirebaseFirestore.instance.collection('parking_locations').doc(widget.location.id);
+                          final bookingRef = FirebaseFirestore.instance.collection('bookings').doc();
+
+                          await FirebaseFirestore.instance.runTransaction((transaction) async {
+                            // 1. Read the current parking location document
+                            final locationDoc = await transaction.get(locationRef);
+                            
+                            if (!locationDoc.exists) {
+                              throw Exception('Parking location does not exist.');
+                            }
+                            
+                            final int currentSpots = locationDoc.data()?['availableSpots'] ?? 0;
+                            
+                            // 2. Verify availability
+                            if (currentSpots <= 0) {
+                              throw Exception('Sorry, this parking location just sold out.');
+                            }
+
+                            // 3. Decrement available spots
+                            transaction.update(locationRef, {
+                              'availableSpots': currentSpots - 1,
+                            });
+
+                            // 4. Create the booking
+                            transaction.set(bookingRef, {
+                              'userId': userId,
+                              'locationId': widget.location.id,
+                              'locationName': widget.location.name,
+                              'vehicleMake': _selectedVehicle?['make'],
+                              'vehiclePlate': _selectedVehicle?['plate'],
+                              'startDateTime': startDateTime.toIso8601String(),
+                              'endDateTime': endDateTime.toIso8601String(),
+                              'totalPrice': _totalPrice,
+                              'calculatedHours': _calculatedHours,
+                              'status': 'active', // or 'pending' if payment is next
+                              'createdAt': FieldValue.serverTimestamp(),
+                            });
                           });
 
                           if (mounted) {
@@ -675,7 +700,7 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
                             });
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Error: ${e.toString()}'),
+                                content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
                                 backgroundColor: Colors.redAccent,
                               ),
                             );
@@ -701,9 +726,9 @@ class _BookingCheckoutSheetState extends State<BookingCheckoutSheet> {
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : const Text(
-                        'Continue',
-                        style: TextStyle(
+                    : Text(
+                        widget.location.availableSpots <= 0 ? 'Sold Out' : 'Continue',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
