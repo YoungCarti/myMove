@@ -48,14 +48,12 @@ export const createBooking = onCall(
     const diffMilliseconds = end.getTime() - start.getTime();
     let hours = Math.ceil(diffMilliseconds / (1000 * 60 * 60));
     if (hours < 1) hours = 1;
-    const HOURLY_RATE = 2.0; // RM2 per hour
-    const calculatedPrice = hours * HOURLY_RATE;
 
     const locationRef = db.collection("parking_locations").doc(locationId);
 
     try {
       return await db.runTransaction(async (transaction) => {
-        // 1. Read location for capacity
+        // 1. Read location for capacity and price
         const locationDoc = await transaction.get(locationRef);
         if (!locationDoc.exists) {
           throw new HttpsError(
@@ -64,7 +62,12 @@ export const createBooking = onCall(
           );
         }
 
-        const totalCapacity = locationDoc.data()?.availableSpots ?? 0;
+        const locationData = locationDoc.data();
+        const totalCapacity = locationData?.availableSpots ?? 0;
+
+        // Price calculation using the location's stored hourly rate
+        const hourlyRate = locationData?.pricePerHour ?? 2.0;
+        const calculatedPrice = hours * hourlyRate;
 
         // 2. Read overlapping bookings
         const overlappingQuery = db.collection("bookings")

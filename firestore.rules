@@ -5,12 +5,19 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       // Users can only read their own bookings
       allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      // ONLY the Cloud Function (which bypasses these rules using Admin SDK) can create/update/delete bookings.
-      allow write: if false; 
+      
+      // Allow users to update ONLY the spotId field of their own booking
+      allow update: if request.auth != null 
+                    && request.auth.uid == resource.data.userId 
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['spotId']);
+                    
+      // ONLY the Cloud Function (which bypasses these rules using Admin SDK) can create/delete bookings.
+      allow create, delete: if false; 
     }
 
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 6, 20);
+    // Temporary catch-all rule for other collections (excluding bookings)
+    match /{collection}/{document=**} {
+      allow read, write: if collection != 'bookings' && request.time < timestamp.date(2026, 6, 20);
     }
   }
 }
