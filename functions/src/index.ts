@@ -78,10 +78,15 @@ export const createBooking = onCall(
         const overlappingSnapshot = await transaction.get(overlappingQuery);
 
         let overlappingCount = 0;
+        const occupiedSpots: string[] = [];
         overlappingSnapshot.forEach((doc) => {
           const bookingStart = new Date(doc.data().startDateTime);
           if (bookingStart < end) {
             overlappingCount++;
+            const spot = doc.data().spotId;
+            if (spot) {
+              occupiedSpots.push(spot);
+            }
           }
         });
 
@@ -114,6 +119,7 @@ export const createBooking = onCall(
           success: true,
           bookingId: newBookingRef.id,
           price: calculatedPrice,
+          occupiedSpots: occupiedSpots,
         };
       });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,3 +138,82 @@ export const createBooking = onCall(
   }
 );
 
+export const assignSpot = onCall(
+  {enforceAppCheck: false, invoker: "public"},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be logged in to assign a spot."
+      );
+    }
+
+    const {bookingId, spotId} = request.data;
+    if (!bookingId || !spotId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing bookingId or spotId."
+      );
+    }
+
+    const bookingRef = db.collection("bookings").doc(bookingId);
+
+    try {
+      return await db.runTransaction(async (transaction) => {
+        const bookingDoc = await transaction.get(bookingRef);
+        if (!bookingDoc.exists) {
+          throw new HttpsError("not-found", "Booking not found.");
+        }
+
+        const bookingData = bookingDoc.data()!;
+        if (bookingData.userId !== request.auth!.uid) {
+          throw new HttpsError("permission-denied", "Not your booking.");
+        }
+
+        if (bookingData.spotId) {
+          // If already assigned to the same spot, just return success
+          if (bookingData.spotId === spotId) return {success: true};
+          throw new HttpsError(
+            "already-exists",
+            "A spot is already assigned to this booking."
+          );
+        }
+
+        // Check if spot is taken by any overlapping booking
+        const overlappingQuery = db.collection("bookings")
+          .where("locationId", "==", bookingData.locationId)
+          .where("status", "==", "active")
+          .where("spotId", "==", spotId)
+          .where("endDateTime", ">", bookingData.startDateTime);
+
+        const overlappingSnapshot = await transaction.get(overlappingQuery);
+
+        const start = new Date(bookingData.startDateTime);
+        const end = new Date(bookingData.endDateTime);
+
+        let isTaken = false;
+        overlappingSnapshot.forEach((doc) => {
+          const bStart = new Date(doc.data().startDateTime);
+          if (bStart < end) {
+            isTaken = true;
+          }
+        });
+
+        if (isTaken) {
+          throw new HttpsError(
+            "resource-exhausted",
+            "Sorry, this spot is already taken for the selected time."
+          );
+        }
+
+        transaction.update(bookingRef, {spotId});
+        return {success: true};
+      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (error instanceof HttpsError) throw error;
+      console.error("Assign spot failed:", error);
+      throw new HttpsError("internal", error.message || "Failed to assign spot.");
+    }
+  }
+);
