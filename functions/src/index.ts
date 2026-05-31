@@ -224,6 +224,10 @@ export const createBooking = onCall(
         }
 
         // 3. Create booking
+        const taxRate = 0.02;
+        const taxAmount = calculatedPrice * taxRate;
+        const totalPaid = calculatedPrice + taxAmount;
+
         const newBookingRef = db.collection("bookings").doc();
         const bookingData = {
           userId: userId,
@@ -234,7 +238,11 @@ export const createBooking = onCall(
           startDateTime: startDateTime,
           endDateTime: endDateTime,
           calculatedHours: hours,
-          totalPrice: calculatedPrice,
+          totalPrice: calculatedPrice, // Legacy field
+          subtotal: calculatedPrice,
+          taxRate: taxRate,
+          taxAmount: taxAmount,
+          totalPaid: totalPaid,
           status: "pending",
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           expiresAt: admin.firestore.Timestamp.fromDate(

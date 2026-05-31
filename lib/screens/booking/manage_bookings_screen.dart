@@ -153,7 +153,15 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
     final locationAddress = data['locationAddress'] as String?;
     final startStr = data['startDateTime'] as String?;
     final endStr = data['endDateTime'] as String?;
-    final priceAmount = data['totalPrice'] ?? 0;
+    
+    // For legacy bookings that only stored the pre-tax totalPrice, 
+    // we need to re-apply the 2% tax that was actually charged at checkout.
+    final bool isLegacyPrice = !data.containsKey('totalPaid');
+    final double basePrice = (data['totalPrice'] ?? 0).toDouble();
+    final double priceAmount = isLegacyPrice 
+        ? basePrice * 1.02 
+        : (data['totalPaid'] ?? 0).toDouble();
+        
     final price = 'RM${priceAmount.toStringAsFixed(2)} ';
     final bookingId = doc.id;
     
@@ -331,7 +339,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             spotId: data['spotId'] ?? 'N/A',
                             startDateTime: start,
                             endDateTime: end,
-                            price: (data['totalPrice'] ?? 0).toDouble(),
+                            price: priceAmount,
                           ),
                         ),
                       );
