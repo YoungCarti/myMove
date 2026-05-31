@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_screen.dart';
-import '../screens/parking/search_parking_screen.dart';
 import '../screens/parking/parking_details_screen.dart';
 
 import '../screens/booking/book_parking_screen.dart';
 import '../screens/booking/active_booking_screen.dart';
+import '../screens/booking/manage_bookings_screen.dart';
 import '../screens/qr/qr_scanner_screen.dart';
 import '../screens/qr/qr_display_screen.dart';
 import '../screens/profile/profile_screen.dart';
@@ -52,7 +52,7 @@ class AppRoutes {
     login: (context) => const LoginScreen(),
     register: (context) => const RegisterScreen(),
     home: (context) => const HomeScreen(),
-    manageBookings: (context) => const SearchParkingScreen(),
+    manageBookings: (context) => const ManageBookingsScreen(),
     parkingDetails: (context) => const ParkingDetailsScreen(),
 
     bookParking: (context) => const BookParkingScreen(),
