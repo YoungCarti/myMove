@@ -126,7 +126,8 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     // Computations
-    final durationHours = widget.endDateTime.difference(widget.startDateTime).inHours;
+    final diffMinutes = widget.endDateTime.difference(widget.startDateTime).inMinutes;
+    final durationHours = diffMinutes > 0 ? (diffMinutes / 60).ceil() : 0;
     final isMultiDay = widget.startDateTime.day != widget.endDateTime.day;
     
     final dateFormat = DateFormat('d MMMM yyyy');
