@@ -523,7 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     
                     if (index == 1) {
                       // TODO: Update route for Booking if needed
-                      Navigator.pushNamed(context, AppRoutes.searchParking).then((_) {
+                      Navigator.pushNamed(context, AppRoutes.manageBookings).then((_) {
                         if (mounted) setState(() => _selectedIndex = 0);
                       });
                     } else if (index == 2) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../services/payment_service.dart';
 
 class AddCardBottomSheet extends StatefulWidget {
   const AddCardBottomSheet({super.key});
@@ -334,8 +335,16 @@ class _AddCardBottomSheetState extends State<AddCardBottomSheet> {
                     if (_formKey.currentState?.validate() ?? false) {
                       setState(() => _isSubmitting = true);
                       try {
-                        // Simulate card addition
-                        await Future.delayed(const Duration(seconds: 1));
+                        final number = _cardNumberController.text.replaceAll(' ', '');
+                        final last4 = number.length >= 4 ? number.substring(number.length - 4) : '0000';
+                        final brand = number.startsWith('4') ? 'Visa' : 'Mastercard';
+                        
+                        await PaymentService.addCard(PaymentCard(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          brand: brand,
+                          last4: last4,
+                        ));
+                        
                         if (!context.mounted) return;
                         Navigator.pop(context, true);
                       } catch (e) {
@@ -385,24 +394,11 @@ class _AddCardBottomSheetState extends State<AddCardBottomSheet> {
   }
 
   Widget _buildSvgIcon(String assetPath) {
-    return Container(
+    return SvgPicture.asset(
+      assetPath,
       width: 32,
       height: 20,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(2),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.3), width: 0.5),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(1.5),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 1.0),
-          child: SvgPicture.asset(
-            assetPath,
-            fit: BoxFit.contain,
-          ),
-        ),
-      ),
+      fit: BoxFit.contain,
     );
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'booking_success_screen.dart';
+import '../../services/payment_service.dart';
+import 'payment_method_bottom_sheet.dart';
 
 class BookingSummaryScreen extends StatefulWidget {
   final String bookingId;
@@ -33,7 +36,26 @@ class BookingSummaryScreen extends StatefulWidget {
 
 class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
   bool _isSaving = false;
-  String _selectedPaymentMethod = 'Credit Card';
+  PaymentCard? _selectedCard;
+  bool _isLoadingCards = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDefaultCard();
+  }
+
+  Future<void> _loadDefaultCard() async {
+    final cards = await PaymentService.getCards();
+    if (mounted) {
+      setState(() {
+        if (cards.isNotEmpty) {
+          _selectedCard = cards.first;
+        }
+        _isLoadingCards = false;
+      });
+    }
+  }
 
   Future<void> _confirmBooking() async {
     setState(() {
@@ -56,6 +78,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
               builder: (context) => BookingSuccessScreen(
                 bookingId: widget.bookingId,
                 locationName: widget.locationName,
+                spotId: widget.spotId,
                 startDateTime: widget.startDateTime,
                 endDateTime: widget.endDateTime,
                 price: widget.price * 1.02,
@@ -195,6 +218,80 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
               
               const SizedBox(height: 24),
               
+              // Payment Method Card
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2C2C2E),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: _isLoadingCards
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : Row(
+                        children: [
+                          _selectedCard != null && _selectedCard!.brand.toLowerCase().contains('visa')
+                              ? SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: Center(child: SvgPicture.asset('assets/icons/visa.svg', width: 32, height: 24, fit: BoxFit.contain)),
+                                )
+                              : _selectedCard != null && _selectedCard!.brand.toLowerCase().contains('mastercard')
+                                  ? SizedBox(
+                                      width: 40,
+                                      height: 40,
+                                      child: Center(child: SvgPicture.asset('assets/icons/mastercard.svg', width: 32, height: 24, fit: BoxFit.contain)),
+                                    )
+                                  : Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueAccent.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(Icons.credit_card, color: Colors.blueAccent),
+                                    ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              _selectedCard != null
+                                  ? '${_selectedCard!.brand} •••• ${_selectedCard!.last4}'
+                                  : 'Set up your payment method',
+                              style: TextStyle(
+                                color: _selectedCard != null ? Colors.white : Colors.white70,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final selectedCard = await PaymentMethodBottomSheet.show(context, _selectedCard);
+                              if (selectedCard != null) {
+                                setState(() {
+                                  _selectedCard = selectedCard;
+                                });
+                              }
+                            },
+                            child: Text(
+                              _selectedCard != null ? 'Change' : 'Add',
+                              style: const TextStyle(
+                                color: Colors.blueAccent,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+              
+              const SizedBox(height: 24),
+              
               // Pricing Card
               Container(
                 padding: const EdgeInsets.all(20),
@@ -215,54 +312,6 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 24),
-              
-              // Payment Method Card
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2C2C2E),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.credit_card, color: Colors.blueAccent),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        _selectedPaymentMethod,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        // Future: Show payment method bottom sheet
-                      },
-                      child: const Text(
-                        'Change',
-                        style: TextStyle(
-                          color: Colors.blueAccent,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
@@ -279,7 +328,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _isSaving ? null : _confirmBooking,
+              onPressed: (_isSaving || _selectedCard == null || _isLoadingCards) ? null : _confirmBooking,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 backgroundColor: Colors.blueAccent,

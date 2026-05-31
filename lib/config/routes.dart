@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_screen.dart';
-import '../screens/parking/search_parking_screen.dart';
 import '../screens/parking/parking_details_screen.dart';
 
 import '../screens/booking/book_parking_screen.dart';
 import '../screens/booking/active_booking_screen.dart';
+import '../screens/booking/manage_bookings_screen.dart';
 import '../screens/qr/qr_scanner_screen.dart';
 import '../screens/qr/qr_display_screen.dart';
 import '../screens/profile/profile_screen.dart';
@@ -27,7 +27,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String home = '/home';
-  static const String searchParking = '/search-parking';
+  static const String manageBookings = '/manage-bookings';
   static const String parkingDetails = '/parking-details';
 
   static const String bookParking = '/book-parking';
@@ -52,7 +52,7 @@ class AppRoutes {
     login: (context) => const LoginScreen(),
     register: (context) => const RegisterScreen(),
     home: (context) => const HomeScreen(),
-    searchParking: (context) => const SearchParkingScreen(),
+    manageBookings: (context) => const ManageBookingsScreen(),
     parkingDetails: (context) => const ParkingDetailsScreen(),
 
     bookParking: (context) => const BookParkingScreen(),
