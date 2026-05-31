@@ -27,7 +27,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String home = '/home';
-  static const String searchParking = '/search-parking';
+  static const String manageBookings = '/manage-bookings';
   static const String parkingDetails = '/parking-details';
 
   static const String bookParking = '/book-parking';
@@ -52,7 +52,7 @@ class AppRoutes {
     login: (context) => const LoginScreen(),
     register: (context) => const RegisterScreen(),
     home: (context) => const HomeScreen(),
-    searchParking: (context) => const SearchParkingScreen(),
+    manageBookings: (context) => const SearchParkingScreen(),
     parkingDetails: (context) => const ParkingDetailsScreen(),
 
     bookParking: (context) => const BookParkingScreen(),

@@ -21,10 +21,9 @@ class AddCardBottomSheet extends StatefulWidget {
 
 class _AddCardBottomSheetState extends State<AddCardBottomSheet> {
   final _formKey = GlobalKey<FormState>();
-  // Pre-filled with dummy card details for easy testing
-  final _cardNumberController = TextEditingController(text: '4242 4242 4242 4242');
-  final _expiryController = TextEditingController(text: '12/30');
-  final _cvcController = TextEditingController(text: '123');
+  final _cardNumberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _cvcController = TextEditingController();
   bool _isSubmitting = false;
 
   @override

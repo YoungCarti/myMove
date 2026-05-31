@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import '../booking/booking_success_screen.dart';
 import '../booking/booking_summary_screen.dart';
 
 class ParkingSpotScreen extends StatefulWidget {
@@ -33,7 +31,7 @@ class ParkingSpotScreen extends StatefulWidget {
 
 class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
   String? _selectedSpot;
-  bool _isSaving = false;
+  final bool _isSaving = false;
 
   // Mock parking spots layout
   final List<String> leftColumn = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];

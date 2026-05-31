@@ -172,7 +172,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).popUntil((route) => route.isFirst);
-                          Navigator.pushNamed(context, AppRoutes.searchParking);
+                          Navigator.pushNamed(context, AppRoutes.manageBookings);
                         },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 18),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PaymentCard {
@@ -22,11 +23,20 @@ class PaymentCard {
 }
 
 class PaymentService {
-  static const String _cardsKey = 'user_payment_cards';
+  static String get _cardsKey {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return 'saved_cards_${user.uid}';
+    }
+    return '';
+  }
 
   static Future<List<PaymentCard>> getCards() async {
+    final key = _cardsKey;
+    if (key.isEmpty) return [];
+
     final prefs = await SharedPreferences.getInstance();
-    final cardsString = prefs.getString(_cardsKey);
+    final cardsString = prefs.getString(key);
     if (cardsString != null) {
       final List<dynamic> decoded = jsonDecode(cardsString);
       return decoded.map((e) => PaymentCard.fromJson(e)).toList();
@@ -35,11 +45,14 @@ class PaymentService {
   }
 
   static Future<void> addCard(PaymentCard card) async {
+    final key = _cardsKey;
+    if (key.isEmpty) return; // Do not save if no user is signed in
+
     final prefs = await SharedPreferences.getInstance();
     final currentCards = await getCards();
     currentCards.add(card);
     final encoded = jsonEncode(currentCards.map((c) => c.toJson()).toList());
-    await prefs.setString(_cardsKey, encoded);
+    await prefs.setString(key, encoded);
   }
 
   // Helper to add dummy cards for testing
