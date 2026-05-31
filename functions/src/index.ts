@@ -10,6 +10,11 @@ const VALID_SPOT_IDS = new Set([
 ]);
 const MAX_SELECTABLE_SPOTS = VALID_SPOT_IDS.size;
 
+/**
+ * Get effective capacity.
+ * @param {unknown} rawCapacity Raw capacity
+ * @return {number} Effective capacity
+ */
 function getEffectiveCapacity(rawCapacity: unknown): number {
   const numericCapacity = typeof rawCapacity === "number" ? rawCapacity : 0;
   return Math.min(
@@ -18,6 +23,12 @@ function getEffectiveCapacity(rawCapacity: unknown): number {
   );
 }
 
+/**
+ * Get username matches.
+ * @param {string} trimmed Trimmed username
+ * @param {string} cleaned Cleaned username
+ * @return {Promise<admin.firestore.QueryDocumentSnapshot[]>} Matches
+ */
 async function getUsernameMatches(trimmed: string, cleaned: string) {
   const usersRef = db.collection("users");
   const [lowercaseSnapshot, legacySnapshot] = await Promise.all([
@@ -414,6 +425,68 @@ export const assignSpot = onCall(
       throw new HttpsError(
         "internal",
         error.message || "Failed to assign spot."
+      );
+    }
+  }
+);
+
+export const cancelBooking = onCall(
+  {enforceAppCheck: false},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be signed in to cancel a booking."
+      );
+    }
+    const {bookingId} = request.data;
+    if (!bookingId || typeof bookingId !== "string") {
+      throw new HttpsError(
+        "invalid-argument",
+        "A valid bookingId is required."
+      );
+    }
+
+    const bookingRef = db.collection("bookings").doc(bookingId);
+
+    try {
+      await db.runTransaction(async (transaction) => {
+        const bookingDoc = await transaction.get(bookingRef);
+        if (!bookingDoc.exists) {
+          throw new HttpsError("not-found", "Booking not found.");
+        }
+
+        const bookingData = bookingDoc.data();
+        if (bookingData?.userId !== request.auth?.uid) {
+          throw new HttpsError(
+            "permission-denied",
+            "You can only cancel your own bookings."
+          );
+        }
+
+        if (
+          bookingData?.status === "canceled" ||
+          bookingData?.status === "completed"
+        ) {
+          throw new HttpsError(
+            "failed-precondition",
+            "This booking cannot be canceled."
+          );
+        }
+
+        transaction.update(bookingRef, {
+          status: "canceled",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      return {success: true};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (error instanceof HttpsError) throw error;
+      console.error("Cancel booking failed:", error);
+      throw new HttpsError(
+        "internal",
+        error.message || "Failed to cancel booking."
       );
     }
   }
