@@ -49,8 +49,8 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
 
       if (mounted) {
         if (response.data['success'] == true) {
-          // Use pushAndRemoveUntil or pushReplacement to avoid going back
-          Navigator.pushReplacement(
+          // Use pushAndRemoveUntil to clear the spot selection route
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => BookingSuccessScreen(
@@ -61,6 +61,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                 price: widget.price * 1.02,
               ),
             ),
+            (route) => route.isFirst,
           );
         } else {
           setState(() {
