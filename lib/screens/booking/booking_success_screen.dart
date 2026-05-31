@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../config/routes.dart';
 
 class BookingSuccessScreen extends StatefulWidget {
   final String bookingId;
   final String locationName;
+  final String spotId;
   final DateTime startDateTime;
   final DateTime endDateTime;
   final double price;
@@ -12,6 +14,7 @@ class BookingSuccessScreen extends StatefulWidget {
     super.key,
     required this.bookingId,
     required this.locationName,
+    required this.spotId,
     required this.startDateTime,
     required this.endDateTime,
     required this.price,
@@ -66,12 +69,15 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+        child: Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: Container(
@@ -128,6 +134,8 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
                           const Divider(color: Colors.white10, height: 32),
                           _buildReceiptRow('Location', widget.locationName),
                           const SizedBox(height: 16),
+                          _buildReceiptRow('Spot Number', widget.spotId),
+                          const SizedBox(height: 16),
                           _buildReceiptRow('Start', _formatDateTime(widget.startDateTime)),
                           const SizedBox(height: 16),
                           _buildReceiptRow('End', _formatDateTime(widget.endDateTime)),
@@ -163,6 +171,34 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
+                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          Navigator.pushNamed(context, AppRoutes.searchParking);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          backgroundColor: const Color(0xFF2C2C2E),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 0,
+                          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: const Text(
+                          'Manage Booking',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
                           // Navigate back to home or to active bookings
                           // Here we pop all the way back to the main screen
                           Navigator.of(context).popUntil((route) => route.isFirst);
@@ -189,6 +225,8 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Single
                 ),
               ),
             ],
+              ),
+            ),
           ),
         ),
       ),
