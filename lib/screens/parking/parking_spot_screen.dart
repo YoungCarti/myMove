@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../booking/booking_success_screen.dart';
+import '../booking/booking_summary_screen.dart';
 
 class ParkingSpotScreen extends StatefulWidget {
   final String bookingId;
   final String locationName;
+  final String locationAddress;
+  final String vehicleMake;
+  final String vehiclePlate;
   final DateTime startDateTime;
   final DateTime endDateTime;
   final double price;
@@ -14,6 +18,9 @@ class ParkingSpotScreen extends StatefulWidget {
     super.key,
     required this.bookingId,
     required this.locationName,
+    required this.locationAddress,
+    required this.vehicleMake,
+    required this.vehiclePlate,
     required this.startDateTime,
     required this.endDateTime,
     required this.price,
@@ -35,54 +42,23 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
   Future<void> _confirmSpot() async {
     if (_selectedSpot == null) return;
 
-    setState(() {
-      _isSaving = true;
-    });
-
-    try {
-      final callable = FirebaseFunctions.instance.httpsCallable('assignSpot');
-      final response = await callable.call({
-        'bookingId': widget.bookingId,
-        'spotId': _selectedSpot,
-      });
-
-      if (mounted) {
-        if (response.data['success'] == true) {
-          // Use pushReplacement so user can't go back to spot selection
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BookingSuccessScreen(
-                bookingId: widget.bookingId,
-                locationName: widget.locationName,
-                startDateTime: widget.startDateTime,
-                endDateTime: widget.endDateTime,
-                price: widget.price,
-              ),
-            ),
-          );
-        } else {
-          setState(() {
-            _isSaving = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.data['error'] ?? 'Assign spot failed'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving spot: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.redAccent),
-        );
-        setState(() {
-          _isSaving = false;
-        });
-      }
-    }
+    // Navigate to the final summary screen before confirming with backend
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingSummaryScreen(
+          bookingId: widget.bookingId,
+          locationName: widget.locationName,
+          locationAddress: widget.locationAddress,
+          spotId: _selectedSpot!,
+          vehicleMake: widget.vehicleMake,
+          vehiclePlate: widget.vehiclePlate,
+          startDateTime: widget.startDateTime,
+          endDateTime: widget.endDateTime,
+          price: widget.price,
+        ),
+      ),
+    );
   }
 
   Widget _buildSpot(String spotId) {

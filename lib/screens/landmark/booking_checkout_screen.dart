@@ -699,6 +699,9 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                                 builder: (context) => ParkingSpotScreen(
                                   bookingId: response.data['bookingId'],
                                   locationName: widget.location.name,
+                                  locationAddress: widget.location.address,
+                                  vehicleMake: _selectedVehicle?['make'] ?? 'Unknown',
+                                  vehiclePlate: _selectedVehicle?['plate'] ?? 'Unknown',
                                   startDateTime: startDateTime,
                                   endDateTime: endDateTime,
                                   price: response.data['price'].toDouble(),
