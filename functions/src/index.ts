@@ -10,6 +10,8 @@ const VALID_SPOT_IDS = new Set([
 ]);
 const MAX_SELECTABLE_SPOTS = VALID_SPOT_IDS.size;
 
+const DEFAULT_PRICE_PER_HOUR = 2.0;
+
 /**
  * Get effective capacity.
  * @param {unknown} rawCapacity Raw capacity
@@ -192,7 +194,7 @@ export const createBooking = onCall(
         );
 
         // Price calculation using the location's stored hourly rate
-        const hourlyRate = locationData?.pricePerHour ?? 2.0;
+        const hourlyRate = locationData?.pricePerHour ?? DEFAULT_PRICE_PER_HOUR;
         const calculatedPrice = hours * hourlyRate;
 
         // 2. Read overlapping bookings
@@ -620,7 +622,8 @@ export const extendParking = onCall(
         const currentTotalPaid = bookingData.totalPaid ?? currentPrice * 1.02;
 
         const currentCalculatedHours = bookingData.calculatedHours ?? 0;
-        const pricePerHour = locationDoc.data()?.pricePerHour ?? 10;
+        const pricePerHour =
+          locationDoc.data()?.pricePerHour ?? DEFAULT_PRICE_PER_HOUR;
 
         const extensionAmount = (extendMinutes / 60) * pricePerHour;
         const extensionTaxes = extensionAmount * 0.02; // 2% tax
