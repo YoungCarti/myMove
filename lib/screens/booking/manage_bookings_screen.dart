@@ -474,7 +474,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             );
                           }
                         } on FirebaseFunctionsException catch (e) {
-                          print('Firebase Functions Error: ${e.code} - ${e.message} - ${e.details}');
+                          debugPrint('Firebase Functions Error: ${e.code} - ${e.message} - ${e.details}');
                           if (context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -482,7 +482,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             );
                           }
                         } catch (e) {
-                          print('Cancel Error: $e');
+                          debugPrint('Cancel Error: $e');
                           if (context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(

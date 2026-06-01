@@ -26,11 +26,45 @@ class _ExtendParkingScreenState extends State<ExtendParkingScreen> {
   PaymentCard? _selectedCard;
   bool _isLoadingCards = true;
   double _extendHours = 1.0;
+  double _hourlyRate = 10.0;
+  bool _isLoadingRate = true;
 
   @override
   void initState() {
     super.initState();
     _loadDefaultCard();
+    _loadHourlyRate();
+  }
+
+  Future<void> _loadHourlyRate() async {
+    try {
+      final bookingDoc = await FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId).get();
+      if (bookingDoc.exists) {
+        final locId = bookingDoc.data()?['locationId'];
+        if (locId != null) {
+          final locDoc = await FirebaseFirestore.instance.collection('parking_locations').doc(locId).get();
+          if (locDoc.exists) {
+            final rate = (locDoc.data()?['pricePerHour'] ?? 10.0).toDouble();
+            if (mounted) {
+              setState(() {
+                _hourlyRate = rate;
+                _isLoadingRate = false;
+              });
+              return;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading rate: $e');
+    }
+    
+    if (mounted) {
+      setState(() {
+        _hourlyRate = widget.hourlyRate;
+        _isLoadingRate = false;
+      });
+    }
   }
 
   Future<void> _loadDefaultCard() async {
@@ -51,18 +85,17 @@ class _ExtendParkingScreenState extends State<ExtendParkingScreen> {
     });
 
     try {
-      final newEndDateTime = widget.currentEndDateTime.add(Duration(minutes: (_extendHours * 60).toInt()));
-      final amount = _extendHours * widget.hourlyRate;
-      final taxes = amount * 0.02;
-      final totalPaidIncrease = amount + taxes;
       final extendMinutes = (_extendHours * 60).toInt();
 
-      await FirebaseFunctions.instance.httpsCallable('extendParking').call({
+      final result = await FirebaseFunctions.instance.httpsCallable('extendParking').call({
         'bookingId': widget.bookingId,
         'extendMinutes': extendMinutes,
-        'amount': amount,
-        'totalPaidIncrease': totalPaidIncrease,
       });
+      
+      final serverEndStr = result.data['endDateTime'] as String?;
+      final serverEndDateTime = serverEndStr != null 
+          ? DateTime.parse(serverEndStr).toLocal()
+          : widget.currentEndDateTime.add(Duration(minutes: extendMinutes));
 
       if (mounted) {
         setState(() {
@@ -76,7 +109,7 @@ class _ExtendParkingScreenState extends State<ExtendParkingScreen> {
           ),
         );
         
-        Navigator.pop(context, newEndDateTime);
+        Navigator.pop(context, serverEndDateTime);
       }
     } catch (e) {
       if (mounted) {
@@ -135,7 +168,16 @@ class _ExtendParkingScreenState extends State<ExtendParkingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double amount = _extendHours * widget.hourlyRate;
+    if (_isLoadingRate) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF1C1C1E),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.blueAccent),
+        ),
+      );
+    }
+
+    double amount = _extendHours * _hourlyRate;
     double taxes = amount * 0.02; // 2% tax
     double total = amount + taxes;
 

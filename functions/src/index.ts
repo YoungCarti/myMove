@@ -510,16 +510,15 @@ export const extendParking = onCall(
       );
     }
 
-    const {bookingId, extendMinutes, amount, totalPaidIncrease} = request.data;
+    const {bookingId, extendMinutes} = request.data;
     if (
       !bookingId ||
       typeof extendMinutes !== "number" ||
-      typeof amount !== "number" ||
-      typeof totalPaidIncrease !== "number"
+      extendMinutes <= 0
     ) {
       throw new HttpsError(
         "invalid-argument",
-        "Missing required parameters for extending parking."
+        "Missing or invalid parameters for extending parking."
       );
     }
 
@@ -607,16 +606,24 @@ export const extendParking = onCall(
         const currentTotalPaid = bookingData.totalPaid ?? currentPrice * 1.02;
 
         const currentCalculatedHours = bookingData.calculatedHours ?? 0;
+        const pricePerHour = locationDoc.data()?.pricePerHour ?? 10;
+
+        const extensionAmount = (extendMinutes / 60) * pricePerHour;
+        const extensionTaxes = extensionAmount * 0.02; // 2% tax
+        const extensionTotalPaidIncrease = extensionAmount + extensionTaxes;
 
         transaction.update(bookingRef, {
           endDateTime: newEnd.toISOString(),
           calculatedHours: currentCalculatedHours + (extendMinutes / 60),
-          totalPrice: currentPrice + amount,
-          totalPaid: currentTotalPaid + totalPaidIncrease,
+          totalPrice: currentPrice + extensionAmount,
+          totalPaid: currentTotalPaid + extensionTotalPaidIncrease,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        return {success: true};
+        return {
+          success: true,
+          endDateTime: newEnd.toISOString(),
+        };
       });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
