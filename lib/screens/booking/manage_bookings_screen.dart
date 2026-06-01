@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,6 +14,25 @@ class ManageBookingsScreen extends StatefulWidget {
 }
 
 class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh the UI every 30 seconds to update time-dependent booking statuses
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -340,6 +360,10 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             startDateTime: start,
                             endDateTime: end,
                             price: priceAmount,
+                            effectiveStatus: effectiveStatus,
+                            locationAddress: locationAddress ?? '',
+                            vehicleMake: data['vehicleMake'] ?? '',
+                            vehiclePlate: data['vehiclePlate'] ?? '',
                           ),
                         ),
                       );

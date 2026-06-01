@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'parking_timer_screen.dart';
 
 class BookingInfoScreen extends StatelessWidget {
   final String bookingId;
@@ -8,6 +9,10 @@ class BookingInfoScreen extends StatelessWidget {
   final DateTime startDateTime;
   final DateTime endDateTime;
   final double price;
+  final String effectiveStatus;
+  final String locationAddress;
+  final String vehicleMake;
+  final String vehiclePlate;
 
   const BookingInfoScreen({
     super.key,
@@ -17,6 +22,10 @@ class BookingInfoScreen extends StatelessWidget {
     required this.startDateTime,
     required this.endDateTime,
     required this.price,
+    required this.effectiveStatus,
+    required this.locationAddress,
+    required this.vehicleMake,
+    required this.vehiclePlate,
   });
 
   String _formatDateTime(DateTime dt) {
@@ -101,34 +110,74 @@ class BookingInfoScreen extends StatelessWidget {
                 
                 const SizedBox(height: 48),
                 
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Extend Parking Period action
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Extend parking feature coming soon!')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      backgroundColor: Colors.blueAccent, // Make this the primary button color now
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                if (effectiveStatus == 'Ongoing') ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Go to Parking Timer Screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ParkingTimerScreen(
+                              bookingId: bookingId,
+                              locationName: locationName,
+                              locationAddress: locationAddress,
+                              vehicleMake: vehicleMake,
+                              vehiclePlate: vehiclePlate,
+                              spotId: spotId,
+                              startDateTime: startDateTime,
+                              endDateTime: endDateTime,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        backgroundColor: Colors.blueAccent, // Make this the primary button color now
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 0,
                       ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Extend Parking Period',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      child: const Text(
+                        'Parking Timer',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
+                ],
+
+                if (effectiveStatus == 'Upcoming') ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: null, // Disabled
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        disabledBackgroundColor: Colors.white.withValues(alpha: 0.1),
+                        disabledForegroundColor: Colors.white.withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Extend Parking Time',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 SizedBox(
                   width: double.infinity,

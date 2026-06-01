@@ -499,3 +499,133 @@ export const cancelBooking = onCall(
     }
   }
 );
+
+export const extendParking = onCall(
+  {enforceAppCheck: false, invoker: "public"},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be logged in to extend parking."
+      );
+    }
+
+    const {bookingId, extendMinutes, amount, totalPaidIncrease} = request.data;
+    if (
+      !bookingId ||
+      typeof extendMinutes !== "number" ||
+      typeof amount !== "number" ||
+      typeof totalPaidIncrease !== "number"
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing required parameters for extending parking."
+      );
+    }
+
+    const bookingRef = db.collection("bookings").doc(bookingId);
+
+    try {
+      return await db.runTransaction(async (transaction) => {
+        const bookingDoc = await transaction.get(bookingRef);
+        if (!bookingDoc.exists) {
+          throw new HttpsError("not-found", "Booking not found.");
+        }
+
+        const bookingData = bookingDoc.data();
+        if (!bookingData) {
+          throw new HttpsError("not-found", "Booking data is missing.");
+        }
+        if (bookingData.userId !== request.auth?.uid) {
+          throw new HttpsError("permission-denied", "Not your booking.");
+        }
+
+        const currentEnd = new Date(bookingData.endDateTime);
+        const newEnd = new Date(currentEnd.getTime() + extendMinutes * 60000);
+
+        // Fetch location to get total capacity
+        const locId = bookingData.locationId;
+        const locationRef = db.collection("parking_locations").doc(locId);
+        const locationDoc = await transaction.get(locationRef);
+        if (!locationDoc.exists) {
+          throw new HttpsError("not-found", "Parking location not found.");
+        }
+        const spots = locationDoc.data()?.availableSpots;
+        const totalCapacity = getEffectiveCapacity(spots);
+
+        const lockRef = db.collection("location_locks").doc(locId);
+        const lockDoc = await transaction.get(lockRef);
+
+        // Check overlapping active bookings for the extension period
+        const overlappingQuery = db.collection("bookings")
+          .where("locationId", "==", locId)
+          .where("status", "==", "active")
+          .where("endDateTime", ">", currentEnd.toISOString());
+
+        const overlappingSnapshot = await transaction.get(overlappingQuery);
+
+        let isTaken = false;
+        let overlappingCount = 0;
+
+        overlappingSnapshot.forEach((doc) => {
+          if (doc.id === bookingId) return; // Skip current booking
+
+          const bStart = new Date(doc.data().startDateTime);
+          if (bStart < newEnd) {
+            overlappingCount++;
+            const docSpot = doc.data().spotId;
+            if (bookingData.spotId && docSpot === bookingData.spotId) {
+              isTaken = true;
+            }
+          }
+        });
+
+        if (isTaken) {
+          throw new HttpsError(
+            "resource-exhausted",
+            "Sorry, your spot is already booked for the extended time."
+          );
+        }
+
+        if (overlappingCount >= totalCapacity) {
+          throw new HttpsError(
+            "resource-exhausted",
+            "Sorry, this location is sold out for the extended time."
+          );
+        }
+
+        const currentVersion = lockDoc.exists ?
+          (lockDoc.data()?.version ?? 0) : 0;
+
+        transaction.set(lockRef, {
+          version: currentVersion + 1,
+          lastBookingId: bookingId,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const currentPrice = bookingData.totalPrice ?? 0;
+        const currentTotalPaid = bookingData.totalPaid ?? currentPrice * 1.02;
+
+        const currentCalculatedHours = bookingData.calculatedHours ?? 0;
+
+        transaction.update(bookingRef, {
+          endDateTime: newEnd.toISOString(),
+          calculatedHours: currentCalculatedHours + (extendMinutes / 60),
+          totalPrice: currentPrice + amount,
+          totalPaid: currentTotalPaid + totalPaidIncrease,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        return {success: true};
+      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      if (error instanceof HttpsError) throw error;
+      console.error("Extend parking failed:", error);
+      throw new HttpsError(
+        "internal",
+        error.message || "Failed to extend parking."
+      );
+    }
+  }
+);
