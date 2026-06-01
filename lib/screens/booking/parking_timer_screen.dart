@@ -34,14 +34,19 @@ class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
   late Duration _remainingTime;
   late DateTime _endDateTime;
 
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) _calculateRemainingTime();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _endDateTime = widget.endDateTime;
     _calculateRemainingTime();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _calculateRemainingTime();
-    });
+    _startTimer();
   }
 
   void _calculateRemainingTime() {
@@ -182,10 +187,13 @@ class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
                             );
                             
                             if (result != null && result is DateTime) {
-                              setState(() {
-                                _endDateTime = result;
-                              });
-                              _calculateRemainingTime();
+                              if (mounted) {
+                                setState(() {
+                                  _endDateTime = result;
+                                });
+                                _calculateRemainingTime();
+                                _startTimer();
+                              }
                             }
                           },
                           style: ElevatedButton.styleFrom(

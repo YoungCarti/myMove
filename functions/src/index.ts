@@ -11,6 +11,8 @@ const VALID_SPOT_IDS = new Set([
 const MAX_SELECTABLE_SPOTS = VALID_SPOT_IDS.size;
 
 const DEFAULT_PRICE_PER_HOUR = 2.0;
+const MAX_EXTENSION_MINUTES = 1440;
+const EXTENSION_INCREMENT_MINUTES = 30;
 
 /**
  * Get effective capacity.
@@ -513,14 +515,24 @@ export const extendParking = onCall(
     }
 
     const {bookingId, extendMinutes} = request.data;
-    if (
-      !bookingId ||
-      typeof extendMinutes !== "number" ||
-      extendMinutes <= 0
-    ) {
+    if (!bookingId || typeof extendMinutes !== "number") {
       throw new HttpsError(
         "invalid-argument",
         "Missing or invalid parameters for extending parking."
+      );
+    }
+
+    if (
+      !Number.isInteger(extendMinutes) ||
+      extendMinutes <= 0 ||
+      extendMinutes > MAX_EXTENSION_MINUTES ||
+      extendMinutes % EXTENSION_INCREMENT_MINUTES !== 0
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Extension must be a positive multiple of " +
+          `${EXTENSION_INCREMENT_MINUTES} minutes, up to ` +
+          `${MAX_EXTENSION_MINUTES} minutes.`
       );
     }
 
