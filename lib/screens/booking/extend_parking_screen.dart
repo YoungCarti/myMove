@@ -8,13 +8,11 @@ import 'payment_method_bottom_sheet.dart';
 class ExtendParkingScreen extends StatefulWidget {
   final String bookingId;
   final DateTime currentEndDateTime;
-  final double hourlyRate;
 
   const ExtendParkingScreen({
     super.key,
     required this.bookingId,
     required this.currentEndDateTime,
-    this.hourlyRate = 10.0,
   });
 
   @override
@@ -26,8 +24,9 @@ class _ExtendParkingScreenState extends State<ExtendParkingScreen> {
   PaymentCard? _selectedCard;
   bool _isLoadingCards = true;
   double _extendHours = 1.0;
-  double _hourlyRate = 10.0;
+  double _hourlyRate = 2.0;
   bool _isLoadingRate = true;
+  bool _rateLoadError = false;
 
   @override
   void initState() {
@@ -44,13 +43,15 @@ class _ExtendParkingScreenState extends State<ExtendParkingScreen> {
         if (locId != null) {
           final locDoc = await FirebaseFirestore.instance.collection('parking_locations').doc(locId).get();
           if (locDoc.exists) {
-            final rate = (locDoc.data()?['pricePerHour'] ?? 10.0).toDouble();
-            if (mounted) {
-              setState(() {
-                _hourlyRate = rate;
-                _isLoadingRate = false;
-              });
-              return;
+            final rate = locDoc.data()?['pricePerHour'];
+            if (rate != null) {
+              if (mounted) {
+                setState(() {
+                  _hourlyRate = rate.toDouble();
+                  _isLoadingRate = false;
+                });
+                return;
+              }
             }
           }
         }
@@ -61,7 +62,7 @@ class _ExtendParkingScreenState extends State<ExtendParkingScreen> {
     
     if (mounted) {
       setState(() {
-        _hourlyRate = widget.hourlyRate;
+        _rateLoadError = true;
         _isLoadingRate = false;
       });
     }
@@ -173,6 +174,30 @@ class _ExtendParkingScreenState extends State<ExtendParkingScreen> {
         backgroundColor: Color(0xFF1C1C1E),
         body: Center(
           child: CircularProgressIndicator(color: Colors.blueAccent),
+        ),
+      );
+    }
+
+    if (_rateLoadError) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF1C1C1E),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Text(
+              'Unable to load parking rate. Please check your connection or try again later.',
+              style: TextStyle(color: Colors.redAccent, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
       );
     }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'parking_timer_screen.dart';
-
-class BookingInfoScreen extends StatelessWidget {
+class BookingInfoScreen extends StatefulWidget {
   final String bookingId;
   final String locationName;
   final String spotId;
@@ -28,12 +28,38 @@ class BookingInfoScreen extends StatelessWidget {
     required this.vehiclePlate,
   });
 
+  @override
+  State<BookingInfoScreen> createState() => _BookingInfoScreenState();
+}
+
+class _BookingInfoScreenState extends State<BookingInfoScreen> {
+  late DateTime _currentEndDateTime;
+  late double _currentPrice;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentEndDateTime = widget.endDateTime;
+    _currentPrice = widget.price;
+  }
+
   String _formatDateTime(DateTime dt) {
     return DateFormat('MMM d, yyyy • h:mm a').format(dt);
   }
 
   @override
   Widget build(BuildContext context) {
+    final bookingId = widget.bookingId;
+    final locationName = widget.locationName;
+    final spotId = widget.spotId;
+    final startDateTime = widget.startDateTime;
+    final endDateTime = _currentEndDateTime;
+    final price = _currentPrice;
+    final effectiveStatus = widget.effectiveStatus;
+    final locationAddress = widget.locationAddress;
+    final vehicleMake = widget.vehicleMake;
+    final vehiclePlate = widget.vehiclePlate;
+
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
@@ -114,9 +140,29 @@ class BookingInfoScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        // Reload from Firestore to ensure latest data
+                        try {
+                          final doc = await FirebaseFirestore.instance.collection('bookings').doc(bookingId).get();
+                          if (doc.exists) {
+                            final data = doc.data()!;
+                            if (data['endDateTime'] != null) {
+                              final latestEnd = DateTime.parse(data['endDateTime']).toLocal();
+                              if (mounted) {
+                                setState(() {
+                                  _currentEndDateTime = latestEnd;
+                                });
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          debugPrint('Error reloading booking: $e');
+                        }
+
+                        if (!mounted) return;
+
                         // Go to Parking Timer Screen
-                        Navigator.push(
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ParkingTimerScreen(
@@ -127,10 +173,18 @@ class BookingInfoScreen extends StatelessWidget {
                               vehiclePlate: vehiclePlate,
                               spotId: spotId,
                               startDateTime: startDateTime,
-                              endDateTime: endDateTime,
+                              endDateTime: _currentEndDateTime, // Pass the possibly updated state
                             ),
                           ),
                         );
+                        
+                        if (result != null && result is DateTime) {
+                          if (mounted) {
+                            setState(() {
+                              _currentEndDateTime = result;
+                            });
+                          }
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),

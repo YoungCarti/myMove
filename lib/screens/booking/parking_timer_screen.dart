@@ -93,14 +93,20 @@ class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
         ? '${widget.vehicleMake} (${widget.vehiclePlate})'
         : (widget.vehiclePlate.isNotEmpty ? widget.vehiclePlate : 'N/A');
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, dynamic result) {
+        if (didPop) return;
+        Navigator.pop(context, _endDateTime);
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context, _endDateTime),
         ),
       ),
       body: SafeArea(
@@ -223,6 +229,7 @@ class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
