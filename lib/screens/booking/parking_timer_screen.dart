@@ -30,7 +30,7 @@ class ParkingTimerScreen extends StatefulWidget {
 }
 
 class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
-  late Timer _timer;
+  Timer? _timer;
   late Duration _remainingTime;
   late DateTime _endDateTime;
 
@@ -50,7 +50,7 @@ class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
       setState(() {
         _remainingTime = Duration.zero;
       });
-      _timer.cancel();
+      _timer?.cancel();
     } else {
       setState(() {
         _remainingTime = _endDateTime.difference(now);
@@ -60,7 +60,7 @@ class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 

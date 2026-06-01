@@ -539,7 +539,21 @@ export const extendParking = onCall(
           throw new HttpsError("permission-denied", "Not your booking.");
         }
 
+        if (bookingData.status !== "active") {
+          throw new HttpsError(
+            "failed-precondition",
+            "Only active bookings can be extended."
+          );
+        }
+
         const currentEnd = new Date(bookingData.endDateTime);
+        if (currentEnd.getTime() < Date.now()) {
+          throw new HttpsError(
+            "failed-precondition",
+            "Cannot extend a booking that has already expired."
+          );
+        }
+
         const newEnd = new Date(currentEnd.getTime() + extendMinutes * 60000);
 
         // Fetch location to get total capacity
