@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-class BookingInfoScreen extends StatelessWidget {
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'parking_timer_screen.dart';
+class BookingInfoScreen extends StatefulWidget {
   final String bookingId;
   final String locationName;
   final String spotId;
   final DateTime startDateTime;
   final DateTime endDateTime;
   final double price;
+  final String effectiveStatus;
+  final String locationAddress;
+  final String vehicleMake;
+  final String vehiclePlate;
 
   const BookingInfoScreen({
     super.key,
@@ -17,7 +22,26 @@ class BookingInfoScreen extends StatelessWidget {
     required this.startDateTime,
     required this.endDateTime,
     required this.price,
+    required this.effectiveStatus,
+    required this.locationAddress,
+    required this.vehicleMake,
+    required this.vehiclePlate,
   });
+
+  @override
+  State<BookingInfoScreen> createState() => _BookingInfoScreenState();
+}
+
+class _BookingInfoScreenState extends State<BookingInfoScreen> {
+  late DateTime _currentEndDateTime;
+  late double _currentPrice;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentEndDateTime = widget.endDateTime;
+    _currentPrice = widget.price;
+  }
 
   String _formatDateTime(DateTime dt) {
     return DateFormat('MMM d, yyyy • h:mm a').format(dt);
@@ -25,6 +49,17 @@ class BookingInfoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bookingId = widget.bookingId;
+    final locationName = widget.locationName;
+    final spotId = widget.spotId;
+    final startDateTime = widget.startDateTime;
+    final endDateTime = _currentEndDateTime;
+    final price = _currentPrice;
+    final effectiveStatus = widget.effectiveStatus;
+    final locationAddress = widget.locationAddress;
+    final vehicleMake = widget.vehicleMake;
+    final vehiclePlate = widget.vehiclePlate;
+
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
@@ -101,34 +136,102 @@ class BookingInfoScreen extends StatelessWidget {
                 
                 const SizedBox(height: 48),
                 
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Extend Parking Period action
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Extend parking feature coming soon!')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      backgroundColor: Colors.blueAccent, // Make this the primary button color now
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                if (effectiveStatus == 'Ongoing') ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        // Reload from Firestore to ensure latest data
+                        try {
+                          final doc = await FirebaseFirestore.instance.collection('bookings').doc(bookingId).get();
+                          if (doc.exists) {
+                            final data = doc.data()!;
+                            if (data['endDateTime'] != null) {
+                              final latestEnd = DateTime.parse(data['endDateTime']).toLocal();
+                              if (mounted) {
+                                setState(() {
+                                  _currentEndDateTime = latestEnd;
+                                });
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          debugPrint('Error reloading booking: $e');
+                        }
+
+                        if (!mounted) return;
+
+                        // Go to Parking Timer Screen
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ParkingTimerScreen(
+                              bookingId: bookingId,
+                              locationName: locationName,
+                              locationAddress: locationAddress,
+                              vehicleMake: vehicleMake,
+                              vehiclePlate: vehiclePlate,
+                              spotId: spotId,
+                              startDateTime: startDateTime,
+                              endDateTime: _currentEndDateTime, // Pass the possibly updated state
+                            ),
+                          ),
+                        );
+                        
+                        if (result != null && result is DateTime) {
+                          if (mounted) {
+                            setState(() {
+                              _currentEndDateTime = result;
+                            });
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        backgroundColor: Colors.blueAccent, // Make this the primary button color now
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 0,
                       ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Extend Parking Period',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      child: const Text(
+                        'Parking Timer',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
+                ],
+
+                if (effectiveStatus == 'Upcoming') ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: null, // Disabled
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        disabledBackgroundColor: Colors.white.withValues(alpha: 0.1),
+                        disabledForegroundColor: Colors.white.withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Extend Parking Time',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 SizedBox(
                   width: double.infinity,
