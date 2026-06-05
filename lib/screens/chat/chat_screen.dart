@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -32,16 +33,41 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _fetchTargetUser() async {
-    // In a real implementation, you would fetch the user's details from Firestore
-    // using widget.targetUserId. For now, we simulate a delay.
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        // Mock data
-        _targetName = "Blocked Car Owner";
-        _targetPlate = "VHA 1234";
-      });
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(widget.targetUserId).get();
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        final name = data['name'] as String? ?? "Vehicle Owner";
+        
+        String plate = "Unknown Plate";
+        if (data['vehicles'] != null && (data['vehicles'] as List).isNotEmpty) {
+          final v = List<Map<String, dynamic>>.from(data['vehicles'].map((e) => Map<String, dynamic>.from(e)));
+          final primary = v.firstWhere((e) => e['isPrimary'] == true, orElse: () => v.first);
+          plate = primary['plate'] as String? ?? "Unknown Plate";
+        } else if (data['vehiclePlate'] != null && data['vehiclePlate'].toString().isNotEmpty) {
+          plate = data['vehiclePlate'] as String;
+        }
+
+        setState(() {
+          _isLoading = false;
+          _targetName = name;
+          _targetPlate = plate;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _targetName = "Unknown User";
+          _targetPlate = "Unknown Plate";
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _targetName = "Unknown User";
+          _targetPlate = "Unknown Plate";
+        });
+      }
     }
   }
 

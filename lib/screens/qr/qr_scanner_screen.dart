@@ -63,16 +63,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                setState(() => _isProcessing = false);
-                _scannerController.start();
-              },
+              onPressed: () => Navigator.pop(context),
               child: const Text('OK', style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         ),
-      );
+      ).then((_) {
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          _scannerController.start();
+        }
+      });
     }
   }
 
