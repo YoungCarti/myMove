@@ -20,6 +20,7 @@ import '../screens/profile/payment_settings_screen.dart';
 import '../screens/profile/payment_history_screen.dart';
 import '../screens/profile/notifications_screen.dart';
 import '../screens/profile/permissions_screen.dart';
+import '../screens/auth/phone_login_screen.dart';
 
 
 class AppRoutes {
