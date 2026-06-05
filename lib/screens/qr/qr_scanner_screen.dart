@@ -158,30 +158,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Scan from Gallery Button
-                Container(
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent,
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.image_outlined, color: Colors.white, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Scan From Gallery',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
+
                 // Flashlight Button
                 GestureDetector(
                   onTap: () {

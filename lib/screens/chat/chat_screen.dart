@@ -14,7 +14,6 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [];
   bool _isLoading = true;
   String _targetName = "Vehicle Owner";
   String _targetPlate = "Unknown Plate";
@@ -23,30 +22,23 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _fetchTargetUser();
-    // Add a welcome/system message to set the context
-    _messages.add({
-      'isMe': false,
-      'isSystem': true,
-      'text': 'You are now connected securely. Your number remains hidden. Use this chat to request the driver to move their vehicle.',
-      'time': _formatTime(DateTime.now()),
-    });
+  }
+
+  String get _chatId {
+    final currentUserId = Provider.of<AuthProvider>(context, listen: false).user?.uid ?? 'unknown';
+    List<String> ids = [currentUserId, widget.targetUserId];
+    ids.sort();
+    return ids.join('_');
   }
 
   void _fetchTargetUser() async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(widget.targetUserId).get();
+      // Changed to read from publicVehicles per security rules feedback
+      final doc = await FirebaseFirestore.instance.collection('publicVehicles').doc(widget.targetUserId).get();
       if (doc.exists && mounted) {
         final data = doc.data()!;
-        final name = data['name'] as String? ?? "Vehicle Owner";
-        
-        String plate = "Unknown Plate";
-        if (data['vehicles'] != null && (data['vehicles'] as List).isNotEmpty) {
-          final v = List<Map<String, dynamic>>.from(data['vehicles'].map((e) => Map<String, dynamic>.from(e)));
-          final primary = v.firstWhere((e) => e['isPrimary'] == true, orElse: () => v.first);
-          plate = primary['plate'] as String? ?? "Unknown Plate";
-        } else if (data['vehiclePlate'] != null && data['vehiclePlate'].toString().isNotEmpty) {
-          plate = data['vehiclePlate'] as String;
-        }
+        final name = data['ownerName'] as String? ?? "Vehicle Owner";
+        final plate = data['plateNumber'] as String? ?? "Unknown Plate";
 
         setState(() {
           _isLoading = false;
@@ -56,7 +48,8 @@ class _ChatScreenState extends State<ChatScreen> {
       } else if (mounted) {
         setState(() {
           _isLoading = false;
-          _targetName = "Unknown User";
+          // Fallback if publicVehicles document does not exist yet
+          _targetName = "Vehicle Owner";
           _targetPlate = "Unknown Plate";
         });
       }
@@ -64,7 +57,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _targetName = "Unknown User";
+          _targetName = "Vehicle Owner";
           _targetPlate = "Unknown Plate";
         });
       }
@@ -78,31 +71,38 @@ class _ChatScreenState extends State<ChatScreen> {
     return '$hour:$min $period';
   }
 
-  void _sendMessage(String text) {
+  Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
     
-    setState(() {
-      _messages.insert(0, {
-        'isMe': true,
-        'isSystem': false,
-        'text': text.trim(),
-        'time': _formatTime(DateTime.now()),
-      });
-      _messageController.clear();
-    });
+    final currentUserId = Provider.of<AuthProvider>(context, listen: false).user?.uid;
+    if (currentUserId == null) return;
 
-    // Simulate auto-reply for demo purposes
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _messages.insert(0, {
-            'isMe': false,
-            'isSystem': false,
-            'text': 'Sorry, I am coming down right now! Give me 2 minutes.',
-            'time': _formatTime(DateTime.now()),
-          });
-        });
-      }
+    final messageText = text.trim();
+    _messageController.clear();
+    
+    final chatId = _chatId;
+    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
+    final messageRef = chatRef.collection('messages').doc();
+
+    final now = FieldValue.serverTimestamp();
+
+    await chatRef.set({
+      'participants': [currentUserId, widget.targetUserId],
+      'blockedDriverId': currentUserId,
+      'vehicleOwnerId': widget.targetUserId,
+      'lastMessage': messageText,
+      'lastMessageAt': now,
+      'updatedAt': now,
+      'status': 'active',
+      'createdAt': FieldValue.serverTimestamp(), // Will be merged if it doesn't exist
+    }, SetOptions(merge: true));
+
+    await messageRef.set({
+      'senderId': currentUserId,
+      'receiverId': widget.targetUserId,
+      'messageText': messageText,
+      'createdAt': now,
+      'isRead': false,
     });
   }
 
@@ -114,6 +114,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = Provider.of<AuthProvider>(context, listen: false).user?.uid;
+
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
@@ -162,7 +164,6 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             icon: const Icon(Icons.call_rounded, color: Colors.greenAccent),
             onPressed: () {
-              // Initiate VoIP or masked call
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Initiating secure call...'),
@@ -194,19 +195,42 @@ class _ChatScreenState extends State<ChatScreen> {
           
           // Chat Messages
           Expanded(
-            child: ListView.builder(
-              reverse: true,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                if (msg['isSystem'] == true) {
-                  return _buildSystemMessage(msg['text']);
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('chats')
+                  .doc(_chatId)
+                  .collection('messages')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading messages.', style: TextStyle(color: Colors.white54)));
                 }
-                return _buildMessageBubble(
-                  msg['text'], 
-                  msg['isMe'], 
-                  msg['time']
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.blueAccent));
+                }
+
+                final messages = snapshot.data?.docs ?? [];
+                
+                return ListView.builder(
+                  reverse: true,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length + 1, // +1 for the system message
+                  itemBuilder: (context, index) {
+                    if (index == messages.length) {
+                      return _buildSystemMessage('You are now connected securely. Your number remains hidden. Use this chat to request the driver to move their vehicle.');
+                    }
+
+                    final doc = messages[index];
+                    final data = doc.data() as Map<String, dynamic>;
+                    final isMe = data['senderId'] == currentUserId;
+                    final text = data['messageText'] as String? ?? '';
+                    final createdAt = data['createdAt'] as Timestamp?;
+                    final timeStr = createdAt != null ? _formatTime(createdAt.toDate()) : '';
+
+                    return _buildMessageBubble(text, isMe, timeStr);
+                  },
                 );
               },
             ),
