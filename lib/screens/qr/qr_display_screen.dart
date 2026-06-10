@@ -3,8 +3,21 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../providers/auth_provider.dart';
 
-class QRDisplayScreen extends StatelessWidget {
+class QRDisplayScreen extends StatefulWidget {
   const QRDisplayScreen({super.key});
+
+  @override
+  State<QRDisplayScreen> createState() => _QRDisplayScreenState();
+}
+
+class _QRDisplayScreenState extends State<QRDisplayScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AuthProvider>(context, listen: false).ensurePublicVehicleRecord();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

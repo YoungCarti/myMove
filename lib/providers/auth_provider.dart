@@ -399,6 +399,38 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Ensure public vehicle record exists (lazy sync / backfill)
+  Future<void> ensurePublicVehicleRecord() async {
+    final currentUser = _user;
+    if (currentUser == null) return;
+    
+    try {
+      final docRef = _firestore.collection('publicVehicles').doc(currentUser.uid);
+      final docSnap = await docRef.get();
+      
+      if (!docSnap.exists) {
+        // If they have vehicles, try to create it.
+        if (vehicles.isNotEmpty) {
+          final primary = vehicles.firstWhere((v) => v['isPrimary'] == true, orElse: () => vehicles.first);
+          final publicVehicleData = <String, dynamic>{
+            'ownerId': currentUser.uid,
+            'vehicleId': currentUser.uid,
+            'plateNumber': primary['plate'] ?? '',
+            'brand': primary['make'] ?? '',
+            'ownerName': displayName,
+            'displayName': displayName,
+            'isActive': true,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
+          await docRef.set(publicVehicleData);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error ensuring public vehicle record: $e");
+    }
+  }
+
   // Update Profile details in Firestore
   Future<void> updateProfile({
     required String name,

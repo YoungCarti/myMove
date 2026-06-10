@@ -7,16 +7,20 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    match /publicVehicles/{vehicleId} {
+    match /publicVehicles/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.ownerId
+                    && request.auth.uid == userId
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.vehicleId == userId
                     && request.resource.data.keys().hasOnly(['ownerId', 'vehicleId', 'plateNumber', 'brand', 'model', 'color', 'colour', 'vehicleType', 'qrCodeId', 'ownerName', 'displayName', 'isActive', 'createdAt', 'updatedAt']);
       allow update: if request.auth != null 
-                    && request.auth.uid == resource.data.ownerId
-                    && request.resource.data.ownerId == resource.data.ownerId
+                    && request.auth.uid == userId
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.vehicleId == userId
                     && request.resource.data.keys().hasOnly(['ownerId', 'vehicleId', 'plateNumber', 'brand', 'model', 'color', 'colour', 'vehicleType', 'qrCodeId', 'ownerName', 'displayName', 'isActive', 'createdAt', 'updatedAt']);
-      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     match /qrCodes/{qrCodeId} {
