@@ -94,6 +94,8 @@ class _ChatScreenState extends State<ChatScreen> {
       'lastMessageAt': now,
       'updatedAt': now,
       'status': 'active',
+      'isDeleted': false,
+      'deletedAt': FieldValue.delete(),
       'createdAt': FieldValue.serverTimestamp(), // Will be merged if it doesn't exist
     }, SetOptions(merge: true));
 

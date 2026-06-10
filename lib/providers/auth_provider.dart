@@ -500,6 +500,15 @@ class AuthProvider with ChangeNotifier {
           publicVehicleData['createdAt'] = FieldValue.serverTimestamp();
           await docRef.set(publicVehicleData);
         }
+      } else {
+        final docRef = _firestore.collection('publicVehicles').doc(currentUser.uid);
+        final docSnap = await docRef.get();
+        if (docSnap.exists) {
+          await docRef.update({
+            'isActive': false,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
       }
 
       _setLoading(false);
