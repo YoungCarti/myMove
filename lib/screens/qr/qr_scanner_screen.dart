@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../qr/qr_display_screen.dart';
 import '../chat/chat_screen.dart';
 import '../../config/routes.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -27,6 +28,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     super.dispose();
   }
 
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   void _onDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
 
@@ -41,12 +53,41 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       if (code.startsWith('mymove://user/')) {
         final targetUserId = code.substring('mymove://user/'.length);
         
-        await Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatScreen(targetUserId: targetUserId),
-          ),
-        );
+        if (targetUserId.isEmpty || targetUserId.contains('/')) {
+          _showError('Invalid QR code format.');
+          if (mounted) {
+            setState(() => _isProcessing = false);
+            _scannerController.start();
+          }
+          return;
+        }
+
+        try {
+          final vehicleDoc = await FirebaseFirestore.instance.collection('publicVehicles').doc(targetUserId).get();
+          if (!vehicleDoc.exists) {
+            _showError('Vehicle not found or inactive.');
+            if (mounted) {
+              setState(() => _isProcessing = false);
+              _scannerController.start();
+            }
+            return;
+          }
+
+          if (mounted) {
+            await Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(targetUserId: targetUserId),
+              ),
+            );
+          }
+        } catch (e) {
+          _showError('Error validating QR code.');
+          if (mounted) {
+            setState(() => _isProcessing = false);
+            _scannerController.start();
+          }
+        }
         return;
       }
       

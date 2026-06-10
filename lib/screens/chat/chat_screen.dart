@@ -86,15 +86,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final now = FieldValue.serverTimestamp();
 
+    List<String> sortedParticipants = [currentUserId, widget.targetUserId];
+    sortedParticipants.sort();
+
     await chatRef.set({
-      'participants': [currentUserId, widget.targetUserId],
+      'participants': sortedParticipants,
       'blockedDriverId': currentUserId,
       'vehicleOwnerId': widget.targetUserId,
       'lastMessage': messageText,
       'lastMessageAt': now,
       'updatedAt': now,
       'status': 'active',
-      'deletedFor': {},
+      'deletedFor': {
+        currentUserId: FieldValue.delete(),
+      },
       'createdAt': FieldValue.serverTimestamp(), // Will be merged if it doesn't exist
     }, SetOptions(merge: true));
 
