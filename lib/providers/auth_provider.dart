@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../utils/totp_utils.dart';
 
@@ -134,6 +135,38 @@ class AuthProvider with ChangeNotifier {
       }
       notifyListeners();
     });
+
+    // Request permission and sync FCM Token
+    _syncFCMToken(user);
+  }
+
+  Future<void> _syncFCMToken(User user) async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
+        final token = await messaging.getToken();
+        if (token != null) {
+          await _firestore.collection('users').doc(user.uid).update({
+            'fcmToken': token,
+          });
+        }
+
+        messaging.onTokenRefresh.listen((newToken) async {
+          await _firestore.collection('users').doc(user.uid).update({
+            'fcmToken': newToken,
+          });
+        });
+      }
+    } catch (e) {
+      debugPrint("Error syncing FCM token: $e");
+    }
   }
 
   // Set loading state helper

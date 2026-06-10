@@ -1,4 +1,5 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {onDocumentCreated, onDocumentUpdated} from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -672,6 +673,176 @@ export const extendParking = onCall(
         "internal",
         error.message || "Failed to extend parking."
       );
+    }
+  }
+);
+
+
+
+export const onChatMessageCreated = onDocumentCreated(
+  "chats/{chatId}/messages/{messageId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const messageData = snap.data();
+    const senderId = messageData.senderId;
+    const text = messageData.messageText;
+
+    const chatId = event.params.chatId;
+    const chatDoc = await db.collection("chats").doc(chatId).get();
+    if (!chatDoc.exists) return;
+
+    const chatData = chatDoc.data();
+    const participants = chatData?.participants || [];
+    const receiverId = participants.find((id: string) => id !== senderId);
+
+    if (!receiverId) return;
+
+    const receiverDoc = await db.collection("users").doc(receiverId).get();
+    if (!receiverDoc.exists) return;
+
+    const receiverData = receiverDoc.data();
+    const fcmToken = receiverData?.fcmToken;
+
+    if (!fcmToken) return;
+
+    const senderDoc = await db.collection("users").doc(senderId).get();
+    const senderName = senderDoc.exists ? (senderDoc.data()?.name || "Someone") : "Someone";
+
+    const payload = {
+      token: fcmToken,
+      notification: {
+        title: `New message from ${senderName}`,
+        body: text,
+      },
+      data: {
+        chatId: chatId,
+        type: "chat_message",
+      },
+    };
+
+    try {
+      await admin.messaging().send(payload);
+    } catch (error) {
+      console.error("Error sending chat FCM:", error);
+    }
+  }
+);
+
+export const onBookingCreated = onDocumentCreated(
+  "bookings/{bookingId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const bookingData = snap.data();
+    const userId = bookingData.userId;
+    if (!userId) return;
+
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) return;
+
+    const fcmToken = userDoc.data()?.fcmToken;
+    if (!fcmToken) return;
+
+    const locationName = bookingData.locationName || "Parking Location";
+    
+    const payload = {
+      token: fcmToken,
+      notification: {
+        title: "Booking Created",
+        body: `Your booking for ${locationName} is pending. Please assign a spot within 15 minutes.`,
+      },
+      data: {
+        bookingId: event.params.bookingId,
+        type: "booking_update",
+      },
+    };
+
+    try {
+      await admin.messaging().send(payload);
+    } catch (error) {
+      console.error("Error sending booking created FCM:", error);
+    }
+  }
+);
+
+export const onBookingUpdated = onDocumentUpdated(
+  "bookings/{bookingId}",
+  async (event) => {
+    const beforeData = event.data?.before.data();
+    const afterData = event.data?.after.data();
+
+    if (!beforeData || !afterData) return;
+
+    const statusBefore = beforeData.status;
+    const statusAfter = afterData.status;
+
+    if (statusBefore === statusAfter) {
+        if (beforeData.endDateTime !== afterData.endDateTime && statusAfter === 'active') {
+             const userId = afterData.userId;
+             const userDoc = await db.collection("users").doc(userId).get();
+             const fcmToken = userDoc.data()?.fcmToken;
+             if (!fcmToken) return;
+
+             const locationName = afterData.locationName || "Parking Location";
+             const payload = {
+                 token: fcmToken,
+                 notification: {
+                     title: "Booking Extended",
+                     body: `Your parking at ${locationName} has been extended.`,
+                 },
+                 data: {
+                     bookingId: event.params.bookingId,
+                     type: "booking_update",
+                 },
+             };
+             await admin.messaging().send(payload).catch(e => console.error(e));
+        }
+        return;
+    }
+
+    const userId = afterData.userId;
+    if (!userId) return;
+
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) return;
+
+    const fcmToken = userDoc.data()?.fcmToken;
+    if (!fcmToken) return;
+
+    const locationName = afterData.locationName || "Parking Location";
+    let title = "Booking Update";
+    let body = `Your booking for ${locationName} has been updated.`;
+
+    if (statusAfter === "active") {
+      title = "Booking Activated";
+      body = `Your spot ${afterData.spotId} at ${locationName} is now active!`;
+    } else if (statusAfter === "canceled") {
+      title = "Booking Canceled";
+      body = `Your booking at ${locationName} has been canceled.`;
+    } else if (statusAfter === "completed") {
+      title = "Booking Completed";
+      body = `Your booking at ${locationName} has ended. Thanks for using myMove!`;
+    }
+
+    const payload = {
+      token: fcmToken,
+      notification: {
+        title,
+        body,
+      },
+      data: {
+        bookingId: event.params.bookingId,
+        type: "booking_update",
+      },
+    };
+
+    try {
+      await admin.messaging().send(payload);
+    } catch (error) {
+      console.error("Error sending booking updated FCM:", error);
     }
   }
 );
