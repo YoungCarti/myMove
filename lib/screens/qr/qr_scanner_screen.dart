@@ -64,7 +64,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
         try {
           final vehicleDoc = await FirebaseFirestore.instance.collection('publicVehicles').doc(targetUserId).get();
-          if (!vehicleDoc.exists) {
+          final vehicleData = vehicleDoc.data();
+          if (!vehicleDoc.exists || vehicleData?['isActive'] != true) {
             _showError('Vehicle not found or inactive.');
             if (mounted) {
               setState(() => _isProcessing = false);

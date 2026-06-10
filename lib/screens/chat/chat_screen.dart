@@ -340,13 +340,65 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _deleteMessage(String messageId) async {
     try {
-      final chatId = _chatId;
-      await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(chatId)
+      final firestore = FirebaseFirestore.instance;
+      final chatRef = firestore.collection('chats').doc(_chatId);
+      final messageRef = chatRef.collection('messages').doc(messageId);
+
+      final deletedLatestMessage = await firestore.runTransaction<bool>((transaction) async {
+        final chatSnapshot = await transaction.get(chatRef);
+        final messageSnapshot = await transaction.get(messageRef);
+
+        if (!messageSnapshot.exists) return false;
+
+        final chatData = chatSnapshot.data();
+        final messageData = messageSnapshot.data()!;
+        final wasLatestMessage = chatSnapshot.exists
+            && chatData?['lastMessage'] == messageData['messageText']
+            && chatData?['lastMessageAt'] == messageData['createdAt'];
+
+        transaction.delete(messageRef);
+
+        if (wasLatestMessage) {
+          transaction.update(chatRef, {
+            'lastMessage': '',
+            'lastMessageAt': null,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        return wasLatestMessage;
+      });
+
+      if (!deletedLatestMessage) return;
+
+      final remainingMessages = await chatRef
           .collection('messages')
-          .doc(messageId)
-          .delete();
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (remainingMessages.docs.isEmpty) return;
+
+      final latestMessageRef = remainingMessages.docs.first.reference;
+      await firestore.runTransaction((transaction) async {
+        final chatSnapshot = await transaction.get(chatRef);
+        final latestMessageSnapshot = await transaction.get(latestMessageRef);
+
+        if (!chatSnapshot.exists || !latestMessageSnapshot.exists) return;
+
+        final chatData = chatSnapshot.data();
+        if (chatData?['lastMessage'] != '' || chatData?['lastMessageAt'] != null) {
+          return;
+        }
+
+        final latestMessageData = latestMessageSnapshot.data()!;
+        final latestMessageAt = latestMessageData['createdAt'];
+        transaction.update(chatRef, {
+          'lastMessage': latestMessageData['messageText'],
+          'lastMessageAt': latestMessageAt,
+          'updatedAt': latestMessageAt,
+        });
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

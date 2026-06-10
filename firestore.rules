@@ -36,6 +36,18 @@ service cloud.firestore {
         return chatId.matches('^' + request.auth.uid + '_.*') || chatId.matches('.*_' + request.auth.uid + '$');
       }
 
+      function hasValidChatParticipants() {
+        let participants = request.resource.data.participants;
+        return participants is list
+               && participants.size() == 2
+               && participants[0] is string
+               && participants[1] is string
+               && participants[0] != participants[1]
+               && request.auth.uid in participants
+               && (chatId == participants[0] + '_' + participants[1]
+                   || chatId == participants[1] + '_' + participants[0]);
+      }
+
       function isOnlyUpdatingOwnDeletedStatus() {
         let oldDeletedFor = resource.data.get('deletedFor', {});
         let newDeletedFor = request.resource.data.get('deletedFor', {});
@@ -44,7 +56,7 @@ service cloud.firestore {
 
       // Allow read if user is in participants array (needed for queries) OR if they match the chatId (needed for initial empty doc get)
       allow read: if request.auth != null && ((resource != null && request.auth.uid in resource.data.participants) || isParticipantInChatId());
-      allow create: if request.auth != null && request.auth.uid in request.resource.data.participants;
+      allow create: if request.auth != null && hasValidChatParticipants();
       allow update: if request.auth != null 
                     && (request.auth.uid in resource.data.participants || isParticipantInChatId())
                     && request.resource.data.participants == resource.data.participants
