@@ -15,6 +15,9 @@ class AuthProvider with ChangeNotifier {
   final GoogleSignIn _googleSignIn;
   StreamSubscription<User?>? _authSubscription;
   StreamSubscription<DocumentSnapshot>? _userDocSubscription;
+  StreamSubscription<String>? _tokenRefreshSubscription;
+  Future<void>? _pendingFCMWrite;
+  int _fcmSetupGeneration = 0;
   
   User? _user;
   Map<String, dynamic>? _firestoreUserData;
@@ -117,6 +120,7 @@ class AuthProvider with ChangeNotifier {
   void _setupFirestoreSubscription(User? user) {
     _userDocSubscription?.cancel();
     _userDocSubscription = null;
+    unawaited(_setupFCMForUser(user));
     if (user == null) {
       _firestoreUserData = null;
       notifyListeners();
@@ -135,12 +139,72 @@ class AuthProvider with ChangeNotifier {
       }
       notifyListeners();
     });
-
-    // Request permission and sync FCM Token
-    _syncFCMToken(user);
   }
 
-  Future<void> _syncFCMToken(User user) async {
+  Future<void> _setupFCMForUser(User? user) async {
+    final setupGeneration = ++_fcmSetupGeneration;
+    await _cancelTokenRefreshSubscription();
+
+    if (user == null || !_isCurrentFCMUser(user.uid, setupGeneration)) {
+      return;
+    }
+
+    await _syncFCMToken(user, setupGeneration);
+  }
+
+  Future<void> _cancelTokenRefreshSubscription() async {
+    final subscription = _tokenRefreshSubscription;
+    _tokenRefreshSubscription = null;
+    await subscription?.cancel();
+
+    final pendingWrite = _pendingFCMWrite;
+    if (pendingWrite != null) {
+      try {
+        await pendingWrite;
+      } catch (_) {
+        // The original token sync path reports the write error.
+      }
+    }
+  }
+
+  bool _isCurrentFCMUser(String userId, int setupGeneration) {
+    return setupGeneration == _fcmSetupGeneration &&
+        _user?.uid == userId &&
+        _auth.currentUser?.uid == userId;
+  }
+
+  Future<void> _writeFCMToken(
+    String userId,
+    String token,
+    int setupGeneration,
+  ) async {
+    final previousWrite = _pendingFCMWrite;
+    final write = () async {
+      if (previousWrite != null) {
+        try {
+          await previousWrite;
+        } catch (_) {
+          // Continue with the latest token after an older write failure.
+        }
+      }
+
+      if (!_isCurrentFCMUser(userId, setupGeneration)) return;
+      await _firestore.collection('users').doc(userId).update({
+        'fcmToken': token,
+      });
+    }();
+    _pendingFCMWrite = write;
+
+    try {
+      await write;
+    } finally {
+      if (identical(_pendingFCMWrite, write)) {
+        _pendingFCMWrite = null;
+      }
+    }
+  }
+
+  Future<void> _syncFCMToken(User user, int setupGeneration) async {
     try {
       final messaging = FirebaseMessaging.instance;
       NotificationSettings settings = await messaging.requestPermission(
@@ -151,21 +215,45 @@ class AuthProvider with ChangeNotifier {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
+        if (!_isCurrentFCMUser(user.uid, setupGeneration)) return;
+
         final token = await messaging.getToken();
-        if (token != null) {
-          await _firestore.collection('users').doc(user.uid).update({
-            'fcmToken': token,
-          });
+        if (token != null && _isCurrentFCMUser(user.uid, setupGeneration)) {
+          await _writeFCMToken(user.uid, token, setupGeneration);
         }
 
-        messaging.onTokenRefresh.listen((newToken) async {
-          await _firestore.collection('users').doc(user.uid).update({
-            'fcmToken': newToken,
-          });
+        if (!_isCurrentFCMUser(user.uid, setupGeneration)) return;
+
+        await _cancelTokenRefreshSubscription();
+        if (!_isCurrentFCMUser(user.uid, setupGeneration)) return;
+
+        _tokenRefreshSubscription = messaging.onTokenRefresh.listen((newToken) async {
+          try {
+            await _writeFCMToken(user.uid, newToken, setupGeneration);
+          } catch (e) {
+            debugPrint("Error refreshing FCM token: $e");
+          }
+        }, onError: (Object error) {
+          debugPrint("Error refreshing FCM token: $error");
         });
       }
     } catch (e) {
       debugPrint("Error syncing FCM token: $e");
+    }
+  }
+
+  Future<void> _removeFCMToken(User user) async {
+    ++_fcmSetupGeneration;
+    await _cancelTokenRefreshSubscription();
+
+    try {
+      if (_auth.currentUser?.uid != user.uid) return;
+
+      await _firestore.collection('users').doc(user.uid).update({
+        'fcmToken': FieldValue.delete(),
+      });
+    } catch (e) {
+      debugPrint("Error removing FCM token: $e");
     }
   }
 
@@ -263,6 +351,7 @@ class AuthProvider with ChangeNotifier {
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
+        unawaited(_setupFCMForUser(firebaseUser));
         
         _user = _auth.currentUser;
       }
@@ -337,6 +426,7 @@ class AuthProvider with ChangeNotifier {
         } else {
           userData = userDoc.data() as Map<String, dynamic>?;
         }
+        unawaited(_setupFCMForUser(firebaseUser));
 
         final is2FA = userData?['is2FAEnabled'] ?? false;
         final secret = (userData?['totpSecret'] ?? '').toString().trim();
@@ -382,6 +472,14 @@ class AuthProvider with ChangeNotifier {
 
   // Sign out of the app
   Future<void> signOut() async {
+    final currentUser = _auth.currentUser ?? _user;
+    if (currentUser != null) {
+      await _removeFCMToken(currentUser);
+    } else {
+      ++_fcmSetupGeneration;
+      await _cancelTokenRefreshSubscription();
+    }
+
     _user = null;
     _is2FAPending = false;
     _didJustSignOut = true;
@@ -816,8 +914,10 @@ class AuthProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    ++_fcmSetupGeneration;
     _authSubscription?.cancel();
     _userDocSubscription?.cancel();
+    _tokenRefreshSubscription?.cancel();
     super.dispose();
   }
 }
