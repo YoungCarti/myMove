@@ -94,8 +94,7 @@ class _ChatScreenState extends State<ChatScreen> {
       'lastMessageAt': now,
       'updatedAt': now,
       'status': 'active',
-      'isDeleted': false,
-      'deletedAt': FieldValue.delete(),
+      'deletedFor': {},
       'createdAt': FieldValue.serverTimestamp(), // Will be merged if it doesn't exist
     }, SetOptions(merge: true));
 
@@ -356,9 +355,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _deleteChat() async {
+    final currentUserId = Provider.of<AuthProvider>(context, listen: false).user?.uid;
+    if (currentUserId == null) return;
     try {
       await FirebaseFirestore.instance.collection('chats').doc(_chatId).update({
-        'isDeleted': true,
+        'deletedFor.$currentUserId': true,
       });
       if (mounted) {
         Navigator.pop(context); // Go back to chat list

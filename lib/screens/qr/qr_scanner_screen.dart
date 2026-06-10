@@ -27,7 +27,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
+  void _onDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
 
     final List<Barcode> barcodes = capture.barcodes;
@@ -41,7 +41,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       if (code.startsWith('mymove://user/')) {
         final targetUserId = code.substring('mymove://user/'.length);
         
-        Navigator.pushReplacement(
+        await Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => ChatScreen(targetUserId: targetUserId),
@@ -130,7 +130,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => Navigator.pushNamed(context, AppRoutes.chatList),
+                          onTap: () async {
+                            _scannerController.stop();
+                            await Navigator.pushNamed(context, AppRoutes.chatList);
+                            if (mounted) _scannerController.start();
+                          },
                           child: Container(
                             width: 40,
                             height: 40,
@@ -241,9 +245,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                             ),
                             Expanded(
                               child: GestureDetector(
-                                onTap: () {
+                                onTap: () async {
                                   // Navigate to My QR Display Screen
-                                  Navigator.pushNamed(context, AppRoutes.qrDisplay);
+                                  _scannerController.stop();
+                                  await Navigator.pushNamed(context, AppRoutes.qrDisplay);
+                                  if (mounted) _scannerController.start();
                                 },
                                 child: Container(
                                   color: Colors.transparent,

@@ -71,7 +71,8 @@ class ChatListScreen extends StatelessWidget {
           // Filter out deleted chats and sort in memory by updatedAt descending
           final chats = docs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            return data['isDeleted'] != true;
+            final deletedFor = data['deletedFor'] as Map<String, dynamic>? ?? {};
+            return deletedFor[currentUserId] != true;
           }).toList()..sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
