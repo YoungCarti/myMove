@@ -1,5 +1,8 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
-import {onDocumentCreated, onDocumentUpdated} from "firebase-functions/v2/firestore";
+import {
+  onDocumentCreated,
+  onDocumentUpdated,
+} from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -677,8 +680,6 @@ export const extendParking = onCall(
   }
 );
 
-
-
 export const onChatMessageCreated = onDocumentCreated(
   "chats/{chatId}/messages/{messageId}",
   async (event) => {
@@ -708,7 +709,8 @@ export const onChatMessageCreated = onDocumentCreated(
     if (!fcmToken) return;
 
     const senderDoc = await db.collection("users").doc(senderId).get();
-    const senderName = senderDoc.exists ? (senderDoc.data()?.name || "Someone") : "Someone";
+    const senderName = senderDoc.exists ?
+      (senderDoc.data()?.name || "Someone") : "Someone";
 
     const payload = {
       token: fcmToken,
@@ -747,12 +749,13 @@ export const onBookingCreated = onDocumentCreated(
     if (!fcmToken) return;
 
     const locationName = bookingData.locationName || "Parking Location";
-    
+
     const payload = {
       token: fcmToken,
       notification: {
         title: "Booking Created",
-        body: `Your booking for ${locationName} is pending. Please assign a spot within 15 minutes.`,
+        body: `Your booking for ${locationName} is pending. ` +
+          "Please assign a spot within 15 minutes.",
       },
       data: {
         bookingId: event.params.bookingId,
@@ -780,27 +783,30 @@ export const onBookingUpdated = onDocumentUpdated(
     const statusAfter = afterData.status;
 
     if (statusBefore === statusAfter) {
-        if (beforeData.endDateTime !== afterData.endDateTime && statusAfter === 'active') {
-             const userId = afterData.userId;
-             const userDoc = await db.collection("users").doc(userId).get();
-             const fcmToken = userDoc.data()?.fcmToken;
-             if (!fcmToken) return;
+      if (
+        beforeData.endDateTime !== afterData.endDateTime &&
+        statusAfter === "active"
+      ) {
+        const userId = afterData.userId;
+        const userDoc = await db.collection("users").doc(userId).get();
+        const fcmToken = userDoc.data()?.fcmToken;
+        if (!fcmToken) return;
 
-             const locationName = afterData.locationName || "Parking Location";
-             const payload = {
-                 token: fcmToken,
-                 notification: {
-                     title: "Booking Extended",
-                     body: `Your parking at ${locationName} has been extended.`,
-                 },
-                 data: {
-                     bookingId: event.params.bookingId,
-                     type: "booking_update",
-                 },
-             };
-             await admin.messaging().send(payload).catch(e => console.error(e));
-        }
-        return;
+        const locationName = afterData.locationName || "Parking Location";
+        const payload = {
+          token: fcmToken,
+          notification: {
+            title: "Booking Extended",
+            body: `Your parking at ${locationName} has been extended.`,
+          },
+          data: {
+            bookingId: event.params.bookingId,
+            type: "booking_update",
+          },
+        };
+        await admin.messaging().send(payload).catch((e) => console.error(e));
+      }
+      return;
     }
 
     const userId = afterData.userId;
@@ -824,7 +830,8 @@ export const onBookingUpdated = onDocumentUpdated(
       body = `Your booking at ${locationName} has been canceled.`;
     } else if (statusAfter === "completed") {
       title = "Booking Completed";
-      body = `Your booking at ${locationName} has ended. Thanks for using myMove!`;
+      body = `Your booking at ${locationName} has ended. ` +
+        "Thanks for using myMove!";
     }
 
     const payload = {
