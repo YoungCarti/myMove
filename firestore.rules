@@ -7,6 +7,78 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    match /publicVehicles/{userId} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.vehicleId == userId
+                    && request.resource.data.keys().hasOnly(['ownerId', 'vehicleId', 'plateNumber', 'brand', 'model', 'color', 'colour', 'vehicleType', 'qrCodeId', 'ownerName', 'displayName', 'isActive', 'createdAt', 'updatedAt']);
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.vehicleId == userId
+                    && request.resource.data.keys().hasOnly(['ownerId', 'vehicleId', 'plateNumber', 'brand', 'model', 'color', 'colour', 'vehicleType', 'qrCodeId', 'ownerName', 'displayName', 'isActive', 'createdAt', 'updatedAt']);
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /qrCodes/{qrCodeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /chats/{chatId} {
+      function isParticipantInChatId() {
+        return chatId.matches('^' + request.auth.uid + '_.*') || chatId.matches('.*_' + request.auth.uid + '$');
+      }
+
+      function hasValidChatParticipants() {
+        let participants = request.resource.data.participants;
+        return participants is list
+               && participants.size() == 2
+               && participants[0] is string
+               && participants[1] is string
+               && participants[0] != participants[1]
+               && request.auth.uid in participants
+               && (chatId == participants[0] + '_' + participants[1]
+                   || chatId == participants[1] + '_' + participants[0]);
+      }
+
+      function isOnlyUpdatingOwnDeletedStatus() {
+        let oldDeletedFor = resource.data.get('deletedFor', {});
+        let newDeletedFor = request.resource.data.get('deletedFor', {});
+        return newDeletedFor.diff(oldDeletedFor).affectedKeys().hasOnly([request.auth.uid]);
+      }
+
+      // Allow read if user is in participants array (needed for queries) OR if they match the chatId (needed for initial empty doc get)
+      allow read: if request.auth != null && ((resource != null && request.auth.uid in resource.data.participants) || isParticipantInChatId());
+      allow create: if request.auth != null && hasValidChatParticipants();
+      allow update: if request.auth != null 
+                    && (request.auth.uid in resource.data.participants || isParticipantInChatId())
+                    && request.resource.data.participants == resource.data.participants
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'updatedAt', 'status', 'blockedDriverId', 'vehicleOwnerId', 'typing', 'unreadCount', 'deletedFor', 'createdAt'])
+                    && isOnlyUpdatingOwnDeletedStatus();
+      allow delete: if request.auth != null && (resource == null || request.auth.uid in resource.data.participants || isParticipantInChatId());
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null && isParticipantInChatId();
+        allow create: if request.auth != null 
+                      && isParticipantInChatId()
+                      && request.resource.data.senderId == request.auth.uid
+                      && request.resource.data.messageText is string 
+                      && request.resource.data.messageText.size() > 0
+                      && request.resource.data.keys().hasOnly(['senderId', 'receiverId', 'messageText', 'createdAt', 'isRead']);
+        allow update: if false;
+        allow delete: if request.auth != null 
+                      && isParticipantInChatId()
+                      && resource.data.senderId == request.auth.uid;
+      }
+    }
+
     // Anyone can view parking locations, but only admin/functions can modify
     match /parking_locations/{locationId} {
       allow read: if true;
@@ -14,23 +86,15 @@ service cloud.firestore {
     }
 
     // Mail documents can ONLY be created with the exact OTP email shape.
-    // This prevents abuse of the Trigger Email extension as a spam relay.
-    // Both authenticated and unauthenticated users are held to the same
-    // strict schema — the only legitimate writer is sendOtpViaFirestore.
     match /mail/{mailId} {
       allow create: if
-        // Exactly 2 top-level keys: 'to' and 'message'
         request.resource.data.keys().hasAll(['to', 'message']) &&
         request.resource.data.keys().hasOnly(['to', 'message']) &&
-        // 'to' must be a non-empty string (email address)
         request.resource.data.to is string &&
         request.resource.data.to.size() > 0 &&
-        // 'message' must have exactly 'subject' and 'html'
         request.resource.data.message.keys().hasAll(['subject', 'html']) &&
         request.resource.data.message.keys().hasOnly(['subject', 'html']) &&
-        // Subject must be the exact OTP subject line
         request.resource.data.message.subject == 'myMove - Verify Your Email' &&
-        // HTML body must be a string, capped at 5 KB to prevent abuse
         request.resource.data.message.html is string &&
         request.resource.data.message.html.size() > 0 &&
         request.resource.data.message.html.size() < 5000;
@@ -39,10 +103,7 @@ service cloud.firestore {
 
     // Bookings are strictly managed by Cloud Functions
     match /bookings/{bookingId} {
-      // Users can only read their own bookings
       allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      
-      // All writes (create, update, delete, spot assignment) are handled securely by Cloud Functions
       allow write: if false; 
     }
 

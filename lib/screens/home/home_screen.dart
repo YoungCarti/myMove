@@ -527,8 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (mounted) setState(() => _selectedIndex = 0);
                       });
                     } else if (index == 2) {
-                      // TODO: Update route for QR Code if needed
-                      Navigator.pushNamed(context, AppRoutes.editProfile).then((_) {
+                      Navigator.pushNamed(context, AppRoutes.qrScanner).then((_) {
                         if (mounted) setState(() => _selectedIndex = 0);
                       });
                     }

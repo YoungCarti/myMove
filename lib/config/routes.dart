@@ -11,6 +11,7 @@ import '../screens/qr/qr_scanner_screen.dart';
 import '../screens/qr/qr_display_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/settings_screen.dart';
+import '../screens/chat/chat_list_screen.dart';
 import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/update_username_screen.dart';
 import '../screens/profile/enter_mobile_screen.dart';
@@ -45,6 +46,7 @@ class AppRoutes {
   static const String paymentHistory = '/payment-history';
   static const String notifications = '/notifications';
   static const String permissions = '/permissions';
+  static const String chatList = '/chat-list';
 
 
   // Route map
@@ -70,5 +72,6 @@ class AppRoutes {
     paymentHistory: (context) => const PaymentHistoryScreen(),
     notifications: (context) => const NotificationsScreen(),
     permissions: (context) => const PermissionsScreen(),
+    chatList: (context) => const ChatListScreen(),
   };
 }
