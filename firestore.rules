@@ -9,7 +9,14 @@ service cloud.firestore {
 
     match /publicVehicles/{vehicleId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null; // Simplification, or restrict
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.ownerId
+                    && request.resource.data.keys().hasOnly(['ownerId', 'vehicleId', 'plateNumber', 'brand', 'model', 'color', 'colour', 'vehicleType', 'qrCodeId', 'ownerName', 'displayName', 'isActive', 'createdAt', 'updatedAt']);
+      allow update: if request.auth != null 
+                    && request.auth.uid == resource.data.ownerId
+                    && request.resource.data.ownerId == resource.data.ownerId
+                    && request.resource.data.keys().hasOnly(['ownerId', 'vehicleId', 'plateNumber', 'brand', 'model', 'color', 'colour', 'vehicleType', 'qrCodeId', 'ownerName', 'displayName', 'isActive', 'createdAt', 'updatedAt']);
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
     }
 
     match /qrCodes/{qrCodeId} {
@@ -18,16 +25,28 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
-      // Allow if the user is a participant
-      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+      function isParticipantInChatId() {
+        return chatId.matches('^' + request.auth.uid + '_.*') || chatId.matches('.*_' + request.auth.uid + '$');
+      }
+
+      // Allow read if user is in participants array (needed for queries) OR if they match the chatId (needed for initial empty doc get)
+      allow read: if request.auth != null && ((resource != null && request.auth.uid in resource.data.participants) || isParticipantInChatId());
       allow create: if request.auth != null && request.auth.uid in request.resource.data.participants;
-      allow update: if request.auth != null && request.auth.uid in resource.data.participants;
-      allow delete: if false;
+      allow update: if request.auth != null && (resource == null || request.auth.uid in resource.data.participants || isParticipantInChatId());
+      allow delete: if request.auth != null;
 
       match /messages/{messageId} {
-        // Technically we should check the parent chat, but allowing if authenticated is a start.
-        allow read, create: if request.auth != null;
-        allow update, delete: if false;
+        allow read: if request.auth != null && isParticipantInChatId();
+        allow create: if request.auth != null 
+                      && isParticipantInChatId()
+                      && request.resource.data.senderId == request.auth.uid
+                      && request.resource.data.messageText is string 
+                      && request.resource.data.messageText.size() > 0
+                      && request.resource.data.keys().hasOnly(['senderId', 'receiverId', 'messageText', 'createdAt', 'isRead']);
+        allow update: if false;
+        allow delete: if request.auth != null 
+                      && isParticipantInChatId()
+                      && resource.data.senderId == request.auth.uid;
       }
     }
 

@@ -138,29 +138,62 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: const Icon(Icons.directions_car_rounded, color: Colors.blueAccent, size: 20),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _targetName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _targetName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Text(
-                      _targetPlate,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 12,
+                      Text(
+                        _targetPlate,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.blueAccent),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: const Color(0xFF1C1C1E),
+                  title: const Text('Parking Issue Resolved?', style: TextStyle(color: Colors.white)),
+                  content: const Text(
+                    'Do you want to delete this chat now that the issue is solved?',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _deleteChat();
+                      },
+                      child: const Text('Delete Chat', style: TextStyle(color: Colors.redAccent)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.call_rounded, color: Colors.greenAccent),
             onPressed: () {
@@ -229,7 +262,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     final createdAt = data['createdAt'] as Timestamp?;
                     final timeStr = createdAt != null ? _formatTime(createdAt.toDate()) : '';
 
-                    return _buildMessageBubble(text, isMe, timeStr);
+                    return _buildMessageBubble(doc.id, text, isMe, timeStr);
                   },
                 );
               },
@@ -299,8 +332,55 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble(String text, bool isMe, String time) {
-    return Padding(
+  Future<void> _deleteMessage(String messageId) async {
+    try {
+      final chatId = _chatId;
+      await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .delete();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to delete message'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteChat() async {
+    try {
+      await FirebaseFirestore.instance.collection('chats').doc(_chatId).update({
+        'isDeleted': true,
+      });
+      if (mounted) {
+        Navigator.pop(context); // Go back to chat list
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chat deleted successfully.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to delete chat.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildMessageBubble(String messageId, String text, bool isMe, String time) {
+    Widget bubble = Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -354,6 +434,25 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+
+    if (isMe) {
+      return Dismissible(
+        key: Key(messageId),
+        direction: DismissDirection.endToStart,
+        onDismissed: (direction) {
+          _deleteMessage(messageId);
+        },
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20, bottom: 16),
+          color: Colors.transparent,
+          child: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 24),
+        ),
+        child: bubble,
+      );
+    }
+
+    return bubble;
   }
 
   Widget _buildInputArea() {

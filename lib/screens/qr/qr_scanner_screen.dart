@@ -129,7 +129,18 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 40), // Balance the title
+                        GestureDetector(
+                          onTap: () => Navigator.pushNamed(context, AppRoutes.chatList),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1C1C1E).withValues(alpha: 0.8),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 40),

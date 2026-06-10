@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "mymove-cb624"
+  },
   "targets": {},
   "etags": {}
 }

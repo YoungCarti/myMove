@@ -478,6 +478,30 @@ class AuthProvider with ChangeNotifier {
       }
 
       await _firestore.collection('users').doc(currentUser.uid).update(updates);
+
+      // Sync to publicVehicles collection
+      if (sanitizedVehicles.isNotEmpty) {
+        final primary = sanitizedVehicles.firstWhere((v) => v['isPrimary'] == true, orElse: () => sanitizedVehicles.first);
+        final publicVehicleData = <String, dynamic>{
+          'ownerId': currentUser.uid,
+          'vehicleId': currentUser.uid,
+          'plateNumber': primary['plate'],
+          'brand': primary['make'],
+          'ownerName': name.trim(),
+          'displayName': name.trim(),
+          'isActive': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        final docRef = _firestore.collection('publicVehicles').doc(currentUser.uid);
+        final docSnap = await docRef.get();
+        if (docSnap.exists) {
+          await docRef.update(publicVehicleData);
+        } else {
+          publicVehicleData['createdAt'] = FieldValue.serverTimestamp();
+          await docRef.set(publicVehicleData);
+        }
+      }
+
       _setLoading(false);
     } catch (e) {
       _setLoading(false);

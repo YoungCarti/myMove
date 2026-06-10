@@ -71,6 +71,7 @@ dependencies:
   shared_preferences: ^2.2.2       # Local data storage
   image_picker: ^1.0.7             # Pick images from gallery/camera
   url_launcher: ^6.2.3             # Launch URLs, make calls, open maps
+  timeago: ^3.3.0                  # Format dates as 'time ago'
 
   # UI Enhancements - Additional UI components
   flutter_svg: ^2.0.9              # SVG image support
