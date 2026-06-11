@@ -37,7 +37,8 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
   final bool _isSaving = false;
   
   // Real-time occupied spots tracker
-  late Set<String> _realtimeOccupiedSpots;
+  late Set<String> _bookedSpots;
+  late Set<String> _sensorOccupiedSpots;
   StreamSubscription<DatabaseEvent>? _rtdbSubscription;
   StreamSubscription<DatabaseEvent>? _connectionSubscription;
 
@@ -53,7 +54,8 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
   void initState() {
     super.initState();
     // Initialize with spots occupied from Firestore/Booking data
-    _realtimeOccupiedSpots = Set.from(widget.occupiedSpots);
+    _bookedSpots = Set.from(widget.occupiedSpots);
+    _sensorOccupiedSpots = {};
     _fetchLayout();
     _listenToConnection();
   }
@@ -81,6 +83,7 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
         final data = snapshot.docs.first.data();
         if (data.containsKey('layout')) {
           final layout = data['layout'];
+          if (!mounted) return;
           setState(() {
             _leftColumn = List<String>.from(layout['leftColumn'] ?? []);
             _rightColumn = List<String>.from(layout['rightColumn'] ?? []);
@@ -114,6 +117,7 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
         });
       }
 
+      if (!mounted) return;
       setState(() {
         _isLoadingLayout = false;
       });
@@ -122,6 +126,7 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
     } catch (e) {
       debugPrint("Error fetching layout: $e");
       // Fallback
+      if (!mounted) return;
       setState(() {
         _leftColumn = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];
         _rightColumn = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7'];
@@ -151,15 +156,13 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
             final uiSlot = _slotMapping[key.toString()];
             if (uiSlot != null) {
               if (value.toString() == 'occupied') {
-                _realtimeOccupiedSpots.add(uiSlot);
+                _sensorOccupiedSpots.add(uiSlot);
                 // If the user had selected this spot, deselect it
                 if (_selectedSpot == uiSlot) {
                   _selectedSpot = null;
                 }
               } else if (value.toString() == 'available') {
-                // Only remove if it was not occupied by a real booking?
-                // For this demo, let the sensor override it:
-                _realtimeOccupiedSpots.remove(uiSlot);
+                _sensorOccupiedSpots.remove(uiSlot);
               }
             }
           });
@@ -198,7 +201,7 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
   }
 
   Widget _buildSpot(String spotId) {
-    bool isOccupied = _realtimeOccupiedSpots.contains(spotId);
+    bool isOccupied = _bookedSpots.contains(spotId) || _sensorOccupiedSpots.contains(spotId);
     bool isSelected = _selectedSpot == spotId;
 
     return GestureDetector(
