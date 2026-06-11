@@ -6,9 +6,12 @@ import '../../config/routes.dart';
 import '../landmark/landmark_card.dart';
 import '../../models/parking_location.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,11 +27,13 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingLocation = false;
   bool _locationPermissionGranted = false;
 
-  final Set<Marker> _markers = {};
+  Set<Marker> _markers = {};
   final List<ParkingLocation> _allLocations = [];
   List<ParkingLocation> _searchResults = [];
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+
+  // Real-time status moved to parking spot selection screen
 
   @override
   void initState() {
@@ -40,6 +45,34 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchFocusNode.addListener(() {
       setState(() {});
     });
+  }
+
+  // Removed _listenToParkingStatus as the status is now checked in the ParkingSpotScreen
+
+  void _updateMarkersWithStatus() async {
+    // Parking markers are now static red to indicate a parking location.
+    final Color markerColor = const Color(0xFFEA4335); // Default Red
+        
+    final BitmapDescriptor customIcon = await _createParkingMarkerIcon(markerColor);
+    
+    if (mounted) {
+      setState(() {
+        final Set<Marker> newMarkers = {};
+        for (var location in _allLocations) {
+          newMarkers.add(
+            Marker(
+              markerId: MarkerId(location.id),
+              position: LatLng(location.latitude, location.longitude),
+              icon: customIcon,
+              onTap: () {
+                LandmarkCard.show(context, location);
+              },
+            ),
+          );
+        }
+        _markers = newMarkers;
+      });
+    }
   }
 
   @override
@@ -66,14 +99,14 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<BitmapDescriptor> _createParkingMarkerIcon() async {
+  Future<BitmapDescriptor> _createParkingMarkerIcon(Color markerColor) async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
     const double width = 40.0;
     const double height = 56.0;
 
-    // Background color (Original Google Maps Red)
-    final Paint paint = Paint()..color = const Color(0xFFEA4335);
+    // Background color (Dynamic based on status)
+    final Paint paint = Paint()..color = markerColor;
 
     // Draw the pin shape (Circle + Triangle for the pointy bottom)
     final Path circlePath = Path();
@@ -112,30 +145,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadParkingMarker() async {
-    final BitmapDescriptor customIcon = await _createParkingMarkerIcon();
-    
     try {
       final snapshot = await FirebaseFirestore.instance.collection('parking_locations').get();
       
       if (mounted) {
         setState(() {
-          _markers.clear();
           _allLocations.clear();
           for (var doc in snapshot.docs) {
             final location = ParkingLocation.fromFirestore(doc);
             _allLocations.add(location);
-            _markers.add(
-              Marker(
-                markerId: MarkerId(location.id),
-                position: LatLng(location.latitude, location.longitude),
-                icon: customIcon,
-                onTap: () {
-                  LandmarkCard.show(context, location);
-                },
-              ),
-            );
           }
         });
+        
+        _updateMarkersWithStatus();
         
         if (_searchController.text.isNotEmpty) {
           _onSearchChanged(_searchController.text);

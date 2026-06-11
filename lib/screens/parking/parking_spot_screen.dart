@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../booking/booking_summary_screen.dart';
 
 class ParkingSpotScreen extends StatefulWidget {
@@ -32,10 +35,145 @@ class ParkingSpotScreen extends StatefulWidget {
 class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
   String? _selectedSpot;
   final bool _isSaving = false;
+  
+  // Real-time occupied spots tracker
+  late Set<String> _realtimeOccupiedSpots;
+  StreamSubscription<DatabaseEvent>? _rtdbSubscription;
+  StreamSubscription<DatabaseEvent>? _connectionSubscription;
 
-  // Mock parking spots layout
-  final List<String> leftColumn = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];
-  final List<String> rightColumn = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7'];
+  // Parking spots layout (Now dynamic)
+  List<String> _leftColumn = [];
+  List<String> _rightColumn = [];
+  Map<String, String> _slotMapping = {};
+  String _rtdbPath = '/parking_status/building_A';
+  bool _isLoadingLayout = true;
+  bool _isConnected = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with spots occupied from Firestore/Booking data
+    _realtimeOccupiedSpots = Set.from(widget.occupiedSpots);
+    _fetchLayout();
+    _listenToConnection();
+  }
+
+  void _listenToConnection() {
+    final connectedRef = FirebaseDatabase.instance.ref(".info/connected");
+    _connectionSubscription = connectedRef.onValue.listen((event) {
+      if (!mounted) return;
+      final connected = event.snapshot.value as bool? ?? false;
+      setState(() {
+        _isConnected = connected;
+      });
+    });
+  }
+
+  Future<void> _fetchLayout() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('parking_locations')
+          .where('name', isEqualTo: widget.locationName)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final data = snapshot.docs.first.data();
+        if (data.containsKey('layout')) {
+          final layout = data['layout'];
+          setState(() {
+            _leftColumn = List<String>.from(layout['leftColumn'] ?? []);
+            _rightColumn = List<String>.from(layout['rightColumn'] ?? []);
+            _slotMapping = Map<String, String>.from(layout['slotMapping'] ?? {});
+            _rtdbPath = layout['rtdbPath'] ?? '/parking_status/building_A';
+            _isLoadingLayout = false;
+          });
+          _listenToRealtimeSensors();
+          return;
+        }
+      }
+      
+      // Fallback and bootstrap layout to Firestore
+      _leftColumn = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];
+      _rightColumn = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7'];
+      _slotMapping = {
+        'slot_1': 'A1',
+        'slot_2': 'A2',
+        'slot_3': 'A3',
+        'slot_4': 'A4',
+      };
+      
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.update({
+          'layout': {
+            'leftColumn': _leftColumn,
+            'rightColumn': _rightColumn,
+            'slotMapping': _slotMapping,
+            'rtdbPath': _rtdbPath,
+          }
+        });
+      }
+
+      setState(() {
+        _isLoadingLayout = false;
+      });
+      _listenToRealtimeSensors();
+      
+    } catch (e) {
+      debugPrint("Error fetching layout: $e");
+      // Fallback
+      setState(() {
+        _leftColumn = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];
+        _rightColumn = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7'];
+        _slotMapping = {
+          'slot_1': 'A1',
+          'slot_2': 'A2',
+          'slot_3': 'A3',
+          'slot_4': 'A4',
+        };
+        _isLoadingLayout = false;
+      });
+      _listenToRealtimeSensors();
+    }
+  }
+
+  void _listenToRealtimeSensors() {
+    final dbRef = FirebaseDatabase.instance.ref(_rtdbPath);
+    
+    _rtdbSubscription = dbRef.onValue.listen((DatabaseEvent event) {
+      if (!mounted) return;
+      
+      final data = event.snapshot.value;
+      if (data is Map) {
+        setState(() {
+          // Check each sensor and update the occupied status
+          data.forEach((key, value) {
+            final uiSlot = _slotMapping[key.toString()];
+            if (uiSlot != null) {
+              if (value.toString() == 'occupied') {
+                _realtimeOccupiedSpots.add(uiSlot);
+                // If the user had selected this spot, deselect it
+                if (_selectedSpot == uiSlot) {
+                  _selectedSpot = null;
+                }
+              } else if (value.toString() == 'available') {
+                // Only remove if it was not occupied by a real booking?
+                // For this demo, let the sensor override it:
+                _realtimeOccupiedSpots.remove(uiSlot);
+              }
+            }
+          });
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _rtdbSubscription?.cancel();
+    _connectionSubscription?.cancel();
+    super.dispose();
+  }
 
   Future<void> _confirmSpot() async {
     if (_selectedSpot == null) return;
@@ -60,7 +198,7 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
   }
 
   Widget _buildSpot(String spotId) {
-    bool isOccupied = widget.occupiedSpots.contains(spotId);
+    bool isOccupied = _realtimeOccupiedSpots.contains(spotId);
     bool isSelected = _selectedSpot == spotId;
 
     return GestureDetector(
@@ -148,6 +286,27 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
                 ],
               ),
             ),
+            if (!_isConnected)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.wifi_off, color: Colors.redAccent, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Live connection lost. Data may be stale.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: Container(
                 margin: const EdgeInsets.all(24),
@@ -157,53 +316,59 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
-                child: Row(
-                  children: [
-                    // Left Column
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: leftColumn.length,
-                        itemBuilder: (context, index) {
-                          return _buildSpot(leftColumn[index]);
-                        },
-                      ),
-                    ),
-                    // Center Road
-                    Container(
-                      width: 40,
-                      decoration: BoxDecoration(
-                        border: Border(
-                          left: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 2),
-                          right: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 2),
+                child: _isLoadingLayout
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
                         ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(
-                          12,
-                          (index) => Container(
-                            width: 2,
-                            height: 16,
-                            color: Colors.white.withValues(alpha: 0.2),
+                      )
+                    : Row(
+                        children: [
+                          // Left Column
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: _leftColumn.length,
+                              itemBuilder: (context, index) {
+                                return _buildSpot(_leftColumn[index]);
+                              },
+                            ),
                           ),
-                        ),
+                          // Center Road
+                          Container(
+                            width: 40,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                left: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 2),
+                                right: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 2),
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: List.generate(
+                                12,
+                                (index) => Container(
+                                  width: 2,
+                                  height: 16,
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Right Column
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: _rightColumn.length,
+                              itemBuilder: (context, index) {
+                                return _buildSpot(_rightColumn[index]);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    // Right Column
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: rightColumn.length,
-                        itemBuilder: (context, index) {
-                          return _buildSpot(rightColumn[index]);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
             Padding(

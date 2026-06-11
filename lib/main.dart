@@ -139,11 +139,12 @@ void main() async {
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: "AIzaSyDRoILWxGX52GV5gsemBagyqTInF6xam6k",
-        appId: "1:340854856075:android:66f561a609df1b99e2778e",
-        messagingSenderId: "340854856075",
-        projectId: "mymove-cb624",
-        storageBucket: "mymove-cb624.firebasestorage.app",
+        apiKey: "GCP_API_KEY",
+        appId: "YOUR_APP_ID",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        databaseURL: "YOUR_DATABASE_URL",
       ),
     );
   } catch (e) {
