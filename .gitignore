@@ -70,4 +70,4 @@ functions/lib/
 functions/.firebase/
 functions/firebase-debug.log
 functions/firebase-debug.*.log
-esp32_smart_parking/esp32_smart_parking.ino
+esp32_smart_parking/secrets.h
