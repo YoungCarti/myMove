@@ -8,11 +8,7 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 const db = admin.firestore();
 
-const VALID_SPOT_IDS = new Set([
-  "A1", "A2", "A3", "A4", "A5", "A6", "A7",
-  "B1", "B2", "B3", "B4", "B5", "B6", "B7",
-]);
-const MAX_SELECTABLE_SPOTS = VALID_SPOT_IDS.size;
+const MAX_SELECTABLE_SPOTS = 100;
 
 const MAX_EXTENSION_MINUTES = 1440;
 const EXTENSION_INCREMENT_MINUTES = 30;
@@ -308,12 +304,6 @@ export const assignSpot = onCall(
     }
 
     const requestedSpotId = spotId.trim().toUpperCase();
-    if (!VALID_SPOT_IDS.has(requestedSpotId)) {
-      throw new HttpsError(
-        "invalid-argument",
-        "Please select a valid parking spot."
-      );
-    }
 
     const bookingRef = db.collection("bookings").doc(bookingId);
 
@@ -363,15 +353,43 @@ export const assignSpot = onCall(
           );
         }
 
-        // 1. Fetch location to get total capacity
+        // 1. Fetch location to get total capacity and layout for validation
         const locationRef = db.collection("parking_locations")
           .doc(bookingData.locationId);
         const locationDoc = await transaction.get(locationRef);
         if (!locationDoc.exists) {
           throw new HttpsError("not-found", "Parking location not found.");
         }
+
+        const locationData = locationDoc.data();
+
+        // Dynamic layout validation
+        if (locationData?.layout) {
+          const leftColumn = locationData.layout.leftColumn || [];
+          const rightColumn = locationData.layout.rightColumn || [];
+          const allValidSpots = [...leftColumn, ...rightColumn];
+          if (!allValidSpots.includes(requestedSpotId)) {
+            throw new HttpsError(
+              "invalid-argument",
+              "Please select a valid parking spot."
+            );
+          }
+        } else {
+          // Fallback to legacy spots if no layout is defined
+          const legacySpots = [
+            "A1", "A2", "A3", "A4", "A5", "A6", "A7",
+            "B1", "B2", "B3", "B4", "B5", "B6", "B7",
+          ];
+          if (!legacySpots.includes(requestedSpotId)) {
+            throw new HttpsError(
+              "invalid-argument",
+              "Please select a valid parking spot."
+            );
+          }
+        }
+
         const totalCapacity = getEffectiveCapacity(
-          locationDoc.data()?.availableSpots
+          locationData?.availableSpots
         );
 
         // CONTENTION FIX: Read+write a single location-level lock
