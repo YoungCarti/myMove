@@ -70,5 +70,4 @@ functions/lib/
 functions/.firebase/
 functions/firebase-debug.log
 functions/firebase-debug.*.log
-lib/main.dart
 esp32_smart_parking/esp32_smart_parking.ino
