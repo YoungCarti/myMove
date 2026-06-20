@@ -544,12 +544,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                     
                     if (index == 1) {
-                      // TODO: Update route for Booking if needed
                       Navigator.pushNamed(context, AppRoutes.manageBookings).then((_) {
                         if (mounted) setState(() => _selectedIndex = 0);
                       });
                     } else if (index == 2) {
                       Navigator.pushNamed(context, AppRoutes.qrScanner).then((_) {
+                        if (mounted) setState(() => _selectedIndex = 0);
+                      });
+                    } else if (index == 3) {
+                      Navigator.pushNamed(context, AppRoutes.chatList).then((_) {
                         if (mounted) setState(() => _selectedIndex = 0);
                       });
                     }
@@ -575,6 +578,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Icon(Icons.qr_code_2_rounded),
                       ),
                       label: 'QR Code',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Padding(
+                        padding: EdgeInsets.only(bottom: 4.0),
+                        child: Icon(Icons.chat_bubble_rounded),
+                      ),
+                      label: 'Messages',
                     ),
                   ],
                 ),
