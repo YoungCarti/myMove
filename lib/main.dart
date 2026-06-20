@@ -11,6 +11,7 @@ import 'app.dart';
 import 'providers/auth_provider.dart';
 import 'providers/parking_provider.dart';
 import 'providers/booking_provider.dart';
+import 'services/notification_service.dart';
 
 import 'firebase_options.dart';
 
@@ -33,91 +34,26 @@ class _ForegroundMessageHandler extends StatefulWidget {
 
 class _ForegroundMessageHandlerState extends State<_ForegroundMessageHandler> {
   StreamSubscription<RemoteMessage>? _messageSubscription;
-  Timer? _hideTimer;
-  RemoteMessage? _foregroundMessage;
 
   @override
   void initState() {
     super.initState();
-    _messageSubscription = FirebaseMessaging.onMessage.listen((message) {
+    _messageSubscription = FirebaseMessaging.onMessage.listen((message) async {
       if (!mounted || context.read<AuthProvider>().user == null) return;
-
-      _hideTimer?.cancel();
-      setState(() => _foregroundMessage = message);
-      _hideTimer = Timer(const Duration(seconds: 4), () {
-        if (mounted) {
-          setState(() => _foregroundMessage = null);
-        }
-      });
+      
+      await NotificationService().showNotification(message);
     });
   }
 
   @override
   void dispose() {
-    _hideTimer?.cancel();
     _messageSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final message = _foregroundMessage;
-    final title = message?.notification?.title ??
-        message?.data['title']?.toString() ??
-        'myMove notification';
-    final body = message?.notification?.body ??
-        message?.data['body']?.toString() ??
-        'You have a new update.';
-
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          widget.child,
-          if (message != null)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Material(
-                    color: const Color(0xFF1C1C1E),
-                    elevation: 8,
-                    borderRadius: BorderRadius.circular(12),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.notifications_rounded,
-                        color: Colors.blueAccent,
-                      ),
-                      title: Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        body,
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white70),
-                        onPressed: () {
-                          _hideTimer?.cancel();
-                          setState(() => _foregroundMessage = null);
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
+    return widget.child;
   }
 }
 
@@ -144,6 +80,7 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await NotificationService().initialize();
   } catch (e) {
     debugPrint("Firebase initialization failed: $e");
   }
