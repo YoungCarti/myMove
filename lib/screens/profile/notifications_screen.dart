@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -10,6 +12,7 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> with WidgetsBindingObserver {
   bool _isGranted = false;
+  bool _initialCheckDone = false;
 
   @override
   void initState() {
@@ -34,9 +37,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> with WidgetsB
   Future<void> _checkPermission() async {
     final status = await Permission.notification.status;
     if (mounted) {
+      final wasGranted = _isGranted;
       setState(() {
         _isGranted = status.isGranted;
       });
+      
+      if (_initialCheckDone && !wasGranted && _isGranted) {
+        Provider.of<AuthProvider>(context, listen: false).syncFCMToken();
+      }
+      _initialCheckDone = true;
     }
   }
 
