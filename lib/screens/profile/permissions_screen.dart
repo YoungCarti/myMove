@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PermissionsScreen extends StatefulWidget {
   const PermissionsScreen({super.key});
@@ -8,8 +9,56 @@ class PermissionsScreen extends StatefulWidget {
   State<PermissionsScreen> createState() => _PermissionsScreenState();
 }
 
-class _PermissionsScreenState extends State<PermissionsScreen> {
+class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindingObserver {
   bool _isLocationEnabled = false;
+  bool _isCameraEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkPermissions();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    final locationStatus = await Permission.locationWhenInUse.status;
+    final cameraStatus = await Permission.camera.status;
+
+    if (mounted) {
+      setState(() {
+        _isLocationEnabled = locationStatus.isGranted || locationStatus.isLimited;
+        _isCameraEnabled = cameraStatus.isGranted || cameraStatus.isLimited;
+      });
+    }
+  }
+
+  Future<void> _handlePermissionRequest(Permission permission, bool isSwitchEnabled) async {
+    final status = await permission.status;
+    
+    if (status.isPermanentlyDenied || (!isSwitchEnabled && status.isGranted)) {
+      // If permanently denied, or user wants to revoke, they must go to settings
+      await openAppSettings();
+    } else if (isSwitchEnabled && !status.isGranted) {
+      final newStatus = await permission.request();
+      if (newStatus.isPermanentlyDenied) {
+        await openAppSettings();
+      }
+    }
+    await _checkPermissions();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,11 +95,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     'View parking spots near you and get better location suggestions when creating bookings.',
                 hasSwitch: true,
                 switchValue: _isLocationEnabled,
-                onSwitchChanged: (value) {
-                  setState(() {
-                    _isLocationEnabled = value;
-                  });
-                  // TODO: Handle location permission toggle via permission_handler
+                onSwitchChanged: (value) async {
+                  await _handlePermissionRequest(Permission.locationWhenInUse, value);
                 },
               ),
               
@@ -62,8 +108,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 description:
                     'Scan QR codes for parking access or take photos for your profile picture.',
                 leadingIcon: Icons.camera_alt_outlined,
-                onTap: () {
-                  // TODO: Request camera permission via permission_handler
+                hasSwitch: true,
+                switchValue: _isCameraEnabled,
+                onSwitchChanged: (value) async {
+                  await _handlePermissionRequest(Permission.camera, value);
+                },
+                onTap: () async {
+                  await _handlePermissionRequest(Permission.camera, !_isCameraEnabled);
                 },
               ),
             ],

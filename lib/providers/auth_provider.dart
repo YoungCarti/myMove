@@ -242,6 +242,13 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Expose FCM sync to UI so it can be called when permissions are granted
+  Future<void> syncFCMToken() async {
+    if (_user != null) {
+      await _syncFCMToken(_user!, _fcmSetupGeneration);
+    }
+  }
+
   Future<void> _removeFCMToken(User user) async {
     ++_fcmSetupGeneration;
     await _cancelTokenRefreshSubscription();

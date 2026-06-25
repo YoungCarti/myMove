@@ -1,0 +1,1694 @@
+myMove: Car Parking System with Sensors
+
+SAABIRESH LETCHUMANAN
+
+BACHELOR OF COMPUTER SCIENCE WITH HONOURS
+
+2025
+
+School Of Computing and Digital Technology
+
+myMove: Car Parking System with Sensors
+
+SAABIRESH LETCHUMANAN
+
+2025
+
+myMove: Car Parking System with Sensors
+
+SAABIRESH LETCHUMANAN
+
+A thesis submitted
+in fulfillment of the requirements for the degree of
+BACHELOR OF COMPUTER SCIENCE WITH HONOURS
+
+School Of Computing and Digital Technology
+
+UNIVERSITY MALAYSIA OF COMPUTER SCIENCE AND ENGINEERING
+
+2025
+
+DECLARATION
+I declare that this thesis entitled “myMove: Car Parking System with Sensors“is the result of
+my own research, except as cited in the references. The thesis has not been accepted forany
+degree and is not concurrently submitted in candidature of any other degree.
+
+Signature:
+Name: SAABIRESH LETCHUMANMAN
+Date: 12 November 2025
+
+APPROVAL
+
+I hereby declare that I have read this thesis and in my opinion this thesis is sufficient in terms
+of scope and quality for the award of Degree BACHELOR OF COMPUTER SCIENCE WITH
+HONOURS
+
+Signature: _______________________
+Supervisor: MUHAMMAD SYAHMIE SHABARUDIN
+Date: 29 December 2025
+
+DEDICATION
+
+To my beloved family, including my wife and parents, I would like to thank them for their
+continuous love, encouragement, and support throughout my academic journey. Their patience
+and understanding have been my greatest source of strength during challenging times.
+
+I would also like to dedicate this work to my supervisor and lecturers, whose guidance, advice,
+and constructive feedback have played an important role in shaping this project. Finally, this
+thesis is dedicated to all friends who offered help, motivation, and support throughout the
+completion of this study.
+
+ABSTRACT
+
+Parking challenges such as limited space availability, double parking, and inefficient parking
+management systems are common problems faced by drivers in busy urban areas in Malaysia.
+Most existing parking applications focus mainly on digital payments and often lack real-time
+parking information, parking reservation features, and effective communication tools to manage
+double-parking situations. To address these issues, this project proposes myMove, a smart
+mobile-based parking platform designed to improve the overall parking experience through a
+centralized and user-friendly system. The application focuses on features such as viewing
+parking information, reserving parking spaces, digital payments, booking management, and QR
+code–based communication between drivers without exposing personal contact details. This
+study was carried out during the FYP1 phase and involved a literature review and a pilot survey
+to identify user needs and limitations of existing systems. The findings indicate strong user
+interest in an integrated parking management solution and provide a solid foundation for the
+development, implementation, and evaluation of the full system in FYP2.
+
+1
+
+myMove: Sistem Parkir Kereta dengan Sensor
+
+ABSTRAK
+
+Masalah parkir seperti kekurangan tempat letak kereta, parkir berganda, dan sistem
+pengurusan parkir yang tidak cekap merupakan isu yang sering dihadapi oleh pemandu di
+kawasan bandar yang sibuk di Malaysia. Kebanyakan aplikasi parkir sedia ada lebih tertumpu
+kepada pembayaran digital dan sering kekurangan maklumat parkir masa nyata, ciri tempahan
+parkir, serta alat komunikasi yang berkesan untuk mengurus situasi parkir berganda.Bagi
+menangani masalah ini, projek ini mencadangkan myMove, iaitu sebuah platform parkir pintar
+berasaskan aplikasi mudah alih yang direka untuk meningkatkan pengalaman parkir secara
+keseluruhan melalui sistem yang berpusat dan mesra pengguna. Aplikasi ini memfokuskan
+kepada ciri-ciri seperti paparan maklumat parkir, tempahan ruang parkir, pembayaran digital,
+pengurusan tempahan, serta komunikasi berasaskan kod QR antara pemandu tanpa
+mendedahkan maklumat peribadi.Kajian ini dijalankan pada fasa FYP1 dan melibatkan kajian
+literatur serta tinjauan perintis bagi mengenal pasti keperluan pengguna dan kekangan sistem
+sedia ada. Dapatan kajian menunjukkan minat yang tinggi terhadap penyelesaian pengurusan
+parkir yang bersepadu dan menyediakan asas yang kukuh untuk pembangunan, pelaksanaan,
+dan penilaian sistem penuh dalam fasa FYP2.
+
+2
+
+ACKNOWLEDGEMENT
+
+I would like to express my sincere gratitude to my supervisor for the continuous guidance,
+valuable advice, and constructive feedback provided throughout the completion of this Final
+Year Project. Their support and encouragement were essential in helping me stay focused and
+motivated during the research and documentation process. I would also like to thank the lecturers
+and academic staff for sharing their knowledge and providing helpful insights that contributed
+to the development of this project. Special thanks are extended to all participants who took part
+in the pilot study survey, as their time, responses, and honest feedback were invaluable in
+identifying real-world parking challenges and shaping the requirements of the proposed system.
+Finally, I would like to express my deepest appreciation to my wife, my family, and my friends
+for their constant support, patience, and encouragement throughout this journey. Their
+understanding and motivation played a significant role in helping me complete this project
+successfully.
+
+3
+
+TABLE OF CONTENT
+
+DECLARATION .....................................................................................................................
+APPROVAL ............................................................................................................................
+DEDICATION .........................................................................................................................
+ABSTRACT .......................................................................................................................... 1
+ABSTRAK .............................................................................................................................. 2
+ACKNOWLEDGEMENT .................................................................................................... 3
+TABLE OF CONTENT ................................................................................................... 4 - 5
+LIST OF TABLES ................................................................................................................. 6
+LIST OF FIGURES .............................................................................................................. 7
+LIST OF ABBREVIATIONS ................................................................................................ 8
+CHAPTER 1
+1.1
+
+Background ............................................................................................................. 9
+
+1.2
+
+Problem Statement................................................................................................. 10
+
+1.3
+
+Research Question ................................................................................................. 11
+
+1.4
+
+Research Objective ................................................................................................ 11
+
+1.5
+
+Scope of Research ................................................................................................. 12
+
+1.6
+
+Thesis Outline ................................................................................................ 13 - 14
+
+CHAPTER 2
+2.1
+
+Introduction ........................................................................................................... 15
+
+2.2
+
+Research of Related Studies ................................................................................... 16
+
+2.3
+
+Study of Existing Related Systems......................................................................... 17
+
+2.3.1
+
+Touch ‘n Go eWallet’s parking....................................................................... 17 - 18
+
+2.3.2 JomParking..................................................................................................... 18 - 19
+2.3.3 Flexi Parking .................................................................................................. 19 - 20
+2.4
+
+Suggested Approach .............................................................................................. 20
+
+2.5
+
+Benchmark with Existing Systems ......................................................................... 21
+
+2.6
+
+Summary ............................................................................................................... 22
+4
+
+CHAPTER 3
+3.1
+
+Introduction ........................................................................................................... 23
+
+3.2
+
+Proposed System Development Process .......................................................... 24 - 26
+
+3.3
+
+Gantt Chart ............................................................................................................ 27
+
+3.4
+
+Limitations and Features ........................................................................................ 28
+
+3.4.1 Limitations of Current Systems.............................................................................. 28
+3.4.2 Proposed Features for myMove ............................................................................. 29
+3.5
+
+Data Collection Methods ................................................................................ 30 - 31
+
+3.6
+
+Develop Module of myMove and Integration .................................................. 32 - 34
+
+3.7
+
+Summary ............................................................................................................... 34
+
+CHAPTER 4
+4.1
+
+Introduction ........................................................................................................... 35
+
+4.2
+
+Result and Analysis of Pilot Study .................................................................. 36 - 45
+
+4.3
+
+Use Case Diagram ................................................................................................. 46
+
+4.4
+
+UI Design ....................................................................................................... 47 - 59
+
+4.5
+
+Summary ............................................................................................................... 60
+
+CHAPTER 5
+5.1
+
+Introduction ........................................................................................................... 61
+
+5.2
+
+Summary of the Research Objectives ..................................................................... 62
+
+5.3
+
+Research Contributions .......................................................................................... 62
+
+5.4
+
+Practical Implications and Beneficiaries................................................................. 63
+
+5.5
+
+Limitations of the Present Study ............................................................................ 64
+
+5.6
+
+Future Works ......................................................................................................... 65
+
+5.7
+
+Summary ............................................................................................................... 66
+
+REFERENCES ............................................................................................................ 67 - 68
+
+5
+
+LIST OF TABLES
+Table
+
+Title
+
+Page
+
+Table 2.1
+
+COMPARATIVE STUDY
+OF CAR PARKING
+SYSTEM
+
+16
+
+Table 2.2
+
+COMPARTIVE OF
+EXISTING SYSTEM
+
+21
+
+6
+
+LIST OF FIGURES
+Figure
+
+Title
+
+Page
+
+Figure 2.1
+
+Example of Parking System in Touch ‘n Go eWallet
+
+17
+
+Figure 2.2
+Figure 2.3
+Figure 3.1
+Figure 3.2
+Figure 4.1
+Figure 4.2
+Figure 4.3
+Figure 4.4
+Figure 4.5
+Figure 4.6
+Figure 4.7
+Figure 4.8
+Figure 4.9
+Figure 4.10
+Figure 4.11
+Figure 4.12
+Figure 4.13
+Figure 4.14
+Figure 4.15
+Figure 4.16
+Figure 4.17
+Figure 4.18
+Figure 4.19
+Figure 4.20
+Figure 4.21
+Figure 4.22
+Figure 4.23
+Figure 4.24
+
+Example in JomParking
+Example in Flexi Parking
+Waterfall Model
+Gantt Chart
+Age Distribution of Pilot Study
+Frequency of Car Driving
+Frequency of Difficulties Finding Parking
+Experience with Double Parking Issue
+Level of Frustration Faced Due to Illegal Parking
+Most Important Factor When Parking
+Useful of a QR Code System for Double Parking
+Willing to Use In-App Communication
+Important of Identify Verification for User Safety
+Desire Parking Features
+Use Case Diagram
+Onboarding Screen
+Login Page
+Register Page
+Home Page
+Search Parking
+Parking Details
+Book Parking
+Parking Spot
+Payment Method
+Review
+Navigation Assistance
+Parking Timer
+Extend Parking Time
+
+18
+19
+26
+27
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+
+7
+
+LIST OF ABBREVIATIONS
+
+Abbreviation
+
+Full Term
+
+FYP
+UI
+UX
+QR
+GPS
+IoT
+LPR
+VoIP
+FCM
+API
+DBKL
+IC
+ESP32
+
+Final Year Project
+User Interface
+User Experience
+Quick Response
+Global Positioning System
+Internet of Things
+License Plate Recognition
+Voice Over Internet Protocol
+Firebase Cloud Messaging
+Application Programming Interface
+Dewan Bandaraya Kuala Lumpur
+Identify Card
+Espressif ESP32 Microcontroller
+
+8
+
+CHAPTER 1
+
+INTRODUCTION
+
+1.1
+
+Background
+
+These recent years, searching for parking has become increasingly stressful because
+people who own vehicles are rising day by day (Chen et al., 2025). High density areas such as
+condominiums, shopping malls and office or university campuses face these issues endlessly.
+Facilities like visitor parking, resident parking and loading bays must operate efficiently to
+ensure smooth traffic flow and reduce congestion (Alshareef., 2024). However, issues such as
+double parking, difficulty finding parking spots, and long waiting times often cause frustration
+for drivers. Looking at today’s technologies, many individuals must have their own mobile
+phone that allows them to access the internet or download numerous applications (Khalid et al.,
+2024).
+Despite improvements in today’s tech, many parking areas still depend on manual
+checking, simple ticketing systems, and using physical cards that do not provide real-time
+information (Puspitasari et al ., 2021). These systems often lack important functions like digital
+reservations, live availability updates, and cashless payments. As a result, people spend
+unnecessary time searching for parking in the same area, leading to waste of time and stress. To
+address these challenges, the most important aspect of this project is to create a user-friendly
+mobile application named myMove that allows users to check availability parking, reserve
+parking, make digital payment, and manage double-parking situation through QR Code and inapp communication that will satisfy customer's needs.
+9
+
+1.2
+
+Problem Statement
+
+The approach to urban parking management these days encounters several significant
+difficulties in today's rapidly evolving cities. Drivers struggle to locate available parking spaces
+due to outdated systems that do not provide real-time availability or clear guidance on where to
+park (Kalašová et al., 2021). For example, a typical parking area in Malaysia where it lets drivers
+to go through a mess, like circling the same place around just to find an unoccupied parking
+spot. When drivers keep searching for a parking spot even though none are available, it causes
+stress and wastes their time, which can reduce their overall productivity. Besides, many parking
+systems in Malaysia are outdated and cannot keep up with the growing number of vehicles.
+Because they do not provide real-time information, drivers spend more time searching for
+parking, which increases traffic congestion and reduces the overall quality of urban mobility.
+Also, double-parking remains a persistent issue as well in Malaysia, especially in
+crowded areas, where blocked vehicle owners have no fast or secure way to contact the driver
+who parked behind them (Haslinda et al., 2016). Despite DBKL’s implementation to clamp cars
+that park in illegal parking areas in 2016, recent studies show that the number of compounds
+issued has increased dramatically between January to May 2025, which DBKL also received
+1,009 public complaints related to illegal parking (Anis, 2025). This shows that current
+enforcement methods alone are not enough to solve the ongoing illegal and double-parking
+issues.
+
+10
+
+1.3
+
+Research Question
+
+This study aims to answer the following research questions:
+i.
+
+How can a mobile application improve the way drivers find and reserve parking spaces
+without relying on physical hardware?
+
+ii.
+
+How does QR-based communication help drivers handle double-parking situations?
+
+iii.
+
+Can real-time applications reduce search time for drivers in busy urban areas?
+
+iv.
+
+Can a dedicated application like myMove effectively solve the problems in real world
+situations and existing platforms?
+
+1.4
+
+Research Objective
+
+The aim of this project is to develop a parking system that provides real-time
+information, finds parking spaces easily, reserves a spot and communicate during doubleparking situations to reduce stress, search time and congestion.
+The objectives of the project are as follows:
+i.
+
+To study existing parking systems, identify current issues faced by Malaysian drivers,
+analyze the limitations of current car parking application, define user requirement
+specification and features through literature review and survey
+
+ii.
+
+To evaluate how the app reduces search time, stress and communication problems
+commonly faced by drivers.
+
+iii.
+
+To evaluate the application usability by conducting testing with real individuals and
+collecting feedback for further improvement.
+11
+
+1.5
+
+Scope of Research
+
+The scope of this research is as follows:
+i.
+
+Development of mobile application (Android) using Flutter and backend with Firebase
+for authentication.
+
+ii.
+
+This application targets Malaysian drivers who had overwhelming and frustrating
+experience during their daily search for parking or dealing with double-park situation.
+
+iii.
+
+Users will be able to create an account, which prompts them to enter details such as
+name, age, email, password, car number plate
+
+12
+
+1.6
+
+Thesis Outline
+
+Based on the objectives previously presented and, on the approach proposed before, this
+thesis is made up of five (5) chapters, which contents are summarized as follows:
+
+
+Chapter 1 (Introduction)
+-
+
+This chapter presents an overview of the project, including the background of the
+study, problem statement, objectives, scopes, contributions and significance of the
+research.
+
+
+
+Chapter 2 (Literature Review)
+-
+
+This chapter provides a review of existing literature related to the project and mobile
+parking applications. This chapter examines the current applications such as Touch
+‘n Go eWallet, JomParking and Flexi Parking.
+
+
+
+Chapter 3 (Methodology)
+-
+
+This chapter explains the research methodology applied in this study. It outlines the
+research approach, data collection methods and the software development process
+that will be applied for this project.
+
+13
+
+
+
+Chapter 4 (Result and Discussion)
+-
+
+This chapter presents the results and findings obtained from the pilot study and
+prototype development of this project. It includes survey results, user feedback and
+analysis related to current parking issues and user expectations.
+
+
+
+Chapter 5 (Conclusion and Recommendation for Future Search)
+-
+
+This chapter concludes the study by summarizing the main findings and
+contributions of the research. It also discusses the limitations of the current study and
+provides recommendations for future work, particularly for the full system
+development and evaluation in FYP2.
+
+14
+
+CHAPTER 2
+
+LITERATURE REVIEW
+2.1
+
+Introduction
+
+Nowadays, technology is advancing significantly in every aspect of life and people are
+keeping up with current development (Aditya Kumar 2022,). In this chapter it reviews existing
+research, studies and technologies related to mobile applications used for parking management,
+real-time parking detection and driver communication. The review identifies the current
+challenges faced by Malaysian drivers, including double parking, outdated parking system /
+application and lack of real-time parking availability. It examines current solutions like Touch
+‘n Go eWallet’s in-app parking, JomParking and Flexi Parking to identify their strength. This
+review establishes the need for a more modern and integrated parking management system that
+offers features such as real-time parking availability, parking reservation, digital payments,
+automatic number plate detection, in-app communication between drivers, push notifications for
+car-blocking alerts, navigation to available parking lots, and a QR-based contact system for
+emergencies. Together, these features aim to improve driver convenience, reduce parkingrelated conflicts and modernize the overall parking experience in Malaysia.
+
+15
+
+2.2 Research of Related Studies
+
+To better understand the current landscape of mobile based parking management and
+communication systems, three relevant studies and existing solutions were reviewed. These
+studies helped identify key design features and gaps that inform the development of myMove.
+TABLE 2.1 COMPARATIVE STUDY OF CAR PARKING SYSTEM
+
+16
+
+2.3
+
+Study of Existing Related Systems
+
+This section explains about the functionality and limitations of existing platforms used
+by Malaysian drivers. Below are three applications, Touch ‘n Go eWallet’s parking, JomParking
+and Flexi Parking were chosen because of their popularity of the application.
+
+2.3.1
+
+Touch ‘n Go eWallet’s parking
+
+Figure 2.1: Example of Parking System in Touch ‘n Go eWallet.
+
+17
+
+Touch ‘n Go eWallet parking is a feature inside the Touch ‘n Go eWallet app that allows
+users to pay for parking digitally only at selected locations / street parking. The app is convenient
+because there is no need to use physical tokens, it automatically deducts parking fees from their
+eWallet balance and has LPR Parking feature. However, there are certain features that have
+limitations and lacks features. It does not show real-time parking availability, so drivers still
+need to drive around to find an empty spot.
+
+2.3.2 JomParking
+
+Figure 2.2: Example in JomParking
+
+18
+
+JomParking is a mobile parking application widely used in Malaysia as Touch ‘n Go
+eWallet to pay for street and city council parking. The app allows users to select their location
+by dragging the map, entering their car number plate and selecting the duration of the parking
+time. It also provides city council compound, where users can pay for outstanding payments and
+includes parking passes, reload credit to the app and services like car battery delivery, booking
+a trip and car and motorbike insurance. However, their platform is basic and offers limited
+interaction. It doesn’t support every city council parking around Malaysia and doesn’t include
+every off-street parking like mall or buildings.
+
+2.3.3 Flexi Parking
+
+Figure 2.3: Example of Flexi Parking
+19
+
+Flexi Parking is a local platform in Malaysia that offers to pay for street parking under
+supported city councils. Users can select their parking zone, add durations, their car number
+plate and pay using in-app credit. However, it’s not fully operational and optimized in terms of
+parking experience. The platform sometimes runs into an error, like connection issues, payment
+and top out problems, and receiving suspicious messages about traffic fines.
+
+2.4
+
+Suggested Approach
+
+The proposed system is a mobile application called myMove, designed to improve the
+parking experience for Malaysian drivers by providing clearer information, easier
+communication and more organized parking process. myMove focuses on giving drivers realtime parking availability with information, a reservation system, simple digital payment and a
+faster way to deal with double-parking.
+The system allows users to view available parking spots in a building, select a space with
+details such as floor and parking number, and reserve it before entering. Once a spot is chosen,
+it becomes unavailable to others, reducing confusion and unnecessary searching around the
+same place. The app also sends reminders when the user’s parking time is ending to help avoid
+extra charges. Additionally, a QR-based double-parking communication feature let blocked
+drivers scan a displayed QR Code to contact the car owner through in-app messaging or calls
+without revealing personal phone numbers.
+
+20
+
+2.5
+
+Benchmark with Existing Systems
+
+The comparative analysis of existing systems and the proposed myMove application is
+detailed in the table below:
+TABLE 2.2: COMPARISON OF EXISTING SYSTEM
+
+App Name
+
+Touch ‘n Go
+eWallet
+
+JomParking
+
+Flexi Parking
+
+Functionality
+
+Strengths
+
+Weaknesses
+
+Proposed
+Improvements
+
+It has parking
+features, such as
+LPR parking,
+street parking and
+provides travel
+passes, named
+My50 Pass.
+
+Convenient and
+fast payment
+method while
+using LPR
+parking and
+reduces physical
+cash or card.
+
+The balance in
+the physical card
+and eWallet
+balance lacks
+integration and
+support limited
+location only.
+
+Aligns with
+myMove goal
+and expanding
+to more
+locations.
+
+Payment for
+street parking by
+providing city
+council’s, allow
+by user by
+dragging the map
+and offer
+compound
+payment.
+Users can pay for
+on-street parking
+via GPS, receive
+expiry reminders,
+extend parking
+remotely, and
+manage up to 10
+vehicles in one
+account.
+
+Convenient and
+time-saving
+features like
+paying for
+parking
+remotely and
+extending their
+time.
+
+Supports only
+limited locations,
+provides only
+certain
+compound
+payment and
+only has online
+banking.
+
+Aligns with
+myMove goal
+to show
+parking details
+and parking
+space selection
+
+Supports over
+46 municipal
+councils,
+monthly parking
+passes and
+prevents users
+from paying
+during nonchargeable
+hours.
+
+App hard to
+navigate, buggy,
+errors when
+registration,
+provides certain
+locations and
+inaccuracy GPS
+
+Aligns with
+myMove goal
+to show
+parking details
+and parking
+space selection
+
+21
+
+2.6
+
+Summary
+
+This chapter examined existing parking applications used in Malaysia to identify their
+features, strengths and weaknesses. Applications such as Touch ‘n Go eWallet Parking,
+JomParking and Flexi Parking were reviewed and found to mainly focus on digital payment
+while it lacks comprehensive parking information, provides limited coverage, minimal user
+interaction and lack of support for double parking situations. These findings justify the need for
+the proposed myMove application as more integrated and user-friendly parking solutions.
+
+22
+
+CHAPTER 3
+
+METHODOLOGY
+
+3.1
+
+Introduction
+
+This chapter outlines the research methodology that addresses the Objective 1 of
+myMove project, which focuses on examining the limitations of current car parking
+applications, studying existing parking solutions and identifying user needs before developing
+the proposed system. This structed research approach is adopted to ensure that the problems are
+clearly understood, and system requirements are correctly defined. For this project, the Waterfall
+Model is selected as the software development methodology because of its suitability for
+systems with well-defined requirements and a predictable development path. This model follows
+a linear structure in which each phase is completed thoroughly before moving on to the next
+part. The research design for Objective 1 includes a detailed literature review and a simple user
+survey to study existing parking applications, identify frustrations and analyze gaps in current
+system. Later phases including system design, development, usability testing, deployment and
+maintenance will also be planned, followed by the Waterfall methodology.
+
+23
+
+3.2
+
+Proposed System Development Process
+
+This project will be developed using the Waterfall Model, which follows step-by-step
+sequence from the initial study of requirements to the final maintenance of the system. The
+model is chosen for myMove because the requirements are clearly defined, stable, and suitable
+for a step-by-step development approach, allowing each phase to be carried out with clarity and
+minimal doubt. By completing one phase fully before moving to the next, the development
+process becomes more manageable, organized and easier to work with. Below shows how each
+stage of the Waterfall Model will be applied throughout the system development:
+
+
+
+Requirements Phase:
+-
+
+This phase is completed in FYP1, all information related to the parking problems,
+user needs, and system expectations is gathered and analyzed. This includes studying
+existing solutions, identifying limitations such as absence of real-time parking
+availability, lack of information and limited support for handling double parking
+situations. Feedback gathered through pilot study is used to define the functional and
+non-functional requirements that will guide system design and development in next
+phase.
+
+24
+
+
+
+Design Phase:
+-
+
+The design phase focuses on turning the identified requirements it a clear system
+plan. This phase includes the creation of use-case diagram and UI prototypes to show
+how users will interact with the application. The UI designs developed in FYP1
+prioritize simplicity and ease of use to demonstrate the main workflow, while more
+detailed and complete interface designs will be developed in FYP2.
+
+
+
+Development Phase:
+-
+
+The development phase will take place in FYP2, where the myMove application
+will be built based on the approved system design. Core features will be developed
+step by step, focusing on creating modular and maintainable code. This phase will
+also involve integrating the frontend and backend components to ensure smooth data
+flow and proper system functionality.
+
+
+
+Testing Phase:
+-
+
+Testing will be carried out throughout FYP2 to ensure the system works as expected
+and meets user requirements. Functional testing will be conducted to check that each
+feature operates correctly, while basic usability testing will be used to assess user
+interaction and interface clarity. Any issues or errors identified will be resolved
+before the system is deployed.
+
+25
+
+
+
+Deployment Phase:
+-
+
+After development and testing are completed, the application will be deployed in a
+controlled environment for demonstration and evaluation. This phase allows the
+system to be reviewed as a fully working prototype and prepares for further
+improvement through user experience.
+
+
+
+Maintenance Phase:
+-
+
+The maintenance phase focuses on making improvements and refinements after the
+system is deployed. Feedback gathered during testing and evaluation will be used to
+fix issues, improve performance and enhance system features. This phase also
+considers system scalability and the addition of new functionality in future versions
+of the application.
+
+Figure 3.1 Waterfall Model that will be used for myMove project
+
+26
+
+3.3
+
+Gantt Chart
+
+Figure 3.2 Gantt Chart of Project Timeline
+
+27
+
+3.4
+
+Limitations and Features
+
+To establish a foundation for myMove’s development, the limitations of current car
+parking system and the desired features for the mobile application were identified through a
+literature review and pilot study findings.
+3.4.1 Limitations of Current Systems
+
+
+
+Lack of Mobile Accessibility: Many malls and buildings rely on outdated systems that
+are not integrated with mobile applications, making it inconvenient for people to search
+for their parking or view how much time they spend.
+
+
+
+Lack of Hardware Integration: With parking availability relying on manual updates
+or no hardware system in place.
+
+
+
+Missing Parking Info: Current application doesn’t show building name, floor and
+parking space number
+
+
+
+Absence of Double-Parking Solutions: Current systems do not provide any built-in
+mechanism to handle double-parking situations, leaving drivers without a secure and
+efficient way to contact other vehicle owners.
+
+
+
+Lack of Integrated Communication Features: Existing systems do not support in-app
+messaging and calling features for double-parking situations, forcing users to rely on
+external methods that may compromise privacy.
+
+28
+
+3.4.2 Proposed Features for myMove
+
+Based on the pilot study with 44 people, that include university students and other
+individuals, the following features were identified as crucial for myMove to address these
+limitations:
+
+
+Real-Time Parking Availability: Allowing users to view available and occupied
+parking spaces in buildings and help drivers make faster parking decisions.
+
+
+
+Parking Reservation: Enabling users to reverse specific parking spaces in advance to
+reduce unnecessary searching.
+
+
+
+Navigation Assistance: Providing guided directions to the selected parking area to
+improve user and reduce travel time .
+
+
+
+Parking Details: Displays information such as parking fee rate, building name, floor
+level, parking space number and parking duration once the car is parked.
+
+
+
+Emergency Mode: Providing quick-access features that allow users to send urgent alerts
+in emergency situations.
+
+
+
+Space for User Feedback: Receive feedback from users / drivers about their experience
+in the specific place where they park so that we can improve.
+
+
+
+QR Code-Based Solution for Double Parking: Allow blocked drivers to scan a QR
+Code to contact car owners quickly without exposing confidential details.
+
+
+
+In-App Messaging and VoIP Calling: Enable secure communication between drivers
+through chat, and voice call within the application.
+
+29
+
+3.5
+
+Data Collection Methods
+
+To investigate the challenges faced by drivers and to gather user requirements for the
+parking system, the following methods were used:
+
+Literature Review:
+-
+
+Source: Existing mobile parking applications and publicly available documentation,
+including Touch ’n Go Parking, Flexi Parking, and JomParking, were reviewed to
+understand current practices and system capabilities.
+
+-
+
+Focus: The review focused on identifying common limitations in existing systems,
+such as lack of real-time parking availability, poor user communication features, and
+limited integration between parking information and user interaction tools.
+
+-
+
+Process: Information was gathered through feature analysis of existing applications,
+official app descriptions, user reviews, and observational evaluation conducted
+between 2020 and 2025. A comparative analysis was then performed to identify
+system gaps and areas for improvement.
+
+30
+
+Pilot Study:
+-
+
+Participants: A total of 37 participants including university students, and working
+adults aged between 18 to 45 above have taken part in the online survey to share their
+experiences and consent about car parking systems
+
+-
+
+Method: Google Form was used to collect responses on difficulties finding parking
+spaces, delays caused by blocked vehicles and user expectations for a smart parking
+application.
+
+-
+
+Data Collection: The results indicate that most respondents had trouble in finding
+available parking spaces (56.8%) and encountered double parking situations
+(89.2%). Most participants expressed strong interest in features such as showing
+vehicle parking details (73%), digital payment integration (62.2%) and QR code that
+helps blocked drivers (51.4%) as a main feature.
+
+31
+
+3.6
+
+Develop Module of myMove and Integration
+
+While the development phase will take place in FYP2, this section outlines the approach
+for bringing together myMove core components based on the requirements gathered in
+Objective 1. myMove will be developed as a cross-platform mobile application using Flutter
+with Dart for the frontend. Although Flutter supports both Androids and iOS, the first release of
+myMove will be limited to Android devices only due to current hardware and incompatibility
+with Apple devices. The interface will be designed using Figma, focusing on clean and minimal
+layout and user-friendly experience.
+The integration plan covers:
+
+
+Frontend Development:
+
+Flutter will be used to develop an intuitive and responsive user interface compatible with
+Android devices. The frontend will include important key features such as:
+-
+
+User login / registration (with secure authentication)
+
+-
+
+Displays an interactive map for exploring nearby parking locations.
+
+-
+
+A search bar for destinations and a bottom navigation to profile, QR scanner for
+double parking situation and history
+
+-
+
+Shows a building-level parking layout with color-coded indicators for available,
+occupied, and reserved spaces.
+
+-
+
+Users can select a parking spot, and the system updates its status when they arrive
+and extend parking duration
+
+-
+
+Shows parking details (floor, section, lot, duration), lets users upload a photo, and
+provides fee info with instant payment.
+32
+
+
+
+Backend Development:
+
+The backend will be powered by Firebase that includes various product categories like
+authentications and more. The core backend responsibilities include:
+-
+
+Managing authentication (email, password, or Google sign-in) using Fireabase
+Authentication
+
+-
+
+Deliver instant push notification using Firebase Cloud Messaging (FCM)
+
+-
+
+Manage real-time parking status updates using Firebase Realtime Database
+
+-
+
+Support media uploads such as parking spot photos using Firebase Storage
+
+-
+
+Location based parking search and navigation guide using Google Maps API
+
+-
+
+Server-side processes such as payments and reservations using Cloud Functions.
+
+-
+
+Generate and scan QR codes using Flutter QR libraries (qr_flutter)
+
+-
+
+Communication and calls using Firebase Realtime DB and third-party API’s
+
+-
+
+Payments will be handled using Stripe, Touch ‘n Go eWallet, or any supported
+Malaysian gateway integrated through Firebase Functions.
+
+
+
+Database Structure:
+-
+
+Storing user details, building, floor and parking lot data for map and location retrieval
+using Firebase Firestore
+
+-
+
+Manage communication records (chat messaging and call) using Agora or Zegocloud
+
+33
+
+
+
+Hardware Integration
+-
+
+Parking sensors will be installed in individual parking spaces to detect whether a spot
+is occupied or vacant using ESP32 microcontrollers.
+
+-
+
+Each ESP32 device will transmit parking status data wirelessly to the backend
+system through Wi-Fi and sync with Firebase Firestore.
+
+3.7
+
+Summary
+
+This chapter describes the methodology used for the myMove project, where the
+Waterfall Model was applied to guide system development in a clear and structured way. It
+describes how user needs and system limitations were identified through a literature review and
+pilot study carried out during FYP1. The chapter also presents the proposed features and overall
+system, including frontend, backend, database and hardware. In addition, a Gantt chart is
+included to show the planned project timeline and development schedule.
+
+34
+
+CHAPTER 4
+RESULT AND DISCUSSION
+
+4.1
+
+Introduction
+
+This chapter presents the prototype outcomes of the proposed project myMove: Car
+Parking System, along with feedback gathered from a pilot study involving 37 participants
+including university students and working adults. The chapter begins by outlining the user
+interface (UI) design of myMove and the core system features developed. Following this, the
+chapter analyses the responses from users who participated in the pilot study. The purpose of
+this evaluation is to determine how well the application addresses in common parking challenges
+faced by drivers and how effectively it improves the overall parking experience compared to
+existing parking system like, Touch ‘n Go eWallet parking, Flexi Parking and JomParking. The
+insights obtained are essential for refining the systems design, enhancing usability and ensuring
+that the final application aligns with the needs and expectations of real users.
+
+35
+
+4.2
+
+Result and Analysis of Pilot Study
+
+Figure 4.1 Age Distribution
+
+The pie chart shows the ages of the people who participated in the pilot study. Almost
+half of them were young adults aged 18 to 24 with over 48.6%. The next highest group aged 25
+to 34, making up 24.3 responses. The least number of responses were 45 and above with 18.9%
+and the smallest percentage are under 18 with 2.7%.
+
+36
+
+Figure 4.2 Frequency of Car Driving
+The data shows how often the participants drive their car frequently. Almost half of them
+48.6%, drive every day and another 21.6% drive 3 to 5 times a week. This means most
+participants are regular drivers. Meanwhile, 27% of respondents drive rarely and a small group
+of 2.7% drive 1 to 2 times a week.
+
+37
+
+Figure 4.3 Frequency of Difficulties Finding Parking
+
+The chart shows that many participants often have trouble finding parking in busy areas.
+58.6% of participants said they always face this problem and another 21.6% said it happens
+often. This means about 78% of the respondents regularly struggle to find parking. Meanwhile,
+18.9% of individuals said it happens sometimes, and small groups of people choose rarely, which
+is 2.7%.
+
+38
+
+Figure 4.4 Experience with Double Parking Issue
+
+The chart shows whether people have ever been blocked by a double-parked car. Almost
+everyone in the pilot study has faced this problem. A large majority of 89.2% said yes, they have
+been experienced with blocked car before. Only a small percentage of 10.8% said no. This
+clearly shows that being blocked by double-parked cars is a common problem for most drivers.
+
+39
+
+Figure 4.5 Level of Frustration Faced Due to Illegal Parking
+
+This chart shows how frustrated people feel about double parking or illegal parking.
+Most people feel very upset about it. Nearly 60% (59.5% to be approx.), said they were
+extremely frustrated and another 32.4 were somewhat frustrated. This means more than 90% of
+the respondents feel annoyed by bad parking behavior. Only a small percentage of group, 8.1%,
+felt neutral.
+
+40
+
+Figure 4.6 Most Important Factor When Parking
+This chart shows what people care about the most when choosing a parking spot. The
+top priority is finding an available space, chosen by 43.2% of the respondents. The second most
+important factor is the parking fee, selected by 27%/ These two factors matter the most to the
+drivers. Vehicle safety comes at 16.2%, followed by how near the parking spot is to their
+destination at 13.5%.
+
+41
+
+Figure 4.7 Useful of a QR Code System for Double Parking
+
+This chart shows whether people think a QR code system for contacting a double-parked
+driver would be helpful. Almost everyone agreed that it would be useful. Nearly half of the
+respondents, which is 45.9%, said it would be somewhat useful, while 43.2% said it would be
+extremely useful. This means that almost 90% of the participants believe the system would help
+solve double-parking situations. Only a small group of individuals felt neutral with 8.1% and
+2.7% said the system would not be useful.
+
+42
+
+Figure 4.8 Willing to Use In-App Communication
+This chart shows whether people use an app’s messaging or calling feature to contact a
+car owner without sharing their phone number. Most participants, 75.7%, said yes, showing
+strong interest in a private way to communicate while another 21.6% said it maybe meaning
+they might use it depending on the situation. Only a very small percentage of people said no by
+2.7%.
+
+43
+
+Figure 4.9 Important of Identify Verification for User Safety
+This chart shows how important it is to identify verification using IC or face verification
+for user safety. Almost half of the respondents choose it very important by 56.8%, meanwhile
+21.6% of individuals say it’s somewhat important and another 21.6% said it’s not important.
+Overall, most people prefer having verification because it makes the app safer.
+
+44
+
+Figure 4.10 Desire Parking Features
+
+The results clearly show which features users want the most in a parking system. The
+feature that people care about the most is the ability to see full vehicle parking details, chosen
+by 73% of the respondents. The second most important feature is digital payment integration
+(62.2%), showing that users want a quick and simple way to pay for parking. Many users also
+want tools that help with communication. About 51.4% liked the QR code system for contacting
+a blocked car, while 58.6% wanted a feature to search for parking spots. Real-time parking
+availability and in-app chat or VoIP calling were each selected by 43.2%, showing the need for
+better communication. In addition, 40.5% chose parking reservations, which shows that users
+want to plan before arriving. Overall, the findings show that apps must focus on providing clear
+parking information, clear parking information and communication for double parking issues,
+and smooth digital payments to meet user expectations.
+
+45
+
+4.3
+
+Use Case Diagram
+
+Figure 4.11 Use Case Diagram
+
+46
+
+4.4
+
+UI Design
+
+This describes the user interface (UI) design of the myMove application that was created
+using Figma, which emphasizes a clean layout, intuitive navigation and user-friendly
+interactions. The design aims to provide smooth and clear experience for drivers using the
+application in busy areas.
+Key screen developed include:
+
+Figure 4.12 Onboarding Screen
+The onboard screen features the app logo and tagline to establish the identity of the app.
+A button is included to provide a clear entry point for users to begin using the app.
+
+47
+
+Figure 4.13 Login Page
+Provides a login interface for existing users to access their accounts. It features email
+and password input fields, social login options and a clear path for new users to sign up.
+
+48
+
+Figure 4.14 Register Page
+The register page features input fields for user details and contact information to create
+a new account. A Register button submits the data, while a Sign In link allows existing users to
+return to the login page.
+
+49
+
+Figure 4.15 Home Page
+This page displays an interactive map showing real-time parking locations and nearby
+landmarks to help users find available spots. It includes quick actions for common destinations
+and a bottom navigation bar.
+
+50
+
+Figure 4.16 Search Parking
+
+The search page allows users to find specific parking locations by name, displaying a
+list of top results with distance and pricing information. It has a search bar with filtering options
+to help users compare parking rates and proximity quickly.
+
+51
+
+Figure 4.17 Parking Details
+This page displays comprehensive information about the parking facility, including its
+distance, operating hours and type such as “Underground”. It also includes a descriptive
+overview and the total daily rate and a “Book Parking” button.
+
+52
+
+Figure 4.18 Book Parking
+The book parking page allows users to select their registered vehicle and set a specific
+date using an interactive calendar. It features time pickers for start and end hours to calculate
+the total parking fee before proceeding with the reservation.
+
+53
+
+Figure 4.19 Parking Spot
+The pick parking spot screen allows users to select a specific floor level and view an
+interactive layout of available bays. Users can choose a numbered spot, such as “A01” while
+occupied spaces are shown with car icons, making it easy to pick a spot.
+
+54
+
+Figure 4.20 Payment Method
+The payment method page allows users to select their preferred payment method, such
+as Stripe or a saved bank card. It also features an “Add New Card” button to facilitate quick and
+easy updates to the user’s financial details.
+
+55
+
+Figure 4.21 Review
+The payment review page provides a comprehensive summary of the booking, including
+the parking area, specific spot, duration, and a detailed breakdown of the total costs. It allows
+users to verify their selected payment method and booking details before clicking “Continue”
+to finalize the transaction.
+
+56
+
+Figure 4.22 Navigation Assistance
+The navigation page provides real-time, turn-by-turn directions from the user's current
+location to the selected parking facility, such as "Menara BAC." It features an interactive map
+with a highlighted route, a distance indicator, and a "Cancel" button to end the navigation
+session.
+
+57
+
+Figure 4.23 Parking Timer
+Once the user passes the parking barrier, the parking timer page appears and shows a
+clear countdown ring and digital clock for the remaining parking time. It also displays the
+assigned parking spot and duration, with a button to easily extend the parking time.
+
+58
+
+Figure 4.24 Extend Parking Time
+This page lets users extend their current parking time by using a slider to choose the
+additional duration. It also shows the payment method, cost breakdown, and a “Confirm
+Payment” button to complete the extension.
+
+59
+
+4.5
+
+Summary
+
+This chapter summarized the results obtained during the FYP1 phase of the myMove
+project, based on the literature review and pilot study involving Malaysian drivers. The finding
+highlighted common parking-related problems such as difficulty finding available spaces,
+frequent double-parking incidents, and high levels of frustration among drivers. The proposed
+use case diagram and UI designs confirmed that the system’s core functions are aligned with
+user needs, especially features related to view parking availability, reservation, parking
+information and digital payments. The survey results showed strong interest in a centralized
+parking management application, with high demand for clear parking details, integrated
+payment options, and a QR-based communication system. Overall, the results support the
+relevance of myMove and provide clear direction for FYP2, where full system development,
+implementation, and usability testing will be carried out.
+
+60
+
+CHAPTER 5
+CONCLUSION AND RECOMMENDATIONS FOR FUTURE RESEARCH
+
+5.1
+
+Introduction
+
+This chapter marks the conclusion of the first phase of the myMove research project.
+The focus of FYP1 was to examine the parking challenges faced by Malaysian drivers, including
+difficulties in finding parking spaces and issues caused by double parking, as well as to
+understand user expectation for a modern parking solution. The findings from this phase serve
+as a foundation for the development of the myMove platform in FYP2. This chapter summarizes
+the key outcomes of the study, discusses the contribution of the project, and provides
+recommendations for future research and system enhancement.
+
+61
+
+5.2
+
+Summary of the Research Objectives
+
+To achieve this a survey was conducted among 37 participants including university
+students and working adults using Google Forms. The analysis of the collected data revealed
+several common patterns. Many individuals reported have difficulties in current system when it
+comes to important factor when parking and being block by another vehicle. These findings
+provide a strong basis for designing a system that meets real user needs and help guide the
+development of FYP2.
+
+5.3
+
+Research Contributions
+
+Although this study is part of FYP1, it still provides important contributions:
+-
+
+Identified major issues faced by Malaysian drivers, including difficulty finding
+parking, lack of real-time parking information and frequent double-parking vehicle
+incidents from the user’s perspective.
+
+-
+
+Provided survey-based evidence showing demand for software-based parking
+management that combines all mentioned features and solutions.
+
+-
+
+Defined the core functional requirements of the proposed system, such as parking
+space selection, real-time parking information, QR code-based solution for double
+parking, receive reminders and digital payment support.
+
+-
+
+Established a clear and research-support foundation for further system design,
+development, and usability testing to be carried out in FYP2.
+
+62
+
+5.4
+
+Practical Implications and Beneficiaries
+
+The results of the pilot study are useful for multiple stakeholders:
+-
+
+Drivers and Vehicle Owners: The proposed system addresses common parking issues
+by offering clear parking information, easier parking space selection and QR codebased solution for double parking, helping drivers save time.
+
+-
+
+Property and Parking Operators: Provides guidance on creating user-friendly parking
+system that improve space usage, reduce congestion and increase management
+efficiency.
+
+-
+
+Application Developer and Designer: The user feedback helps guide the design of
+simple interface and workflows that focus on real-world parking behaviors and user
+expectations.
+
+-
+
+Future Researcher: The results provide a baseline for future studies on softwarebased parking management solutions and mentioned features in the project.
+
+63
+
+5.5
+
+Limitations of the Present Study
+
+The scope of this research in FYP1 was limited to the exploratory stage. The following
+constraints are noted:
+-
+
+The survey involved 37 participants, which provided useful information but may not
+fully represent the experience of all drivers in Malaysia, including different age
+group and locations.
+
+-
+
+Data was collected only through an online questionnaire, in-depth interviews or
+group discussions were not conducted, which limits deeper insights into user
+behavior.
+
+-
+
+Since the application is still at the proposal and prototype stage, real-world testing
+and performance evaluation were not conducted.
+
+-
+
+The study examined only a limited number of parking applications; it may not fully
+reflect the variety of solutions available.
+
+64
+
+5.6
+
+Future Works
+
+Future development will focus on several key enhancements to maximize the system’s
+functionality and impact. The primary objective for FYP2 is the full implementation of the
+myMove mobile application, specifically the integration of UI design to frontend, backend and
+real-time data handling. Usability testing will also be expanded to a larger user base to precisely
+evaluate the user experience, system performance and overall performance.
+Beyond the immediate scope of FYP2, future work aims to integrate smart parking
+hardware, such as sensors or barrier systems, to enable automatic detection of parking
+availability. The system could be further refined with advanced features like predictive parking
+suggestions, usage analytics and integration with city council or private parking providers.
+These enhancements are designed to transform the application into a scalable and intelligent
+parking system suitable for wider real-world deployment.
+
+65
+
+5.7
+
+Summary
+
+This chapter marks the completion of the first phase of the myMove project, which
+focuses on understanding parking-related challenges faced by drivers and identifying the need
+for a modern, software-based parking system. Through literature review and pilot survey, key
+issues such difficulty finding parking, lack of real-time information, stress caused by double
+parking and limited communication between drivers were identified.
+The finding indicates strong user interest in a centralized and modern parking system
+that addresses common challenges faced by drivers in busy areas. Although the system has not
+been fully implemented or tested, the results provide a solid foundation for FYP2, where the
+complete application will be implemented, evaluated and refined based on user feedback.
+
+66
+
+REFERENCES
+
+Zhen C., Z. Xu, Kang T., S. Jia (2025) Environmental and Social Benefits of Urban Parking
+Space Shortages Mitigation Management Model: A System Dynamics and Nudge Approach.
+17(14), 6414–6414.
+Group, A., & Group, A. (2024, December 23). Efficient Parking Management Systems for Smart
+Cities - Abdul Rahman Al Shareef Group. Abdul Rahman al Shareef Group.
+Khalid, H. G., Abbas, H. H., Hussein, M. J., Mahmood Jawad Abu-AlShaeer, Mukhlif, S. K., &
+Dmytro Khlaponin. (2024). Unveiling the Next Frontier: The Future of Connected Technologies.
+207–218.
+Puspitasari, D., Noprianto, N., Afif Hendrawan, M., & Andrie Asmara, R. (2021). Development
+of smart parking system using internet of things concept. Indonesian Journal of Electrical
+Engineering and Computer Science, 24(1), 611.
+Kalašová, A., Čulík, K., Poliak, M., & Otahálová, Z. (2021). Smart Parking Applications and Its
+Efficiency. Sustainability, 13(11), 6031.
+Haslinda A., R. Ng, Rosmah M. (2016) Factors Influencing Haphazard Parking in The Klang
+Valley, Malaysia 10.6007/IJARBSS/v6-i9/2303
+Anis.(2025)
+
+KL
+
+Sees
+
+Over
+
+1,000
+
+Abandoned
+
+Cars
+
+in
+
+Just
+
+Five
+
+Months
+
+https://www.carz.com.my/webview/2025/07/kl-sees-over-1000-abandoned-cars-in-just-fivemonths.
+
+67
+
+Aditya Kumar. (2022, December 20). Has Technology Improved Our Lives? | Simplilearn.
+Simplilearn.com; Aditya Kumar. https://www.simplilearn.com/how-has-technology-improvedour-lives-article
+Najihah Mad Rosni, N., Fadzil Jobli, A., & Neging, M. (2019). Driver Parking Behaviour: An
+Observational and Experimental Intervention Study. IOP Conference Series: Materials Science
+and Engineering, 601(1), 012002.
+Sampath, L. P., & Boggavarapu, K. S. S. (2025). IoT-based Smart Parking System for Industry
+4.0 with QR code access and real-time navigation. EPJ Web of Conferences, 336, 03003.
+Siti Aslinda Mahat, & Maslinda Mohd Nadzir. (2025). ASSESSING USER SATISFACTION OF
+SMART PARKING PAYMENT SYSTEM IN SELANGOR. Journal of Digital System
+Development, 3(1), 13–28.
+Lim, B. (2017, July 31). Uni students develop smart system to curb double parking problems.
+NST Online; New Straits Times. https://www.nst.com.my/lifestyle/bots/2017/07/262578/unistudents-develop-smart-system-curb-double-parking-problems
+
+68
+
+

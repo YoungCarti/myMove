@@ -1,7 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> with WidgetsBindingObserver {
+  bool _isGranted = false;
+  bool _initialCheckDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermission();
+    }
+  }
+
+  Future<void> _checkPermission() async {
+    final status = await Permission.notification.status;
+    if (mounted) {
+      final wasGranted = _isGranted;
+      setState(() {
+        _isGranted = status.isGranted;
+      });
+      
+      if (_initialCheckDone && !wasGranted && _isGranted) {
+        Provider.of<AuthProvider>(context, listen: false).syncFCMToken();
+      }
+      _initialCheckDone = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,29 +90,31 @@ class NotificationsScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2C2C2E),
+                        color: _isGranted ? const Color(0xFF1B3B22) : const Color(0xFF2C2C2E),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
-                        Icons.notifications_active_rounded,
-                        color: Colors.white54,
+                      child: Icon(
+                        _isGranted ? Icons.notifications_active : Icons.notifications_off,
+                        color: _isGranted ? const Color(0xFF32D74B) : Colors.white54,
                         size: 40,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      "Don't Miss a Thing",
-                      style: TextStyle(
+                    Text(
+                      _isGranted ? "You're All Set!" : "Don't Miss a Thing",
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      "Turn on push notifications to keep up with your active bookings and vehicle reminders.",
+                    Text(
+                      _isGranted 
+                          ? "Push notifications are enabled. You'll receive updates for your bookings."
+                          : "Turn on push notifications to keep up with your active bookings and vehicle reminders.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white54,
                         fontSize: 14,
                         height: 1.4,
@@ -74,13 +122,28 @@ class NotificationsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     GestureDetector(
-                      onTap: () {
-                        // TODO: request notification permissions via requestNotificationPermissions()
+                      onTap: () async {
+                        if (_isGranted) {
+                          openAppSettings();
+                          return;
+                        }
+                        
+                        final status = await Permission.notification.request();
+                        if (status.isGranted) {
+                          await _checkPermission();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Notifications enabled!')),
+                            );
+                          }
+                        } else if (status.isPermanentlyDenied) {
+                          openAppSettings();
+                        }
                       },
-                      child: const Text(
-                        "Enable Notifications",
+                      child: Text(
+                        _isGranted ? "Manage Settings" : "Enable Notifications",
                         style: TextStyle(
-                          color: Color(0xFF0A84FF),
+                          color: _isGranted ? Colors.white70 : const Color(0xFF0A84FF),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
