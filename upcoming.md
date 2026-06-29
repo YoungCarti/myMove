@@ -14,11 +14,15 @@
 
 ---
 
-## 2. What We Haven't Done (Pending & Future Features)
+## 2. What We Doing Currently (Doing Gradually)
 
-### ⏳ Immediate Priorities (Next Steps)
 *   **VoIP Calling:** Implement VoIP for voice calling between drivers (since native phone calls rely on cellular towers), while keeping direct native phone calls as an optional fallback.
 *   **Admin/Parking Management Module:** Build a simple admin panel or stick to manual Firebase entry for the FYP2 presentation.
+
+**IN PROGRESS:**
+*   **Emergency Mode:** Add quick-access features to send urgent alerts in emergencies.
+
+## 3. What We Haven't Done (Pending & Future Features)
 *   **Payment Integration:** Attempt to add actual Stripe or Touch 'n Go payments. If business registration causes delays, we will continue to use a simulated/mockup payment system.
 *   **Identity Verification (IC and Face):** Implement e-KYC using on-device technology (e.g., Google ML Kit) to scan Identity Cards (IC) and detect faces for liveness without complex backend processing.
 *   **Emergency Mode:** Add quick-access features to send urgent alerts in emergencies.
