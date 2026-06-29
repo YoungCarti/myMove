@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../../providers/auth_provider.dart';
+import '../calling/call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String targetUserId;
@@ -202,13 +204,33 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.call_rounded, color: Colors.greenAccent),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Initiating secure call...'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+            onPressed: () async {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final callerName = authProvider.displayName;
+              
+              // Trigger Firebase Function
+              try {
+                final callable = FirebaseFunctions.instance.httpsCallable('initiateCall');
+                await callable.call({
+                  'targetUserId': widget.targetUserId,
+                  'channelName': _chatId,
+                  'callerName': callerName.isNotEmpty ? callerName : 'Someone',
+                });
+              } catch (e) {
+                debugPrint('Failed to initiate call: $e');
+              }
+
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CallScreen(
+                      channelName: _chatId,
+                      callerName: _targetName,
+                    ),
+                  ),
+                );
+              }
             },
           ),
           const SizedBox(width: 8),

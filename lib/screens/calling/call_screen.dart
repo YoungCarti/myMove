@@ -1,0 +1,338 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../config/agora_config.dart';
+
+class CallScreen extends StatefulWidget {
+  final String channelName;
+  final String callerName;
+  final String? callerAvatarUrl;
+  final String? token;
+
+  const CallScreen({
+    Key? key,
+    required this.channelName,
+    required this.callerName,
+    this.callerAvatarUrl,
+    this.token,
+  }) : super(key: key);
+
+  @override
+  State<CallScreen> createState() => _CallScreenState();
+}
+
+class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateMixin {
+  int? _remoteUid;
+  bool _localUserJoined = false;
+  late RtcEngine _engine;
+  
+  bool _isMuted = false;
+  bool _isSpeakerOn = false;
+  
+  int _callDuration = 0;
+  Timer? _timer;
+
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAnimation();
+    _initAgora();
+  }
+
+  void _setupAnimation() {
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: false);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.5).animate(
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: Curves.easeOut,
+      ),
+    );
+  }
+
+  Future<void> _initAgora() async {
+    // Request microphone permission
+    await [Permission.microphone].request();
+
+    // Create Agora RTC Engine
+    _engine = createAgoraRtcEngine();
+    
+    // Initialize
+    await _engine.initialize(
+      const RtcEngineContext(
+        appId: AgoraConfig.appId,
+        channelProfile: ChannelProfileType.channelProfileCommunication,
+      ),
+    );
+
+    _engine.registerEventHandler(
+      RtcEngineEventHandler(
+        onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+          debugPrint("local user ${connection.localUid} joined");
+          setState(() {
+            _localUserJoined = true;
+          });
+        },
+        onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+          debugPrint("remote user $remoteUid joined");
+          setState(() {
+            _remoteUid = remoteUid;
+          });
+          _startTimer();
+          _pulseController.stop();
+        },
+        onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+          debugPrint("remote user $remoteUid left channel");
+          setState(() {
+            _remoteUid = null;
+          });
+          _endCall();
+        },
+        onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
+          debugPrint('[onTokenPrivilegeWillExpire] connection: ${connection.toJson()}, token: $token');
+        },
+      ),
+    );
+
+    // Enable audio and set default speaker state
+    await _engine.enableAudio();
+    await _engine.setEnableSpeakerphone(_isSpeakerOn);
+
+    // Join the channel
+    await _engine.joinChannel(
+      token: widget.token ?? AgoraConfig.tempToken,
+      channelId: widget.channelName,
+      uid: 0, // 0 allows Agora to auto-assign a UID
+      options: const ChannelMediaOptions(
+        clientRoleType: ClientRoleType.clientRoleBroadcaster,
+      ),
+    );
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _callDuration++;
+      });
+    });
+  }
+
+  String _formatDuration(int seconds) {
+    final int minutes = seconds ~/ 60;
+    final int remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+    _engine.muteLocalAudioStream(_isMuted);
+  }
+
+  void _toggleSpeaker() {
+    setState(() {
+      _isSpeakerOn = !_isSpeakerOn;
+    });
+    _engine.setEnableSpeakerphone(_isSpeakerOn);
+  }
+
+  void _endCall() async {
+    _timer?.cancel();
+    await _engine.leaveChannel();
+    await _engine.release();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF121212), // Dark mode background
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            // Header Info
+            const Text(
+              'Secure VoIP Call',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 60),
+            
+            // Avatar with Pulse Animation
+            Expanded(
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (_remoteUid == null)
+                      FadeTransition(
+                        opacity: Tween<double>(begin: 0.8, end: 0.0).animate(_pulseController),
+                        child: ScaleTransition(
+                          scale: _pulseAnimation,
+                          child: Container(
+                            width: 150,
+                            height: 150,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.blueAccent.withOpacity(0.3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF2C2C2E),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          )
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: widget.callerAvatarUrl != null && widget.callerAvatarUrl!.isNotEmpty
+                            ? Image.network(
+                                widget.callerAvatarUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => 
+                                    const Icon(Icons.person, size: 60, color: Colors.white54),
+                              )
+                            : const Icon(Icons.person, size: 60, color: Colors.white54),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Caller Name and Status
+            Text(
+              widget.callerName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _remoteUid != null 
+                  ? _formatDuration(_callDuration) 
+                  : (_localUserJoined ? "Ringing..." : "Connecting..."),
+              style: TextStyle(
+                color: _remoteUid != null ? Colors.white : Colors.white54,
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            
+            const SizedBox(height: 60),
+
+            // Controls
+            Padding(
+              padding: const EdgeInsets.only(bottom: 60.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildControlButton(
+                    icon: _isMuted ? Icons.mic_off : Icons.mic,
+                    label: "Mute",
+                    isActive: _isMuted,
+                    onTap: _toggleMute,
+                  ),
+                  _buildControlButton(
+                    icon: Icons.call_end,
+                    label: "End",
+                    isActive: false,
+                    isDestructive: true,
+                    onTap: _endCall,
+                    size: 72,
+                  ),
+                  _buildControlButton(
+                    icon: _isSpeakerOn ? Icons.volume_up : Icons.volume_down,
+                    label: "Speaker",
+                    isActive: _isSpeakerOn,
+                    onTap: _toggleSpeaker,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    bool isDestructive = false,
+    required VoidCallback onTap,
+    double size = 60,
+  }) {
+    final Color bgColor = isDestructive 
+        ? Colors.red 
+        : (isActive ? Colors.white : const Color(0xFF2C2C2E));
+    final Color iconColor = isDestructive
+        ? Colors.white
+        : (isActive ? Colors.black : Colors.white);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: bgColor,
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: size * 0.45,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
+        )
+      ],
+    );
+  }
+}
