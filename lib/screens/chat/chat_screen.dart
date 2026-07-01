@@ -5,8 +5,9 @@ import '../../providers/auth_provider.dart';
 
 class ChatScreen extends StatefulWidget {
   final String targetUserId;
+  final bool isEmergency;
 
-  const ChatScreen({super.key, required this.targetUserId});
+  const ChatScreen({super.key, required this.targetUserId, this.isEmergency = false});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -32,6 +33,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _fetchTargetUser() async {
+    if (widget.isEmergency) {
+      setState(() {
+        _isLoading = false;
+        _targetName = "Security & Management";
+        _targetPlate = "SOS";
+      });
+      return;
+    }
+
     try {
       // Changed to read from publicVehicles per security rules feedback
       final doc = await FirebaseFirestore.instance.collection('publicVehicles').doc(widget.targetUserId).get();
@@ -89,10 +99,8 @@ class _ChatScreenState extends State<ChatScreen> {
     List<String> sortedParticipants = [currentUserId, widget.targetUserId];
     sortedParticipants.sort();
 
-    await chatRef.set({
+    final chatData = <String, dynamic>{
       'participants': sortedParticipants,
-      'blockedDriverId': currentUserId,
-      'vehicleOwnerId': widget.targetUserId,
       'lastMessage': messageText,
       'lastMessageAt': now,
       'updatedAt': now,
@@ -101,7 +109,17 @@ class _ChatScreenState extends State<ChatScreen> {
         currentUserId: FieldValue.delete(),
       },
       'createdAt': FieldValue.serverTimestamp(), // Will be merged if it doesn't exist
-    }, SetOptions(merge: true));
+    };
+
+    if (widget.isEmergency) {
+      chatData['type'] = 'emergency';
+    } else {
+      chatData['blockedDriverId'] = currentUserId;
+      chatData['vehicleOwnerId'] = widget.targetUserId;
+      chatData['type'] = 'blocked';
+    }
+
+    await chatRef.set(chatData, SetOptions(merge: true));
 
     await messageRef.set({
       'senderId': currentUserId,
@@ -203,12 +221,16 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             icon: const Icon(Icons.call_rounded, color: Colors.greenAccent),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Initiating secure call...'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              if (widget.isEmergency) {
+                Navigator.pushNamed(context, '/call');
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Initiating secure call...'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
             },
           ),
           const SizedBox(width: 8),

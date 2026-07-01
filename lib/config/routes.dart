@@ -22,6 +22,8 @@ import '../screens/profile/payment_history_screen.dart';
 import '../screens/profile/notifications_screen.dart';
 import '../screens/profile/permissions_screen.dart';
 
+import '../screens/home/emergency_call_screen.dart';
+import '../screens/home/emergency_status_screen.dart';
 
 class AppRoutes {
   // Route names
@@ -47,6 +49,8 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String permissions = '/permissions';
   static const String chatList = '/chat-list';
+  static const String call = '/call';
+  static const String emergencyStatus = '/emergency-status';
 
 
   // Route map
@@ -72,6 +76,11 @@ class AppRoutes {
     paymentHistory: (context) => const PaymentHistoryScreen(),
     notifications: (context) => const NotificationsScreen(),
     permissions: (context) => const PermissionsScreen(),
-    chatList: (context) => const ChatListScreen(),
+    chatList: (context) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      return ChatListScreen(initialTabIndex: args?['initialTabIndex'] ?? 0);
+    },
+    call: (context) => const EmergencyCallScreen(),
+    emergencyStatus: (context) => const EmergencyStatusScreen(),
   };
 }

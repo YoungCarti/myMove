@@ -110,4 +110,38 @@ class NotificationService {
       );
     }
   }
+
+  Future<void> showEmergencyNotification() async {
+    if (!_isInitialized) await initialize();
+    const int emergencyNotificationId = 911;
+    
+    await _localNotificationsPlugin.show(
+      emergencyNotificationId,
+      'Emergency SOS Active',
+      'Security has been notified. Help is on the way.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'emergency_channel',
+          'Emergency Notifications',
+          channelDescription: 'Ongoing emergency alerts.',
+          icon: '@mipmap/ic_launcher',
+          importance: Importance.max,
+          priority: Priority.high,
+          ongoing: true,
+          autoCancel: false,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          interruptionLevel: InterruptionLevel.critical,
+        ),
+      ),
+    );
+  }
+
+  Future<void> cancelEmergencyNotification() async {
+    const int emergencyNotificationId = 911;
+    await _localNotificationsPlugin.cancel(emergencyNotificationId);
+  }
 }
