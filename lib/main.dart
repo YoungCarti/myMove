@@ -12,6 +12,7 @@ import 'providers/auth_provider.dart';
 import 'providers/parking_provider.dart';
 import 'providers/booking_provider.dart';
 import 'services/notification_service.dart';
+import 'screens/calling/call_screen.dart';
 
 import 'firebase_options.dart';
 
@@ -21,6 +22,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   debugPrint("Handling a background message: ${message.messageId}");
+  await NotificationService().initialize();
+  await NotificationService().showNotification(message);
 }
 
 class _ForegroundMessageHandler extends StatefulWidget {
@@ -42,6 +45,25 @@ class _ForegroundMessageHandlerState extends State<_ForegroundMessageHandler> {
       if (!mounted || context.read<AuthProvider>().user == null) return;
       
       await NotificationService().showNotification(message);
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      if (!mounted || context.read<AuthProvider>().user == null) return;
+      if (message.data['type'] == 'incoming_call') {
+        final channelName = message.data['channelName'] ?? '';
+        final callerName = message.data['callerName'] ?? 'Caller';
+        if (channelName.isNotEmpty && navigatorKey.currentContext != null) {
+          Navigator.push(
+            navigatorKey.currentContext!,
+            MaterialPageRoute(
+              builder: (_) => CallScreen(
+                channelName: channelName,
+                callerName: callerName,
+              ),
+            ),
+          );
+        }
+      }
     });
   }
 

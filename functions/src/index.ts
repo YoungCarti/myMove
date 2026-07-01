@@ -13,6 +13,72 @@ const MAX_SELECTABLE_SPOTS = 100;
 const MAX_EXTENSION_MINUTES = 1440;
 const EXTENSION_INCREMENT_MINUTES = 30;
 
+export const initiateCall = onCall(
+  {enforceAppCheck: false},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be signed in to initiate a call."
+      );
+    }
+    const {targetUserId, channelName, callerName} = request.data;
+    if (!targetUserId || !channelName || !callerName) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing targetUserId, channelName, or callerName."
+      );
+    }
+
+    const targetUserDoc = await db.collection("users").doc(targetUserId).get();
+    if (!targetUserDoc.exists) {
+      throw new HttpsError("not-found", "Target user not found.");
+    }
+
+    const fcmToken = targetUserDoc.data()?.fcmToken;
+    if (!fcmToken) {
+      throw new HttpsError(
+        "not-found",
+        "Target user does not have an FCM token."
+      );
+    }
+
+    const payload: admin.messaging.Message = {
+      token: fcmToken,
+      data: {
+        title: "Incoming Call",
+        body: `${callerName} is calling you...`,
+        type: "incoming_call",
+        channelName: channelName,
+        callerName: callerName,
+        callerId: request.auth.uid,
+      },
+      android: {
+        priority: "high",
+      },
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              title: "Incoming Call",
+              body: `${callerName} is calling you...`,
+            },
+            sound: "default",
+          },
+        },
+      },
+    };
+
+    try {
+      await admin.messaging().send(payload);
+      return {success: true};
+    } catch (error) {
+      console.error("Error sending call FCM:", error);
+      throw new HttpsError("internal", "Failed to send call notification.");
+    }
+  }
+);
+
 /**
  * Get effective capacity.
  * @param {unknown} rawCapacity Raw capacity

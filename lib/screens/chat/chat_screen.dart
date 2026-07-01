@@ -234,19 +234,24 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   );
 
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  final callerName = authProvider.displayName;
+
                   // Call the Cloud Function
                   final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('initiateCall');
                   
                   final result = await callable.call(<String, dynamic>{
                     'targetUserId': widget.targetUserId,
-                    'isEmergency': false, 
+                    'isEmergency': false,
+                    'channelName': _chatId,
+                    'callerName': callerName.isNotEmpty ? callerName : 'Someone',
                   });
 
                   final data = result.data as Map<String, dynamic>;
                   
                   if (data['success'] == true && mounted) {
-                    final String channelName = data['channelName'];
-                    final String token = data['token'];
+                    final String channelName = data['channelName'] ?? _chatId;
+                    final String? token = data['token'];
                     
                     // Navigate to the CallScreen
                     Navigator.push(
@@ -254,9 +259,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       MaterialPageRoute(
                         builder: (context) => CallScreen(
                           channelName: channelName,
-                          token: token,
-                          targetUserId: widget.targetUserId,
-                          targetName: _targetName,
+                          token: token ?? '',
+                          callerName: _targetName,
                         ),
                       ),
                     );

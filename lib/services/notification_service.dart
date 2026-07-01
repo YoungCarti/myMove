@@ -1,6 +1,22 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:ui';
+import '../app.dart';
+import '../screens/calling/call_screen.dart';
+
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) {
+  debugPrint('notificationTapBackground: ${notificationResponse.actionId}');
+  if (notificationResponse.actionId == 'answer_call') {
+    // If the app was not running, flutter_local_notifications brings it to foreground
+    // because we will set showsUserInterface: true on the Answer action.
+  } else if (notificationResponse.actionId == 'decline_call') {
+    debugPrint('Call declined from background');
+  }
+}
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -34,8 +50,24 @@ class NotificationService {
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         // Handle notification tap
-        debugPrint('Notification tapped: ${response.payload}');
+        debugPrint('Notification tapped: ${response.payload}, actionId: ${response.actionId}');
+        if (response.payload != null) {
+          try {
+            if (response.actionId == 'decline_call') {
+              debugPrint('Call declined in foreground');
+              // Optionally stop any ringing here
+              return;
+            }
+            // Using a simple check string because payload can just be a stringified map
+            if (response.payload!.contains('incoming_call')) {
+              _navigateToCallScreen(response.payload!);
+            }
+          } catch (e) {
+            debugPrint('Error parsing notification payload: $e');
+          }
+        }
       },
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
 
     // Create a high-importance channel for Android
@@ -86,12 +118,29 @@ class NotificationService {
       // Handle data-only messages to show local notification
       final title = message.data['title'] ?? 'myMove update';
       final body = message.data['body'] ?? 'You have a new message.';
+      final isCall = message.data['type'] == 'incoming_call';
       
+      final actions = isCall 
+        ? <AndroidNotificationAction>[
+            const AndroidNotificationAction(
+              'answer_call',
+              'Answer',
+              titleColor: Colors.green,
+              showsUserInterface: true,
+            ),
+            const AndroidNotificationAction(
+              'decline_call',
+              'Decline',
+              titleColor: Colors.red,
+            ),
+          ]
+        : null;
+
       await _localNotificationsPlugin.show(
         DateTime.now().millisecond,
         title,
         body,
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
             'high_importance_channel',
             'High Importance Notifications',
@@ -99,14 +148,63 @@ class NotificationService {
             icon: '@mipmap/ic_launcher',
             importance: Importance.max,
             priority: Priority.high,
+            actions: actions,
           ),
-          iOS: DarwinNotificationDetails(
+          iOS: const DarwinNotificationDetails(
             presentAlert: true,
             presentBadge: true,
             presentSound: true,
           ),
         ),
         payload: message.data.toString(),
+      );
+    }
+    
+    // Automatically navigate if foreground call
+    if (message.data['type'] == 'incoming_call') {
+      _navigateToCallScreen(message.data.toString(), messageData: message.data);
+    }
+  }
+
+  void _navigateToCallScreen(String payload, {Map<String, dynamic>? messageData, int retryCount = 0}) {
+    if (navigatorKey.currentContext == null) {
+      if (retryCount < 5) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _navigateToCallScreen(payload, messageData: messageData, retryCount: retryCount + 1);
+        });
+      }
+      return;
+    }
+    
+    String channelName = '';
+    String callerName = '';
+    
+    if (messageData != null) {
+      channelName = messageData['channelName'] ?? '';
+      callerName = messageData['callerName'] ?? 'Caller';
+    } else {
+      // Very basic manual parsing if needed, but typically you'd send JSON string as payload
+      // or rely on FirebaseMessaging.onMessageOpenedApp instead.
+      // Let's assume onMessageOpenedApp handles most cases better, but we can do a fallback
+      RegExp channelReg = RegExp(r'channelName: ([^,}]+)');
+      RegExp callerReg = RegExp(r'callerName: ([^,}]+)');
+      
+      final channelMatch = channelReg.firstMatch(payload);
+      final callerMatch = callerReg.firstMatch(payload);
+      
+      if (channelMatch != null) channelName = channelMatch.group(1) ?? '';
+      if (callerMatch != null) callerName = callerMatch.group(1) ?? 'Caller';
+    }
+
+    if (channelName.isNotEmpty) {
+      Navigator.push(
+        navigatorKey.currentContext!,
+        MaterialPageRoute(
+          builder: (_) => CallScreen(
+            channelName: channelName,
+            callerName: callerName,
+          ),
+        ),
       );
     }
   }
