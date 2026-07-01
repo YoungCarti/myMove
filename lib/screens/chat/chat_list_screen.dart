@@ -6,7 +6,8 @@ import '../../providers/auth_provider.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatelessWidget {
-  const ChatListScreen({super.key});
+  final int initialTabIndex;
+  const ChatListScreen({super.key, this.initialTabIndex = 0});
 
   String _timeAgo(DateTime date) {
     final difference = DateTime.now().difference(date);
@@ -34,114 +35,158 @@ class ChatListScreen extends StatelessWidget {
       );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1C1C1E),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Messages',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+    return DefaultTabController(
+      length: 3,
+      initialIndex: initialTabIndex,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF121212),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1C1C1E),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Messages',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          bottom: const TabBar(
+            indicatorColor: Colors.blueAccent,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white54,
+            tabs: [
+              Tab(text: 'Chats'),
+              Tab(text: 'Blocked'),
+              Tab(text: 'Emergency SOS'),
+            ],
           ),
         ),
+        body: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('chats')
+              .where('participants', arrayContains: currentUserId)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Error loading messages.', style: TextStyle(color: Colors.white54)));
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: Colors.blueAccent));
+            }
+
+            final docs = snapshot.data?.docs ?? [];
+            
+            // Filter out deleted chats and sort in memory by updatedAt descending
+            final allChats = docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final deletedFor = data['deletedFor'] as Map<String, dynamic>? ?? {};
+              return deletedFor[currentUserId] != true;
+            }).toList()..sort((a, b) {
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+              final aTime = aData['updatedAt'] as Timestamp?;
+              final bTime = bData['updatedAt'] as Timestamp?;
+              if (aTime == null && bTime == null) return 0;
+              if (aTime == null) return 1;
+              if (bTime == null) return -1;
+              return bTime.compareTo(aTime);
+            });
+
+            final normalChats = allChats.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['type'] != 'blocked' && data['type'] != 'emergency' && data['blockedDriverId'] == null;
+            }).toList();
+
+            final blockedChats = allChats.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['type'] == 'blocked' || (data['type'] == null && data['blockedDriverId'] != null);
+            }).toList();
+
+            final emergencyChats = allChats.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['type'] == 'emergency';
+            }).toList();
+
+            return TabBarView(
+              children: [
+                _buildChatList(normalChats, currentUserId),
+                _buildChatList(blockedChats, currentUserId),
+                _buildChatList(emergencyChats, currentUserId),
+              ],
+            );
+          },
+        ),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('chats')
-            .where('participants', arrayContains: currentUserId)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Center(child: Text('Error loading messages.', style: TextStyle(color: Colors.white54)));
-          }
+    );
+  }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.blueAccent));
-          }
+  Widget _buildChatList(List<QueryDocumentSnapshot> chats, String currentUserId) {
+    if (chats.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.chat_bubble_outline_rounded, size: 64, color: Colors.white.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            Text(
+              'No messages yet',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
 
-          final docs = snapshot.data?.docs ?? [];
-          
-          // Filter out deleted chats and sort in memory by updatedAt descending
-          final chats = docs.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final deletedFor = data['deletedFor'] as Map<String, dynamic>? ?? {};
-            return deletedFor[currentUserId] != true;
-          }).toList()..sort((a, b) {
-            final aData = a.data() as Map<String, dynamic>;
-            final bData = b.data() as Map<String, dynamic>;
-            final aTime = aData['updatedAt'] as Timestamp?;
-            final bTime = bData['updatedAt'] as Timestamp?;
-            if (aTime == null && bTime == null) return 0;
-            if (aTime == null) return 1;
-            if (bTime == null) return -1;
-            return bTime.compareTo(aTime);
-          });
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: chats.length,
+      separatorBuilder: (context, index) => Divider(
+        color: Colors.white.withValues(alpha: 0.05),
+        height: 1,
+        indent: 72,
+      ),
+      itemBuilder: (context, index) {
+        final chatData = chats[index].data() as Map<String, dynamic>;
+        final participants = List<String>.from(chatData['participants'] ?? []);
+        
+        // Find the other user's ID
+        String otherUserId = currentUserId;
+        if (participants.isNotEmpty) {
+          otherUserId = participants.firstWhere(
+            (id) => id != currentUserId,
+            orElse: () => currentUserId,
+          );
+        }
 
-          if (chats.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.chat_bubble_outline_rounded, size: 64, color: Colors.white.withValues(alpha: 0.2)),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No messages yet',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 16),
-                  ),
-                ],
+        final lastMessage = chatData['lastMessage'] as String? ?? '';
+        final updatedAt = chatData['updatedAt'] as Timestamp?;
+        final timeStr = updatedAt != null ? _timeAgo(updatedAt.toDate()) : '';
+        final isEmergency = chatData['type'] == 'emergency';
+
+        return _ChatListItem(
+          otherUserId: otherUserId,
+          lastMessage: lastMessage,
+          timeStr: timeStr,
+          isEmergency: isEmergency,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  targetUserId: otherUserId,
+                  isEmergency: isEmergency,
+                ),
               ),
             );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: chats.length,
-            separatorBuilder: (context, index) => Divider(
-              color: Colors.white.withValues(alpha: 0.05),
-              height: 1,
-              indent: 72,
-            ),
-            itemBuilder: (context, index) {
-              final chatData = chats[index].data() as Map<String, dynamic>;
-              final participants = List<String>.from(chatData['participants'] ?? []);
-              
-              // Find the other user's ID
-              String otherUserId = currentUserId;
-              if (participants.isNotEmpty) {
-                otherUserId = participants.firstWhere(
-                  (id) => id != currentUserId,
-                  orElse: () => currentUserId,
-                );
-              }
-
-              final lastMessage = chatData['lastMessage'] as String? ?? '';
-              final updatedAt = chatData['updatedAt'] as Timestamp?;
-              final timeStr = updatedAt != null ? _timeAgo(updatedAt.toDate()) : '';
-
-              return _ChatListItem(
-                otherUserId: otherUserId,
-                lastMessage: lastMessage,
-                timeStr: timeStr,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatScreen(targetUserId: otherUserId),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
+          },
+        );
+      },
     );
   }
 }
@@ -150,12 +195,14 @@ class _ChatListItem extends StatelessWidget {
   final String otherUserId;
   final String lastMessage;
   final String timeStr;
+  final bool isEmergency;
   final VoidCallback onTap;
 
   const _ChatListItem({
     required this.otherUserId,
     required this.lastMessage,
     required this.timeStr,
+    this.isEmergency = false,
     required this.onTap,
   });
 
@@ -165,10 +212,10 @@ class _ChatListItem extends StatelessWidget {
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('publicVehicles').doc(otherUserId).get(),
       builder: (context, snapshot) {
-        String name = "Vehicle Owner";
-        String plate = "Unknown Plate";
+        String name = isEmergency ? "Security & Management" : "Vehicle Owner";
+        String plate = isEmergency ? "SOS" : "Unknown Plate";
 
-        if (snapshot.hasData && snapshot.data!.exists) {
+        if (!isEmergency && snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>;
           name = data['ownerName'] as String? ?? "Vehicle Owner";
           plate = data['plateNumber'] as String? ?? "Unknown Plate";
@@ -186,10 +233,16 @@ class _ChatListItem extends StatelessWidget {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.blueAccent.withValues(alpha: 0.2),
+                    color: isEmergency 
+                        ? Colors.redAccent.withValues(alpha: 0.2)
+                        : Colors.blueAccent.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.directions_car_rounded, color: Colors.blueAccent, size: 24),
+                  child: Icon(
+                    isEmergency ? Icons.security_rounded : Icons.directions_car_rounded, 
+                    color: isEmergency ? Colors.redAccent : Colors.blueAccent, 
+                    size: 24
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

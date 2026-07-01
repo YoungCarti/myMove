@@ -60,7 +60,7 @@ service cloud.firestore {
       allow update: if request.auth != null 
                     && (request.auth.uid in resource.data.participants || isParticipantInChatId())
                     && request.resource.data.participants == resource.data.participants
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'updatedAt', 'status', 'blockedDriverId', 'vehicleOwnerId', 'typing', 'unreadCount', 'deletedFor', 'createdAt'])
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'updatedAt', 'status', 'blockedDriverId', 'vehicleOwnerId', 'type', 'typing', 'unreadCount', 'deletedFor', 'createdAt'])
                     && isOnlyUpdatingOwnDeletedStatus();
       allow delete: if request.auth != null && (resource == null || request.auth.uid in resource.data.participants || isParticipantInChatId());
 
@@ -110,6 +110,12 @@ service cloud.firestore {
     // Location locks are internal to Cloud Functions — no client access
     match /location_locks/{lockId} {
       allow read, write: if false;
+    }
+
+    match /emergencies/{emergencyId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
     }
   }
 }
