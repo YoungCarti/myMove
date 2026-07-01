@@ -221,12 +221,16 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             icon: const Icon(Icons.call_rounded, color: Colors.greenAccent),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Initiating secure call...'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              if (widget.isEmergency) {
+                Navigator.pushNamed(context, '/call');
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Initiating secure call...'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
             },
           ),
           const SizedBox(width: 8),

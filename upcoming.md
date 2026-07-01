@@ -18,6 +18,7 @@
 
 *   **VoIP Calling:** Implement VoIP for voice calling between drivers (since native phone calls rely on cellular towers), while keeping direct native phone calls as an optional fallback.
 *   **Admin/Parking Management Module:** Build a simple admin panel or stick to manual Firebase entry for the FYP2 presentation.
+    *   *Note on Emergency SOS:* Only admins/management should have the ability to resolve or change the status of an active emergency. This will be implemented later via the web fallback/dashboard.
 
 **IN PROGRESS:**
 *   **Emergency Mode:** Add quick-access features to send urgent alerts in emergencies.

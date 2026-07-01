@@ -13,6 +13,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
 import 'dart:async';
 import '../../widgets/sos_dialog.dart';
+import '../../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
+  StreamSubscription<QuerySnapshot>? _emergencySubscription;
+  bool _isEmergencyActive = false;
+
   // Real-time status moved to parking spot selection screen
 
   @override
@@ -45,6 +49,35 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     _searchFocusNode.addListener(() {
       setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _listenToEmergencyStatus();
+    });
+  }
+
+  void _listenToEmergencyStatus() {
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    if (user == null) return;
+    
+    _emergencySubscription = FirebaseFirestore.instance
+        .collection('emergencies')
+        .where('userId', isEqualTo: user.uid)
+        .where('status', isEqualTo: 'active')
+        .snapshots()
+        .listen((snapshot) {
+      final hasEmergency = snapshot.docs.isNotEmpty;
+      if (mounted) {
+        if (hasEmergency != _isEmergencyActive) {
+          setState(() {
+            _isEmergencyActive = hasEmergency;
+          });
+          if (hasEmergency) {
+            NotificationService().showEmergencyNotification();
+          } else {
+            NotificationService().cancelEmergencyNotification();
+          }
+        }
+      }
     });
   }
 
@@ -78,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _emergencySubscription?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -430,6 +464,39 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              if (_isEmergencyActive) ...[
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/emergency-status'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.redAccent.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Emergency SOS Active',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               if (_searchResults.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
@@ -602,6 +669,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 FloatingActionButton(
                   heroTag: 'sos_btn',
                   onPressed: () async {
+                    if (_isEmergencyActive) {
+                      Navigator.pushNamed(context, '/emergency-status');
+                      return;
+                    }
                     final bool? result = await showDialog<bool>(
                       context: context,
                       barrierDismissible: false,
