@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../../providers/auth_provider.dart';
+import '../calling/call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String targetUserId;
@@ -220,16 +222,57 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.call_rounded, color: Colors.greenAccent),
-            onPressed: () {
+            onPressed: () async {
               if (widget.isEmergency) {
                 Navigator.pushNamed(context, '/call');
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Initiating secure call...'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Initiating secure call...'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+
+                  // Call the Cloud Function
+                  final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('initiateCall');
+                  
+                  final result = await callable.call(<String, dynamic>{
+                    'targetUserId': widget.targetUserId,
+                    'isEmergency': false, 
+                  });
+
+                  final data = result.data as Map<String, dynamic>;
+                  
+                  if (data['success'] == true && mounted) {
+                    final String channelName = data['channelName'];
+                    final String token = data['token'];
+                    
+                    // Navigate to the CallScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CallScreen(
+                          channelName: channelName,
+                          token: token,
+                          targetUserId: widget.targetUserId,
+                          targetName: _targetName,
+                        ),
+                      ),
+                    );
+                  } else {
+                    throw Exception(data['error'] ?? 'Unknown error');
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Call failed: $e'),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                }
               }
             },
           ),
