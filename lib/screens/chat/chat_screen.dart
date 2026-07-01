@@ -260,8 +260,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         builder: (context) => CallScreen(
                           channelName: channelName,
                           token: token ?? '',
-                          targetUserId: widget.targetUserId,
-                          targetName: _targetName,
                           callerName: _targetName,
                         ),
                       ),
@@ -279,7 +277,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     );
                   }
                 }
-              }
               }
             },
           ),

@@ -66,7 +66,7 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
     
     // Initialize
     await _engine.initialize(
-      const RtcEngineContext(
+      RtcEngineContext(
         appId: AgoraConfig.appId,
         channelProfile: ChannelProfileType.channelProfileCommunication,
       ),
@@ -110,7 +110,7 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
       token: widget.token ?? AgoraConfig.tempToken,
       channelId: widget.channelName,
       uid: 0, // 0 allows Agora to auto-assign a UID
-      options: const ChannelMediaOptions(
+      options: ChannelMediaOptions(
         clientRoleType: ClientRoleType.clientRoleBroadcaster,
       ),
     );
