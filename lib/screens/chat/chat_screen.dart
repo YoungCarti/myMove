@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../../providers/auth_provider.dart';
+import '../calling/call_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String targetUserId;
+  final bool isEmergency;
 
-  const ChatScreen({super.key, required this.targetUserId});
+  const ChatScreen({super.key, required this.targetUserId, this.isEmergency = false});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -32,6 +35,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _fetchTargetUser() async {
+    if (widget.isEmergency) {
+      setState(() {
+        _isLoading = false;
+        _targetName = "Security & Management";
+        _targetPlate = "SOS";
+      });
+      return;
+    }
+
     try {
       // Changed to read from publicVehicles per security rules feedback
       final doc = await FirebaseFirestore.instance.collection('publicVehicles').doc(widget.targetUserId).get();
@@ -89,10 +101,8 @@ class _ChatScreenState extends State<ChatScreen> {
     List<String> sortedParticipants = [currentUserId, widget.targetUserId];
     sortedParticipants.sort();
 
-    await chatRef.set({
+    final chatData = <String, dynamic>{
       'participants': sortedParticipants,
-      'blockedDriverId': currentUserId,
-      'vehicleOwnerId': widget.targetUserId,
       'lastMessage': messageText,
       'lastMessageAt': now,
       'updatedAt': now,
@@ -101,7 +111,17 @@ class _ChatScreenState extends State<ChatScreen> {
         currentUserId: FieldValue.delete(),
       },
       'createdAt': FieldValue.serverTimestamp(), // Will be merged if it doesn't exist
-    }, SetOptions(merge: true));
+    };
+
+    if (widget.isEmergency) {
+      chatData['type'] = 'emergency';
+    } else {
+      chatData['blockedDriverId'] = currentUserId;
+      chatData['vehicleOwnerId'] = widget.targetUserId;
+      chatData['type'] = 'blocked';
+    }
+
+    await chatRef.set(chatData, SetOptions(merge: true));
 
     await messageRef.set({
       'senderId': currentUserId,
@@ -202,13 +222,62 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.call_rounded, color: Colors.greenAccent),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Initiating secure call...'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+            onPressed: () async {
+              if (widget.isEmergency) {
+                Navigator.pushNamed(context, '/call');
+              } else {
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Initiating secure call...'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  final callerName = authProvider.displayName;
+
+                  // Call the Cloud Function
+                  final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('initiateCall');
+                  
+                  final result = await callable.call(<String, dynamic>{
+                    'targetUserId': widget.targetUserId,
+                    'isEmergency': false,
+                    'channelName': _chatId,
+                    'callerName': callerName.isNotEmpty ? callerName : 'Someone',
+                  });
+
+                  final data = result.data as Map<String, dynamic>;
+                  
+                  if (data['success'] == true && mounted) {
+                    final String channelName = data['channelName'] ?? _chatId;
+                    final String? token = data['token'];
+                    
+                    // Navigate to the CallScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CallScreen(
+                          channelName: channelName,
+                          token: token ?? '',
+                          callerName: _targetName,
+                        ),
+                      ),
+                    );
+                  } else {
+                    throw Exception(data['error'] ?? 'Unknown error');
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Call failed: $e'),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                }
+              }
             },
           ),
           const SizedBox(width: 8),

@@ -12,6 +12,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
 import 'dart:async';
+import '../../widgets/sos_dialog.dart';
+import '../../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
+  StreamSubscription<QuerySnapshot>? _emergencySubscription;
+  bool _isEmergencyActive = false;
+
   // Real-time status moved to parking spot selection screen
 
   @override
@@ -44,6 +49,35 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     _searchFocusNode.addListener(() {
       setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _listenToEmergencyStatus();
+    });
+  }
+
+  void _listenToEmergencyStatus() {
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    if (user == null) return;
+    
+    _emergencySubscription = FirebaseFirestore.instance
+        .collection('emergencies')
+        .where('userId', isEqualTo: user.uid)
+        .where('status', isEqualTo: 'active')
+        .snapshots()
+        .listen((snapshot) {
+      final hasEmergency = snapshot.docs.isNotEmpty;
+      if (mounted) {
+        if (hasEmergency != _isEmergencyActive) {
+          setState(() {
+            _isEmergencyActive = hasEmergency;
+          });
+          if (hasEmergency) {
+            NotificationService().showEmergencyNotification();
+          } else {
+            NotificationService().cancelEmergencyNotification();
+          }
+        }
+      }
     });
   }
 
@@ -77,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _emergencySubscription?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -429,6 +464,39 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              if (_isEmergencyActive) ...[
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/emergency-status'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.redAccent.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Emergency SOS Active',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               if (_searchResults.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
@@ -594,19 +662,105 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButton: defaultTargetPlatform == TargetPlatform.android
-          ? FloatingActionButton(
-              onPressed: _isLoadingLocation ? null : _goToCurrentLocation,
-              backgroundColor: const Color(0xFF1C1C1E),
-              child: _isLoadingLocation
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2.5,
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton(
+                  heroTag: 'sos_btn',
+                  onPressed: () async {
+                    if (_isEmergencyActive) {
+                      Navigator.pushNamed(context, '/emergency-status');
+                      return;
+                    }
+                    final bool? result = await showDialog<bool>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => SOSDialog(
+                        onCancel: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Emergency alert cancelled.')),
+                          );
+                        },
+                        onConfirm: () async {
+                          // Save emergency to Firestore
+                          Position? position;
+                          try {
+                            if (_locationPermissionGranted) {
+                              position = await Geolocator.getCurrentPosition(timeLimit: const Duration(seconds: 10));
+                            }
+                          } catch (locError) {
+                            if (kDebugMode) {
+                              print("Location fetch failed during SOS: $locError");
+                            }
+                          }
+                          await FirebaseFirestore.instance.collection('emergencies').add({
+                            'userId': user?.uid ?? 'unknown',
+                            'userName': userName,
+                            'timestamp': FieldValue.serverTimestamp(),
+                            'status': 'active',
+                            'location': position != null 
+                                ? GeoPoint(position.latitude, position.longitude)
+                                : null,
+                          });
+
+                          // Ensure emergency chat exists immediately so it appears in the Messages tab
+                          final currentUserId = user?.uid ?? 'unknown';
+                          if (currentUserId != 'unknown') {
+                            List<String> ids = [currentUserId, 'security_management'];
+                            ids.sort();
+                            final chatId = ids.join('_');
+                            
+                            await FirebaseFirestore.instance.collection('chats').doc(chatId).set({
+                              'participants': ids,
+                              'type': 'emergency',
+                              'status': 'active',
+                              // We don't overwrite createdAt or lastMessage if they exist
+                              'updatedAt': FieldValue.serverTimestamp(),
+                              'deletedFor': {
+                                currentUserId: FieldValue.delete(),
+                              },
+                            }, SetOptions(merge: true));
+                          }
+                        },
                       ),
-                    )
-                  : const Icon(Icons.my_location_rounded, color: Colors.white),
+                    );
+
+                    if (result == true && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('SOS Alert sent to security!'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      // Redirect to status screen
+                      Navigator.pushNamed(context, '/emergency-status');
+                    } else if (result == false && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to send SOS. Please call 911 directly.')),
+                      );
+                    }
+                  },
+                  backgroundColor: Colors.redAccent,
+                  child: const Icon(Icons.sos_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(height: 16),
+                FloatingActionButton(
+                  heroTag: 'location_btn',
+                  onPressed: _isLoadingLocation ? null : _goToCurrentLocation,
+                  backgroundColor: const Color(0xFF1C1C1E),
+                  child: _isLoadingLocation
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Icon(Icons.my_location_rounded, color: Colors.white),
+                ),
+              ],
             )
           : null,
     );

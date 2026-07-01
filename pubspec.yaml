@@ -68,6 +68,7 @@ dependencies:
   http: ^1.1.2
 
   # Utilities - Helper packages for common functionalities
+  agora_rtc_engine: ^6.3.2         # Agora SDK for VoIP calling
   permission_handler: ^11.3.1      # Handle device permissions
   intl: ^0.20.2                    # Date and time formatting
   shared_preferences: ^2.2.2       # Local data storage

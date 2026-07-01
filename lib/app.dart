@@ -8,6 +8,8 @@ import 'screens/auth/two_factor_verification_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/splash_screen.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class MyMoveApp extends StatefulWidget {
   const MyMoveApp({super.key});
 
@@ -21,6 +23,7 @@ class _MyMoveAppState extends State<MyMoveApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'myMove',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
