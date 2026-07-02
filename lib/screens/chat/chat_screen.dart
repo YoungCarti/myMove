@@ -89,6 +89,15 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentUserId = Provider.of<AuthProvider>(context, listen: false).user?.uid;
     if (currentUserId == null) return;
 
+    if (currentUserId == widget.targetUserId) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You cannot message yourself.'), backgroundColor: Colors.orange),
+        );
+      }
+      return;
+    }
+
     final messageText = text.trim();
     _messageController.clear();
     
@@ -110,7 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
       'deletedFor': {
         currentUserId: FieldValue.delete(),
       },
-      'createdAt': FieldValue.serverTimestamp(), // Will be merged if it doesn't exist
+      // Keep createdAt as it might be needed for first time creation, but don't overwrite if it exists
     };
 
     if (widget.isEmergency) {
@@ -121,15 +130,43 @@ class _ChatScreenState extends State<ChatScreen> {
       chatData['type'] = 'blocked';
     }
 
-    await chatRef.set(chatData, SetOptions(merge: true));
+    try {
+      chatData['createdAt'] = now;
+      await chatRef.set(chatData, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error updating chat document: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update chat doc: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
 
-    await messageRef.set({
-      'senderId': currentUserId,
-      'receiverId': widget.targetUserId,
-      'messageText': messageText,
-      'createdAt': now,
-      'isRead': false,
-    });
+    try {
+      await messageRef.set({
+        'senderId': currentUserId,
+        'receiverId': widget.targetUserId,
+        'messageText': messageText,
+        'createdAt': now,
+        'isRead': false,
+      });
+    } catch (e) {
+      debugPrint('Error sending message: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to insert message doc: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   @override
