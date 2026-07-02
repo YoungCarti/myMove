@@ -117,5 +117,14 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false;
     }
+
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /parkingSpots/{spotId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
   }
 }
