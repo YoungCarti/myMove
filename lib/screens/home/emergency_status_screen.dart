@@ -1,7 +1,52 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../chat/chat_screen.dart';
-class EmergencyStatusScreen extends StatelessWidget {
+
+class EmergencyStatusScreen extends StatefulWidget {
   const EmergencyStatusScreen({Key? key}) : super(key: key);
+
+  @override
+  State<EmergencyStatusScreen> createState() => _EmergencyStatusScreenState();
+}
+
+class _EmergencyStatusScreenState extends State<EmergencyStatusScreen> {
+  StreamSubscription<QuerySnapshot>? _emergencySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _listenToEmergencyStatus();
+    });
+  }
+
+  void _listenToEmergencyStatus() {
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    if (user == null) return;
+    
+    _emergencySubscription = FirebaseFirestore.instance
+        .collection('emergencies')
+        .where('userId', isEqualTo: user.uid)
+        .where('status', isEqualTo: 'active')
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isEmpty) {
+        if (mounted) {
+          // If the emergency is resolved, return to home
+          Navigator.popUntil(context, (route) => route.isFirst);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _emergencySubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
