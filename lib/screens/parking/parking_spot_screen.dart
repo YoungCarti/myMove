@@ -80,7 +80,87 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        final data = snapshot.docs.first.data();
+        final locationDoc = snapshot.docs.first;
+        final data = locationDoc.data();
+        final locationId = locationDoc.id;
+        
+        _rtdbPath = data.containsKey('layout') 
+            ? (data['layout']['rtdbPath'] ?? '/parking_status/building_A')
+            : '/parking_status/building_A';
+
+        // 1. Fetch spots from 'parkingSpots' collection
+        final spotsSnapshot = await FirebaseFirestore.instance
+            .collection('parkingSpots')
+            .where('locationId', isEqualTo: locationId)
+            .get();
+
+        if (spotsSnapshot.docs.isNotEmpty) {
+          String extractSpotName(String raw, String docId) {
+            String combined = '$raw $docId'.toUpperCase();
+            final match = RegExp(r'[A-Z]\d+').firstMatch(combined);
+            if (match != null) {
+              return match.group(0)!;
+            }
+            if (raw.isNotEmpty && raw.length <= 4) return raw.toUpperCase();
+            return docId.substring(0, 2).toUpperCase();
+          }
+
+          List<String> allSpots = spotsSnapshot.docs.map((doc) {
+            return extractSpotName(doc.data()['name']?.toString() ?? '', doc.id);
+          }).toList();
+          
+          allSpots = allSpots.toSet().toList(); // Remove duplicates
+          allSpots.sort();
+
+          Map<String, String> newSlotMapping = {};
+          List<String> aSpots = [];
+          List<String> bSpots = [];
+
+          for (var spotDoc in spotsSnapshot.docs) {
+            final spotData = spotDoc.data();
+            String spotId = extractSpotName(spotData['name']?.toString() ?? '', spotDoc.id);
+            
+            final sensorId = spotData['hardwareSensorId'];
+            
+            if (sensorId != null && sensorId.toString().trim().isNotEmpty) {
+              newSlotMapping[sensorId.toString()] = spotId;
+            }
+
+            // Assign columns dynamically based on ID convention
+            if (spotId.startsWith('A')) {
+              if (!aSpots.contains(spotId)) aSpots.add(spotId);
+            } else if (spotId.startsWith('B')) {
+              if (!bSpots.contains(spotId)) bSpots.add(spotId);
+            }
+          }
+
+          aSpots.sort();
+          bSpots.sort();
+
+          List<String> left = [];
+          List<String> right = [];
+          if (aSpots.isNotEmpty || bSpots.isNotEmpty) {
+            left = aSpots;
+            right = bSpots;
+          } else {
+            // Split evenly if not following A/B convention
+            int half = (allSpots.length / 2).ceil();
+            left = allSpots.sublist(0, half);
+            right = allSpots.sublist(half);
+          }
+
+          if (!mounted) return;
+          setState(() {
+            _leftColumn = left;
+            _rightColumn = right;
+            _slotMapping = newSlotMapping;
+            _isLoadingLayout = false;
+          });
+          _listenToRealtimeSensors();
+          return;
+        }
+
+        // 2. Legacy fallback to 'layout' array (for locations built before parkingSpots)
         if (data.containsKey('layout')) {
           final layout = data['layout'];
           if (!mounted) return;
@@ -88,7 +168,6 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
             _leftColumn = List<String>.from(layout['leftColumn'] ?? []);
             _rightColumn = List<String>.from(layout['rightColumn'] ?? []);
             _slotMapping = Map<String, String>.from(layout['slotMapping'] ?? {});
-            _rtdbPath = layout['rtdbPath'] ?? '/parking_status/building_A';
             _isLoadingLayout = false;
           });
           _listenToRealtimeSensors();
@@ -96,7 +175,7 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
         }
       }
       
-      // Fallback and bootstrap layout to Firestore
+      // 3. Absolute fallback
       _leftColumn = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];
       _rightColumn = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7'];
       _slotMapping = {
@@ -106,17 +185,6 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
         'slot_4': 'A4',
       };
       
-      if (snapshot.docs.isNotEmpty) {
-        await snapshot.docs.first.reference.update({
-          'layout': {
-            'leftColumn': _leftColumn,
-            'rightColumn': _rightColumn,
-            'slotMapping': _slotMapping,
-            'rtdbPath': _rtdbPath,
-          }
-        });
-      }
-
       if (!mounted) return;
       setState(() {
         _isLoadingLayout = false;
@@ -125,7 +193,6 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
       
     } catch (e) {
       debugPrint("Error fetching layout: $e");
-      // Fallback
       if (!mounted) return;
       setState(() {
         _leftColumn = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7'];
@@ -244,14 +311,22 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
                 size: 24,
               ),
               const SizedBox(height: 4),
-              Text(
-                spotId,
-                style: TextStyle(
-                  color: isOccupied
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    spotId,
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    style: TextStyle(
+                      color: isOccupied
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ),
             ],
