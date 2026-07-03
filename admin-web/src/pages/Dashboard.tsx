@@ -1,22 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  LayoutDashboard,
-  Car,
-  CalendarDays,
-  Settings,
-  LogOut,
+import { 
+  LayoutDashboard, 
+  Car, 
+  CalendarDays, 
+  Settings, 
+  LogOut, 
   Menu,
-  X,
-  MapPin,
-  ShieldAlert
+  X
 } from 'lucide-react';
 import { SpotManagement } from './SpotManagement';
-import { EmergencyManagement } from './EmergencyManagement';
-import { LocationManagement } from './LocationManagement';
-import { BookingManagement } from './BookingManagement';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
 
 // Placeholder for other pages
 const Overview = () => (
@@ -26,69 +19,32 @@ const Overview = () => (
   </div>
 );
 
+const Bookings = () => (
+  <div className="p-6">
+    <h2 className="text-2xl font-bold text-white mb-4">Manage Bookings</h2>
+    <p className="text-gray-400">Active and upcoming bookings will be listed here.</p>
+  </div>
+);
+
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
-
-  type TabType = 'overview' | 'locations' | 'spots' | 'bookings' | 'emergencies';
-
-  const getInitialTab = (): TabType => {
-    const path = window.location.pathname.replace('/', '');
-    const validTabs: TabType[] = ['overview', 'locations', 'spots', 'bookings', 'emergencies'];
-    return validTabs.includes(path as TabType) ? (path as TabType) : 'locations';
-  };
-
-  const [activeTab, setActiveTab] = useState<TabType>(getInitialTab());
+  const [activeTab, setActiveTab] = useState<'overview' | 'spots' | 'bookings'>('spots');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeEmergencyCount, setActiveEmergencyCount] = useState(0);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname.replace('/', '');
-      const validTabs: TabType[] = ['overview', 'locations', 'spots', 'bookings', 'emergencies'];
-      setActiveTab(validTabs.includes(path as TabType) ? (path as TabType) : 'locations');
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  useEffect(() => {
-    // Global listener for active emergencies
-    const q = query(collection(db, 'emergencies'), where('status', '==', 'active'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setActiveEmergencyCount(snapshot.docs.length);
-    }, (error) => {
-      console.error("Error listening to emergencies:", error);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleTabChange = (tabId: TabType) => {
-    setActiveTab(tabId);
-    window.history.pushState(null, '', `/${tabId}`);
-    setIsSidebarOpen(false);
-  };
 
   const navigation = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
-    { id: 'locations', name: 'Parking Locations', icon: MapPin },
     { id: 'spots', name: 'Spot Management', icon: Car },
     { id: 'bookings', name: 'Bookings', icon: CalendarDays },
-    { id: 'emergencies', name: 'SOS / Emergencies', icon: ShieldAlert },
   ] as const;
 
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
         return <Overview />;
-      case 'locations':
-        return <LocationManagement />;
       case 'spots':
         return <SpotManagement />;
       case 'bookings':
-        return <BookingManagement />;
-      case 'emergencies':
-        return <EmergencyManagement />;
+        return <Bookings />;
       default:
         return <Overview />;
     }
@@ -98,16 +54,17 @@ export const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-[#0F1115] flex">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/60 z-20 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 w-64 bg-[#1A1D24] border-r border-[#2A2E39] z-30 transform transition-transform duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          }`}
+      <aside 
+        className={`fixed lg:static inset-y-0 left-0 w-64 bg-[#1A1D24] border-r border-[#2A2E39] z-30 transform transition-transform duration-300 ease-in-out flex flex-col ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
       >
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -116,7 +73,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <span className="text-xl font-bold text-white tracking-tight">myMove</span>
           </div>
-          <button
+          <button 
             className="lg:hidden text-gray-400 hover:text-white"
             onClick={() => setIsSidebarOpen(false)}
           >
@@ -128,27 +85,22 @@ export const Dashboard: React.FC = () => {
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-
+            
             return (
               <button
                 key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive
-                    ? 'bg-primary/10 text-primary font-medium border border-primary/20'
-                    : item.id === 'emergencies' && activeEmergencyCount > 0
-                      ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20'
-                      : 'text-gray-400 hover:text-white hover:bg-[#2A2E39]/50'
-                  }`}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setIsSidebarOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                  isActive 
+                    ? 'bg-primary/10 text-primary font-medium border border-primary/20' 
+                    : 'text-gray-400 hover:text-white hover:bg-[#2A2E39]/50'
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : (item.id === 'emergencies' && activeEmergencyCount > 0 ? 'text-red-500' : 'text-gray-400')}`} />
-                  {item.name}
-                </div>
-                {item.id === 'emergencies' && activeEmergencyCount > 0 && (
-                  <div className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
-                    {activeEmergencyCount}
-                  </div>
-                )}
+                <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-gray-400'}`} />
+                {item.name}
               </button>
             );
           })}
@@ -186,7 +138,7 @@ export const Dashboard: React.FC = () => {
           >
             <Menu className="w-5 h-5" />
           </button>
-
+          
           <h1 className="text-lg font-semibold text-white capitalize">
             {navigation.find(n => n.id === activeTab)?.name}
           </h1>

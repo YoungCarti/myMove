@@ -51,7 +51,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       _scannerController.stop();
       
       if (code.startsWith('mymove://user/')) {
-        final targetUserId = code.substring('mymove://user/'.length);
+        final targetUserId = code.substring('mymove://user/'.length).trim();
         
         if (targetUserId.isEmpty || targetUserId.contains('/')) {
           _showError('Invalid QR code format.');

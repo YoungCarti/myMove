@@ -60,7 +60,7 @@ service cloud.firestore {
       allow update: if request.auth != null 
                     && (request.auth.uid in resource.data.participants || isParticipantInChatId())
                     && request.resource.data.participants == resource.data.participants
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastMessageAt', 'updatedAt', 'status', 'blockedDriverId', 'vehicleOwnerId', 'type', 'typing', 'unreadCount', 'deletedFor', 'createdAt'])
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'lastMessage', 'lastMessageAt', 'updatedAt', 'status', 'blockedDriverId', 'vehicleOwnerId', 'type', 'typing', 'unreadCount', 'deletedFor', 'createdAt'])
                     && isOnlyUpdatingOwnDeletedStatus();
       allow delete: if request.auth != null && (resource == null || request.auth.uid in resource.data.participants || isParticipantInChatId());
 
