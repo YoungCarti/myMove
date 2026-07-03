@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 import { 
   LayoutDashboard, 
   Car, 
@@ -7,9 +9,14 @@ import {
   Settings, 
   LogOut, 
   Menu,
-  X
+  X,
+  MapPin,
+  ShieldAlert
 } from 'lucide-react';
 import { SpotManagement } from './SpotManagement';
+import { LocationManagement } from './LocationManagement';
+import { EmergencyManagement } from './EmergencyManagement';
+import { BookingManagement } from './BookingManagement';
 
 // Placeholder for other pages
 const Overview = () => (
@@ -19,32 +26,40 @@ const Overview = () => (
   </div>
 );
 
-const Bookings = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold text-white mb-4">Manage Bookings</h2>
-    <p className="text-gray-400">Active and upcoming bookings will be listed here.</p>
-  </div>
-);
-
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'spots' | 'bookings'>('spots');
+  const [activeTab, setActiveTab] = useState<'overview' | 'locations' | 'spots' | 'bookings' | 'emergency'>('spots');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeEmergenciesCount, setActiveEmergenciesCount] = useState(0);
+
+  useEffect(() => {
+    const q = query(collection(db, 'emergencies'), where('status', '==', 'active'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setActiveEmergenciesCount(snapshot.docs.length);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const navigation = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
+    { id: 'locations', name: 'Locations', icon: MapPin },
     { id: 'spots', name: 'Spot Management', icon: Car },
     { id: 'bookings', name: 'Bookings', icon: CalendarDays },
+    { id: 'emergency', name: 'Emergency SOS', icon: ShieldAlert },
   ] as const;
 
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
         return <Overview />;
+      case 'locations':
+        return <LocationManagement />;
       case 'spots':
         return <SpotManagement />;
       case 'bookings':
-        return <Bookings />;
+        return <BookingManagement />;
+      case 'emergency':
+        return <EmergencyManagement />;
       default:
         return <Overview />;
     }
@@ -100,7 +115,12 @@ export const Dashboard: React.FC = () => {
                 }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-gray-400'}`} />
-                {item.name}
+                <span className="flex-1 text-left">{item.name}</span>
+                {item.id === 'emergency' && activeEmergenciesCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+                    {activeEmergenciesCount}
+                  </span>
+                )}
               </button>
             );
           })}
