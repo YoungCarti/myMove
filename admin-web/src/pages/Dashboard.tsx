@@ -11,24 +11,26 @@ import {
   Menu,
   X,
   MapPin,
-  ShieldAlert
+  ShieldAlert,
+  Megaphone
 } from 'lucide-react';
 import { SpotManagement } from './SpotManagement';
 import { LocationManagement } from './LocationManagement';
 import { EmergencyManagement } from './EmergencyManagement';
 import { BookingManagement } from './BookingManagement';
+import { Overview } from './Overview';
+import { BroadcastNotifications } from './BroadcastNotifications';
 
-// Placeholder for other pages
-const Overview = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold text-white mb-4">Dashboard Overview</h2>
-    <p className="text-gray-400">Live statistics and metrics will appear here.</p>
-  </div>
-);
+type TabType = 'overview' | 'locations' | 'spots' | 'bookings' | 'emergency' | 'broadcast';
 
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'locations' | 'spots' | 'bookings' | 'emergency'>('spots');
+  
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const path = window.location.pathname.substring(1);
+    const validTabs: TabType[] = ['overview', 'locations', 'spots', 'bookings', 'emergency', 'broadcast'];
+    return validTabs.includes(path as TabType) ? (path as TabType) : 'overview';
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeEmergenciesCount, setActiveEmergenciesCount] = useState(0);
 
@@ -40,11 +42,32 @@ export const Dashboard: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.substring(1);
+      const validTabs: TabType[] = ['overview', 'locations', 'spots', 'bookings', 'emergency', 'broadcast'];
+      if (validTabs.includes(path as TabType)) {
+        setActiveTab(path as TabType);
+      } else {
+        setActiveTab('overview');
+      }
+    };
+    
+    // Ensure initial URL is consistent
+    if (window.location.pathname === '/') {
+      window.history.replaceState(null, '', `/${activeTab}`);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeTab]);
+
   const navigation = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
     { id: 'locations', name: 'Locations', icon: MapPin },
     { id: 'spots', name: 'Spot Management', icon: Car },
     { id: 'bookings', name: 'Bookings', icon: CalendarDays },
+    { id: 'broadcast', name: 'Broadcast', icon: Megaphone },
     { id: 'emergency', name: 'Emergency SOS', icon: ShieldAlert },
   ] as const;
 
@@ -58,6 +81,8 @@ export const Dashboard: React.FC = () => {
         return <SpotManagement />;
       case 'bookings':
         return <BookingManagement />;
+      case 'broadcast':
+        return <BroadcastNotifications />;
       case 'emergency':
         return <EmergencyManagement />;
       default:
@@ -107,6 +132,7 @@ export const Dashboard: React.FC = () => {
                 onClick={() => {
                   setActiveTab(item.id);
                   setIsSidebarOpen(false);
+                  window.history.pushState(null, '', `/${item.id}`);
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   isActive 

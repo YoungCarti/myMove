@@ -937,3 +937,51 @@ export const onBookingUpdated = onDocumentUpdated(
     }
   }
 );
+
+export const broadcastNotification = onCall(
+  {enforceAppCheck: false},
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be logged in to send broadcasts."
+      );
+    }
+
+    const {title, body} = request.data;
+    if (!title || !body) {
+      throw new HttpsError("invalid-argument", "Title and body are required.");
+    }
+
+    const usersSnapshot = await db.collection("users").get();
+    const tokens: string[] = [];
+    usersSnapshot.forEach((doc) => {
+      const token = doc.data().fcmToken;
+      if (token) tokens.push(token);
+    });
+
+    if (tokens.length === 0) {
+      return {success: true, sentCount: 0};
+    }
+
+    let successCount = 0;
+    // Chunk tokens into batches of 500
+    for (let i = 0; i < tokens.length; i += 500) {
+      const chunk = tokens.slice(i, i + 500);
+      const payload: admin.messaging.MulticastMessage = {
+        tokens: chunk,
+        notification: {title, body},
+        data: {type: "broadcast"},
+      };
+
+      try {
+        const response = await admin.messaging().sendEachForMulticast(payload);
+        successCount += response.successCount;
+      } catch (error) {
+        console.error("Error sending broadcast chunk:", error);
+      }
+    }
+
+    return {success: true, sentCount: successCount};
+  }
+);
