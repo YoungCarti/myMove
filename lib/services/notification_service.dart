@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:ui';
 import '../app.dart';
 import '../screens/calling/call_screen.dart';
+import '../screens/calling/incoming_call_screen.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
@@ -53,6 +54,12 @@ class NotificationService {
         debugPrint('Notification tapped: ${response.payload}, actionId: ${response.actionId}');
         if (response.payload != null) {
           try {
+            if (response.actionId == 'answer_call') {
+              if (response.payload != null) {
+                _navigateToCallScreen(response.payload!, forceAnswer: true);
+              }
+              return;
+            }
             if (response.actionId == 'decline_call') {
               debugPrint('Call declined in foreground');
               // Optionally stop any ringing here
@@ -112,7 +119,7 @@ class NotificationService {
             presentSound: true,
           ),
         ),
-        payload: message.data.toString(),
+        payload: jsonEncode(message.data),
       );
     } else if (message.data.isNotEmpty) {
       // Handle data-only messages to show local notification
@@ -156,21 +163,21 @@ class NotificationService {
             presentSound: true,
           ),
         ),
-        payload: message.data.toString(),
+        payload: jsonEncode(message.data),
       );
     }
     
     // Automatically navigate if foreground call
     if (message.data['type'] == 'incoming_call') {
-      _navigateToCallScreen(message.data.toString(), messageData: message.data);
+      _navigateToCallScreen(jsonEncode(message.data), messageData: message.data);
     }
   }
 
-  void _navigateToCallScreen(String payload, {Map<String, dynamic>? messageData, int retryCount = 0}) {
+  void _navigateToCallScreen(String payload, {Map<String, dynamic>? messageData, int retryCount = 0, bool forceAnswer = false}) {
     if (navigatorKey.currentContext == null) {
       if (retryCount < 5) {
         Future.delayed(const Duration(milliseconds: 500), () {
-          _navigateToCallScreen(payload, messageData: messageData, retryCount: retryCount + 1);
+          _navigateToCallScreen(payload, messageData: messageData, retryCount: retryCount + 1, forceAnswer: forceAnswer);
         });
       }
       return;
@@ -178,32 +185,49 @@ class NotificationService {
     
     String channelName = '';
     String callerName = '';
+    String? token;
     
     if (messageData != null) {
       channelName = messageData['channelName'] ?? '';
       callerName = messageData['callerName'] ?? 'Caller';
+      token = messageData['token'];
     } else {
-      // Very basic manual parsing if needed, but typically you'd send JSON string as payload
-      // or rely on FirebaseMessaging.onMessageOpenedApp instead.
-      // Let's assume onMessageOpenedApp handles most cases better, but we can do a fallback
-      RegExp channelReg = RegExp(r'channelName: ([^,}]+)');
-      RegExp callerReg = RegExp(r'callerName: ([^,}]+)');
-      
-      final channelMatch = channelReg.firstMatch(payload);
-      final callerMatch = callerReg.firstMatch(payload);
-      
-      if (channelMatch != null) channelName = channelMatch.group(1) ?? '';
-      if (callerMatch != null) callerName = callerMatch.group(1) ?? 'Caller';
+      try {
+        final decoded = jsonDecode(payload);
+        channelName = decoded['channelName'] ?? '';
+        callerName = decoded['callerName'] ?? 'Caller';
+        token = decoded['token'];
+      } catch (e) {
+        // Fallback for old string payloads if any
+        RegExp channelReg = RegExp(r'channelName: ([^,}]+)');
+        RegExp callerReg = RegExp(r'callerName: ([^,}]+)');
+        RegExp tokenReg = RegExp(r'token: ([^,}]+)');
+        
+        final channelMatch = channelReg.firstMatch(payload);
+        final callerMatch = callerReg.firstMatch(payload);
+        final tokenMatch = tokenReg.firstMatch(payload);
+        
+        if (channelMatch != null) channelName = channelMatch.group(1)?.trim() ?? '';
+        if (callerMatch != null) callerName = callerMatch.group(1)?.trim() ?? 'Caller';
+        if (tokenMatch != null) token = tokenMatch.group(1)?.trim();
+      }
     }
 
     if (channelName.isNotEmpty) {
       Navigator.push(
         navigatorKey.currentContext!,
         MaterialPageRoute(
-          builder: (_) => CallScreen(
-            channelName: channelName,
-            callerName: callerName,
-          ),
+          builder: (_) => forceAnswer 
+            ? CallScreen(
+                channelName: channelName,
+                callerName: callerName,
+                token: token,
+              )
+            : IncomingCallScreen(
+                channelName: channelName,
+                callerName: callerName,
+                token: token,
+              ),
         ),
       );
     }

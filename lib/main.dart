@@ -52,6 +52,7 @@ class _ForegroundMessageHandlerState extends State<_ForegroundMessageHandler> {
       if (message.data['type'] == 'incoming_call') {
         final channelName = message.data['channelName'] ?? '';
         final callerName = message.data['callerName'] ?? 'Caller';
+        final token = message.data['token'];
         if (channelName.isNotEmpty && navigatorKey.currentContext != null) {
           Navigator.push(
             navigatorKey.currentContext!,
@@ -59,6 +60,7 @@ class _ForegroundMessageHandlerState extends State<_ForegroundMessageHandler> {
               builder: (_) => CallScreen(
                 channelName: channelName,
                 callerName: callerName,
+                token: token,
               ),
             ),
           );
