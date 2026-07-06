@@ -80,7 +80,6 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
             debugPrint("local user ${connection.localUid} joined");
-            _engine.setEnableSpeakerphone(_isSpeakerOn);
             setState(() {
               _localUserJoined = true;
               _statusText = "Joined! Waiting for other user...";
@@ -121,8 +120,9 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
         ),
       );
 
-      // Enable audio
+      // Enable audio and set default speaker state
       await _engine.enableAudio();
+      await _engine.setEnableSpeakerphone(_isSpeakerOn);
 
       String actualToken = (widget.token != null && widget.token!.isNotEmpty)
           ? widget.token!.trim()
@@ -295,16 +295,6 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
               ),
             ),
             
-            const SizedBox(height: 12),
-            // DEBUG INFO
-            Text(
-              "Channel: ${widget.channelName}\nToken: ${widget.token?.substring(0, 10)}...",
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 10,
-              ),
-            ),
             if (_errorText.isNotEmpty) ...[
               const SizedBox(height: 16),
               Padding(

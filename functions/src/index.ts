@@ -5,6 +5,8 @@ import {
 } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 
+import {RtcTokenBuilder, RtcRole} from "agora-access-token";
+
 admin.initializeApp();
 const db = admin.firestore();
 
@@ -43,6 +45,25 @@ export const initiateCall = onCall(
       );
     }
 
+    const appID = "1c3bf1b8e52c4c96b9c8017350b55c6c";
+    const appCertificate = "293ad82990e14b17a06ccf39cf0c991c";
+
+    // Set token expiration time (e.g., 1 hour)
+    const expirationTimeInSeconds = 3600;
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+
+    // Generate tokens for both caller and receiver
+    // (uid 0 allows Agora to auto-assign)
+    const token = RtcTokenBuilder.buildTokenWithUid(
+      appID,
+      appCertificate,
+      channelName,
+      0,
+      RtcRole.PUBLISHER,
+      privilegeExpiredTs
+    );
+
     const payload: admin.messaging.Message = {
       token: fcmToken,
       data: {
@@ -52,6 +73,7 @@ export const initiateCall = onCall(
         channelName: channelName,
         callerName: callerName,
         callerId: request.auth.uid,
+        token: token,
       },
       android: {
         priority: "high",
@@ -71,7 +93,7 @@ export const initiateCall = onCall(
 
     try {
       await admin.messaging().send(payload);
-      return {success: true};
+      return {success: true, token: token};
     } catch (error) {
       console.error("Error sending call FCM:", error);
       throw new HttpsError("internal", "Failed to send call notification.");

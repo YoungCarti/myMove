@@ -11,22 +11,18 @@
 *   **Communication Features (Phase 9):** Secure driver-to-driver in-app messaging and "Blocked-Car" alerts are implemented.
 *   **Push Notifications Integration (Phase 10):** Fully integrated Firebase Cloud Messaging for foreground/background alerts on bookings and chat messages.
 *   **Device Permissions Handling (Phase 11):** Fully implemented dynamic location, camera, and notification permission requests with interactive settings screens.
+*   **Emergency Mode (Phase 12):** Built quick-access features for users to send urgent SOS alerts, alongside real-time admin notification and resolution controls in the web dashboard.
+*   **Admin/Parking Management Dashboard (Phase 13):** Built a full React web dashboard for admins to manage parking spots, track real-time revenue analytics, resolve emergency alerts, and send global broadcast push notifications.
 
 ---
 
 ## 2. What We Doing Currently (Doing Gradually)
 
 *   **VoIP Calling:** Implement VoIP for voice calling between drivers (since native phone calls rely on cellular towers), while keeping direct native phone calls as an optional fallback.
-*   **Admin/Parking Management Module:** Build a simple admin panel or stick to manual Firebase entry for the FYP2 presentation.
-    *   *Note on Emergency SOS:* Only admins/management should have the ability to resolve or change the status of an active emergency. This will be implemented later via the web fallback/dashboard.
-
-**IN PROGRESS:**
-*   **Emergency Mode:** Add quick-access features to send urgent alerts in emergencies.
 
 ## 3. What We Haven't Done (Pending & Future Features)
 *   **Payment Integration:** Attempt to add actual Stripe or Touch 'n Go payments. If business registration causes delays, we will continue to use a simulated/mockup payment system.
 *   **Identity Verification (IC and Face):** Implement e-KYC using on-device technology (e.g., Google ML Kit) to scan Identity Cards (IC) and detect faces for liveness without complex backend processing.
-*   **Emergency Mode:** Add quick-access features to send urgent alerts in emergencies.
 *   **User Feedback:** Create a dedicated space/form to allow users to leave feedback on their experience.
 *   **App-less Web QR Scanning:** Update vehicle QR codes to use standard HTTPS URLs pointing to a Firebase-hosted webpage. This allows anyone (even without the app) to scan the code with their default camera and trigger a "Move Car" push notification to the owner.
 
