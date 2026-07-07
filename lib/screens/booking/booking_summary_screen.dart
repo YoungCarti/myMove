@@ -3,8 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'booking_success_screen.dart';
-import '../../services/payment_service.dart';
-import 'payment_method_bottom_sheet.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 class BookingSummaryScreen extends StatefulWidget {
   final String bookingId;
@@ -36,25 +35,10 @@ class BookingSummaryScreen extends StatefulWidget {
 
 class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
   bool _isSaving = false;
-  PaymentCard? _selectedCard;
-  bool _isLoadingCards = true;
 
   @override
   void initState() {
     super.initState();
-    _loadDefaultCard();
-  }
-
-  Future<void> _loadDefaultCard() async {
-    final cards = await PaymentService.getCards();
-    if (mounted) {
-      setState(() {
-        if (cards.isNotEmpty) {
-          _selectedCard = cards.first;
-        }
-        _isLoadingCards = false;
-      });
-    }
   }
 
   Future<void> _confirmBooking() async {
@@ -63,6 +47,39 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
     });
 
     try {
+      final totalAmount = widget.price * 1.02;
+
+      // 1. Create Payment Intent
+      final createIntentCallable = FirebaseFunctions.instance.httpsCallable('createPaymentIntent');
+      final intentResponse = await createIntentCallable.call({
+        'amount': totalAmount,
+        'currency': 'myr',
+        'bookingId': widget.bookingId,
+      });
+
+      final clientSecret = intentResponse.data['clientSecret'];
+      final customerId = intentResponse.data['customer'];
+      final ephemeralKey = intentResponse.data['ephemeralKey'];
+      
+      if (clientSecret == null) {
+        throw Exception('Failed to get client secret');
+      }
+
+      // 2. Initialize Payment Sheet
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          paymentIntentClientSecret: clientSecret,
+          customerId: customerId,
+          customerEphemeralKeySecret: ephemeralKey,
+          merchantDisplayName: 'myMove',
+          style: ThemeMode.dark,
+        ),
+      );
+
+      // 3. Present Payment Sheet
+      await Stripe.instance.presentPaymentSheet();
+
+      // 4. Assign Spot
       final callable = FirebaseFunctions.instance.httpsCallable('assignSpot');
       final response = await callable.call({
         'bookingId': widget.bookingId,
@@ -81,7 +98,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                 spotId: widget.spotId,
                 startDateTime: widget.startDateTime,
                 endDateTime: widget.endDateTime,
-                price: widget.price * 1.02,
+                price: totalAmount,
               ),
             ),
             (route) => route.isFirst,
@@ -97,6 +114,20 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
             ),
           );
         }
+      }
+    } on StripeException catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+        // e.error.localizedMessage gives a nice user-facing error or cancellation message
+        final errorMsg = e.error.localizedMessage ?? 'Payment canceled or failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -226,68 +257,42 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
-                child: _isLoadingCards
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    : Row(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurpleAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.security, color: Colors.deepPurpleAccent),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _selectedCard != null && _selectedCard!.brand.toLowerCase().contains('visa')
-                              ? SizedBox(
-                                  width: 40,
-                                  height: 40,
-                                  child: Center(child: SvgPicture.asset('assets/icons/visa.svg', width: 32, height: 24, fit: BoxFit.contain)),
-                                )
-                              : _selectedCard != null && _selectedCard!.brand.toLowerCase().contains('mastercard')
-                                  ? SizedBox(
-                                      width: 40,
-                                      height: 40,
-                                      child: Center(child: SvgPicture.asset('assets/icons/mastercard.svg', width: 32, height: 24, fit: BoxFit.contain)),
-                                    )
-                                  : Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueAccent.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(Icons.credit_card, color: Colors.blueAccent),
-                                    ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              _selectedCard != null
-                                  ? '${_selectedCard!.brand} •••• ${_selectedCard!.last4}'
-                                  : 'Set up your payment method',
-                              style: TextStyle(
-                                color: _selectedCard != null ? Colors.white : Colors.white70,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          Text(
+                            'Secure Payment',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          TextButton(
-                            onPressed: () async {
-                              final selectedCard = await PaymentMethodBottomSheet.show(context, _selectedCard);
-                              if (selectedCard != null) {
-                                setState(() {
-                                  _selectedCard = selectedCard;
-                                });
-                              }
-                            },
-                            child: Text(
-                              _selectedCard != null ? 'Change' : 'Add',
-                              style: const TextStyle(
-                                color: Colors.blueAccent,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Powered by Stripe',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
                             ),
                           ),
                         ],
                       ),
+                    ),
+                  ],
+                ),
               ),
               
               const SizedBox(height: 24),
@@ -328,7 +333,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: (_isSaving || _selectedCard == null || _isLoadingCards) ? null : _confirmBooking,
+              onPressed: _isSaving ? null : _confirmBooking,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 backgroundColor: Colors.blueAccent,
@@ -349,7 +354,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                       ),
                     )
                   : const Text(
-                      'Confirm booking',
+                      'Pay & Confirm Booking',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
