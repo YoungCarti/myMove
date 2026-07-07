@@ -13,6 +13,7 @@ import 'providers/parking_provider.dart';
 import 'providers/booking_provider.dart';
 import 'services/notification_service.dart';
 import 'screens/calling/call_screen.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 import 'firebase_options.dart';
 
@@ -84,6 +85,10 @@ class _ForegroundMessageHandlerState extends State<_ForegroundMessageHandler> {
 void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Stripe
+  Stripe.publishableKey = 'pk_test_51QZYHFKiRHuR0U9EvLKIsidLrTBRtl4ZkVT7V4PUb8ow0GJLvLhtjKtSnXuMGeeFFJk9a3rTNDpfCA6h8YonsiWk00XPsyq7do';
+  await Stripe.instance.applySettings();
 
   // Initialize Map Renderer for Android
   if (defaultTargetPlatform == TargetPlatform.android) {
