@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:math';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../config/routes.dart';
@@ -9,7 +8,7 @@ import '../../models/parking_location.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
 import 'dart:async';
@@ -24,13 +23,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  MapLibreMapController? mapController;
+  GoogleMapController? mapController;
   final LatLng _center = const LatLng(3.0186971028116116, 101.43081077040469); // Kuala Lumpur default
   int _selectedIndex = 0;
   bool _isLoadingLocation = false;
   bool _locationPermissionGranted = false;
 
-  Map<String, ParkingLocation> _symbolToLocation = {};
+  Set<Marker> _markers = {};
   final List<ParkingLocation> _allLocations = [];
   List<ParkingLocation> _searchResults = [];
   final TextEditingController _searchController = TextEditingController();
@@ -85,24 +84,28 @@ class _HomeScreenState extends State<HomeScreen> {
   // Removed _listenToParkingStatus as the status is now checked in the ParkingSpotScreen
 
   void _updateMarkersWithStatus() async {
+    // Parking markers are now static red to indicate a parking location.
     final Color markerColor = const Color(0xFFEA4335); // Default Red
-    final Uint8List iconBytes = await _createParkingMarkerIcon(markerColor);
+        
+    final BitmapDescriptor customIcon = await _createParkingMarkerIcon(markerColor);
     
-    if (mounted && mapController != null) {
-      await mapController!.addImage('parking_icon', iconBytes);
-      await mapController!.clearSymbols();
-      _symbolToLocation.clear();
-
-      for (var location in _allLocations) {
-        final symbol = await mapController!.addSymbol(
-          SymbolOptions(
-            geometry: LatLng(location.latitude, location.longitude),
-            iconImage: 'parking_icon',
-            iconSize: 1.0,
-          ),
-        );
-        _symbolToLocation[symbol.id] = location;
-      }
+    if (mounted) {
+      setState(() {
+        final Set<Marker> newMarkers = {};
+        for (var location in _allLocations) {
+          newMarkers.add(
+            Marker(
+              markerId: MarkerId(location.id),
+              position: LatLng(location.latitude, location.longitude),
+              icon: customIcon,
+              onTap: () {
+                LandmarkCard.show(context, location);
+              },
+            ),
+          );
+        }
+        _markers = newMarkers;
+      });
     }
   }
 
@@ -131,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<Uint8List> _createParkingMarkerIcon(Color markerColor) async {
+  Future<BitmapDescriptor> _createParkingMarkerIcon(Color markerColor) async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
     const double width = 40.0;
@@ -173,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final ui.Image image = await pictureRecorder.endRecording().toImage(width.toInt(), height.toInt());
     final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
+    return BitmapDescriptor.bytes(byteData!.buffer.asUint8List());
   }
 
   Future<void> _loadParkingMarker() async {
@@ -202,19 +205,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _onMapCreated(MapLibreMapController controller) {
+  void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
-    controller.onSymbolTapped.add((symbol) {
-      final location = _symbolToLocation[symbol.id];
-      if (location != null) {
-        LandmarkCard.show(context, location);
-      }
-    });
-  }
-
-  void _onStyleLoaded() {
+    // Automatically go to current location when the map is ready
     _goToCurrentLocation();
-    _updateMarkersWithStatus();
   }
 
   Future<void> _goToCurrentLocation() async {
@@ -293,18 +287,20 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // ─── Full Screen Map ─────────────────────────────────────────────
           if (defaultTargetPlatform == TargetPlatform.android)
-            MapLibreMap(
-              styleString: "https://api.maptiler.com/maps/streets-v4-dark/style.json?key=HTRFmtzXurM48zKkvEh7",
+            GoogleMap(
               onMapCreated: _onMapCreated,
-              onStyleLoadedCallback: _onStyleLoaded,
-              onMapClick: (Point<double> point, LatLng position) {
+              onTap: (LatLng position) {
                 FocusScope.of(context).unfocus();
               },
               initialCameraPosition: CameraPosition(
                 target: _center,
                 zoom: 14.0,
               ),
+              mapType: MapType.hybrid,
               myLocationEnabled: _locationPermissionGranted,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              markers: _markers,
             )
           else
             const Center(
