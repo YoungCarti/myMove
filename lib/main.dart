@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
-import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
-import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+
 import 'app.dart';
 import 'providers/auth_provider.dart';
 import 'providers/parking_provider.dart';
@@ -16,6 +15,7 @@ import 'screens/calling/call_screen.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
 import 'firebase_options.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -90,19 +90,6 @@ void main() async {
   Stripe.publishableKey = 'pk_test_51QZYHFKiRHuR0U9EvLKIsidLrTBRtl4ZkVT7V4PUb8ow0GJLvLhtjKtSnXuMGeeFFJk9a3rTNDpfCA6h8YonsiWk00XPsyq7do';
   await Stripe.instance.applySettings();
 
-  // Initialize Map Renderer for Android
-  if (defaultTargetPlatform == TargetPlatform.android) {
-    final GoogleMapsFlutterPlatform mapsImplementation =
-        GoogleMapsFlutterPlatform.instance;
-    if (mapsImplementation is GoogleMapsFlutterAndroid) {
-      mapsImplementation.useAndroidViewSurface = true;
-      try {
-        await mapsImplementation.initializeWithRenderer(AndroidMapRenderer.latest);
-      } catch (e) {
-        debugPrint("Map renderer initialization failed: $e");
-      }
-    }
-  }
   
   // Initialize Firebase with the real options for our project
   try {
