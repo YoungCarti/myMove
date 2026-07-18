@@ -1,11 +1,11 @@
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import {
   onDocumentCreated,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 
-import {RtcTokenBuilder, RtcRole} from "agora-access-token";
+import { RtcTokenBuilder, RtcRole } from "agora-access-token";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -16,7 +16,7 @@ const MAX_EXTENSION_MINUTES = 1440;
 const EXTENSION_INCREMENT_MINUTES = 30;
 
 export const initiateCall = onCall(
-  {enforceAppCheck: false},
+  { enforceAppCheck: false },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError(
@@ -24,7 +24,7 @@ export const initiateCall = onCall(
         "You must be signed in to initiate a call."
       );
     }
-    const {targetUserId, channelName, callerName} = request.data;
+    const { targetUserId, channelName, callerName } = request.data;
     if (!targetUserId || !channelName || !callerName) {
       throw new HttpsError(
         "invalid-argument",
@@ -93,7 +93,7 @@ export const initiateCall = onCall(
 
     try {
       await admin.messaging().send(payload);
-      return {success: true, token: token};
+      return { success: true, token: token };
     } catch (error) {
       console.error("Error sending call FCM:", error);
       throw new HttpsError("internal", "Failed to send call notification.");
@@ -136,9 +136,9 @@ async function getUsernameMatches(trimmed: string, cleaned: string) {
 // Safely resolve a username to an email address without exposing
 // user documents to unauthenticated clients.
 export const lookupUsername = onCall(
-  {enforceAppCheck: false, invoker: "public"},
+  { enforceAppCheck: false, invoker: "public" },
   async (request) => {
-    const {username} = request.data;
+    const { username } = request.data;
     if (!username || typeof username !== "string") {
       throw new HttpsError(
         "invalid-argument",
@@ -176,13 +176,13 @@ export const lookupUsername = onCall(
     }
 
     // Only return the email — never expose other profile fields
-    return {email};
+    return { email };
   }
 );
 
 // Check if a username is available. Authenticated users only.
 export const checkUsernameAvailable = onCall(
-  {enforceAppCheck: false, invoker: "public"},
+  { enforceAppCheck: false, invoker: "public" },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError(
@@ -191,7 +191,7 @@ export const checkUsernameAvailable = onCall(
       );
     }
 
-    const {username} = request.data;
+    const { username } = request.data;
     if (!username || typeof username !== "string") {
       throw new HttpsError(
         "invalid-argument",
@@ -202,25 +202,25 @@ export const checkUsernameAvailable = onCall(
     const trimmed = username.trim();
     const cleaned = trimmed.toLowerCase();
     if (cleaned.length === 0) {
-      return {available: false};
+      return { available: false };
     }
 
     const matches = await getUsernameMatches(trimmed, cleaned);
 
     if (matches.length === 0) {
-      return {available: true};
+      return { available: true };
     }
 
     // If every match is the requesting user, it's still available. This
     // keeps legacy profiles without username_lowercase from being duplicated.
     const isOwnUsername = matches.every((doc) => doc.id === request.auth?.uid);
 
-    return {available: isOwnUsername};
+    return { available: isOwnUsername };
   }
 );
 
 export const createBooking = onCall(
-  {enforceAppCheck: false, invoker: "public"},
+  { enforceAppCheck: false, invoker: "public" },
   async (request) => {
     // Authentication check
     if (!request.auth) {
@@ -231,8 +231,8 @@ export const createBooking = onCall(
     }
 
     const userId = request.auth.uid;
-    const {locationId, locationName, vehicleMake, vehiclePlate,
-      startDateTime, endDateTime} = request.data;
+    const { locationId, locationName, vehicleMake, vehiclePlate,
+      startDateTime, endDateTime } = request.data;
 
     // Input validation
     if (!locationId || !locationName || !startDateTime || !endDateTime) {
@@ -356,7 +356,7 @@ export const createBooking = onCall(
           occupiedSpots: occupiedSpots,
         };
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Re-throw HttpsErrors so the client receives the proper status
       // code/message
@@ -373,7 +373,7 @@ export const createBooking = onCall(
 );
 
 export const assignSpot = onCall(
-  {enforceAppCheck: false, invoker: "public"},
+  { enforceAppCheck: false, invoker: "public" },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError(
@@ -382,7 +382,7 @@ export const assignSpot = onCall(
       );
     }
 
-    const {bookingId, spotId} = request.data;
+    const { bookingId, spotId } = request.data;
     if (typeof bookingId !== "string" || typeof spotId !== "string" ||
       bookingId.trim().length === 0 || spotId.trim().length === 0) {
       throw new HttpsError(
@@ -434,7 +434,7 @@ export const assignSpot = onCall(
 
         if (bookingData.spotId) {
           // If already assigned to the same spot, just return success
-          if (bookingData.spotId === requestedSpotId) return {success: true};
+          if (bookingData.spotId === requestedSpotId) return { success: true };
           throw new HttpsError(
             "already-exists",
             "A spot is already assigned to this booking."
@@ -543,9 +543,9 @@ export const assignSpot = onCall(
           status: "active",
           expiresAt: admin.firestore.FieldValue.delete(),
         });
-        return {success: true};
+        return { success: true };
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error instanceof HttpsError) throw error;
       console.error("Assign spot failed:", error);
@@ -558,7 +558,7 @@ export const assignSpot = onCall(
 );
 
 export const cancelBooking = onCall(
-  {enforceAppCheck: false},
+  { enforceAppCheck: false },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError(
@@ -566,7 +566,7 @@ export const cancelBooking = onCall(
         "You must be signed in to cancel a booking."
       );
     }
-    const {bookingId} = request.data;
+    const { bookingId } = request.data;
     if (!bookingId || typeof bookingId !== "string") {
       throw new HttpsError(
         "invalid-argument",
@@ -577,37 +577,73 @@ export const cancelBooking = onCall(
     const bookingRef = db.collection("bookings").doc(bookingId);
 
     try {
+      // 1. Get booking data outside transaction for Stripe refund
+      const bookingDoc = await bookingRef.get();
+      if (!bookingDoc.exists) {
+        throw new HttpsError("not-found", "Booking not found.");
+      }
+
+      const bookingData = bookingDoc.data();
+      if (bookingData?.userId !== request.auth?.uid) {
+        throw new HttpsError(
+          "permission-denied",
+          "You can only cancel your own bookings."
+        );
+      }
+
+      if (
+        bookingData?.status === "canceled" ||
+        bookingData?.status === "completed"
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "This booking cannot be canceled."
+        );
+      }
+
+      // 2. Process Stripe refund or cancellation first (if applicable)
+      const paymentIntentId = bookingData?.paymentIntentId;
+      if (paymentIntentId) {
+        try {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          if (pi.status === "succeeded") {
+            // Already paid, issue a refund
+            await stripe.refunds.create({
+              payment_intent: paymentIntentId,
+            });
+          } else if (pi.status !== "canceled") {
+            // Not yet paid (e.g. pending), so just cancel the intent
+            await stripe.paymentIntents.cancel(paymentIntentId);
+          }
+        } catch (err) {
+          const stripeError = err as { code?: string };
+          console.error("Stripe refund/cancel failed:", stripeError);
+          if (stripeError?.code !== "charge_already_refunded") {
+            throw new HttpsError(
+              "internal",
+              "Failed to process refund or cancel payment with Stripe. Booking was not canceled."
+            );
+          }
+        }
+      }
+
+      // 3. Update Firestore status to canceled
       await db.runTransaction(async (transaction) => {
-        const bookingDoc = await transaction.get(bookingRef);
-        if (!bookingDoc.exists) {
-          throw new HttpsError("not-found", "Booking not found.");
-        }
-
-        const bookingData = bookingDoc.data();
-        if (bookingData?.userId !== request.auth?.uid) {
-          throw new HttpsError(
-            "permission-denied",
-            "You can only cancel your own bookings."
-          );
-        }
-
+        const currentDoc = await transaction.get(bookingRef);
+        // Ensure it hasn't been canceled concurrently
         if (
-          bookingData?.status === "canceled" ||
-          bookingData?.status === "completed"
+          currentDoc.data()?.status !== "canceled" &&
+          currentDoc.data()?.status !== "completed"
         ) {
-          throw new HttpsError(
-            "failed-precondition",
-            "This booking cannot be canceled."
-          );
+          transaction.update(bookingRef, {
+            status: "canceled",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
         }
-
-        transaction.update(bookingRef, {
-          status: "canceled",
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
       });
-      return {success: true};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+      return { success: true };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error instanceof HttpsError) throw error;
       console.error("Cancel booking failed:", error);
@@ -620,7 +656,7 @@ export const cancelBooking = onCall(
 );
 
 export const extendParking = onCall(
-  {enforceAppCheck: false, invoker: "public"},
+  { enforceAppCheck: false, invoker: "public" },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError(
@@ -629,7 +665,7 @@ export const extendParking = onCall(
       );
     }
 
-    const {bookingId, extendMinutes} = request.data;
+    const { bookingId, extendMinutes } = request.data;
     if (!bookingId || typeof extendMinutes !== "number") {
       throw new HttpsError(
         "invalid-argument",
@@ -646,8 +682,8 @@ export const extendParking = onCall(
       throw new HttpsError(
         "invalid-argument",
         "Extension must be a positive multiple of " +
-          `${EXTENSION_INCREMENT_MINUTES} minutes, up to ` +
-          `${MAX_EXTENSION_MINUTES} minutes.`
+        `${EXTENSION_INCREMENT_MINUTES} minutes, up to ` +
+        `${MAX_EXTENSION_MINUTES} minutes.`
       );
     }
 
@@ -774,7 +810,7 @@ export const extendParking = onCall(
           endDateTime: newEnd.toISOString(),
         };
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error instanceof HttpsError) throw error;
       console.error("Extend parking failed:", error);
@@ -961,7 +997,7 @@ export const onBookingUpdated = onDocumentUpdated(
 );
 
 export const broadcastNotification = onCall(
-  {enforceAppCheck: false},
+  { enforceAppCheck: false },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError(
@@ -970,7 +1006,7 @@ export const broadcastNotification = onCall(
       );
     }
 
-    const {title, body} = request.data;
+    const { title, body } = request.data;
     if (!title || !body) {
       throw new HttpsError("invalid-argument", "Title and body are required.");
     }
@@ -983,7 +1019,7 @@ export const broadcastNotification = onCall(
     });
 
     if (tokens.length === 0) {
-      return {success: true, sentCount: 0};
+      return { success: true, sentCount: 0 };
     }
 
     let successCount = 0;
@@ -992,8 +1028,8 @@ export const broadcastNotification = onCall(
       const chunk = tokens.slice(i, i + 500);
       const payload: admin.messaging.MulticastMessage = {
         tokens: chunk,
-        notification: {title, body},
-        data: {type: "broadcast"},
+        notification: { title, body },
+        data: { type: "broadcast" },
       };
 
       try {
@@ -1004,6 +1040,303 @@ export const broadcastNotification = onCall(
       }
     }
 
-    return {success: true, sentCount: successCount};
+    return { success: true, sentCount: successCount };
+  }
+);
+
+import Stripe from "stripe";
+
+// Initialize Stripe with a test key (replace with your actual test secret
+// key in production or use Secret Manager)
+const stripe = new Stripe(
+  "sk_test_51QZYHFKiRHuR0U9E2rwn9qW1t7X98LseFtIY8csTCSoqDN" +
+  "MTGFVGTx3GgxdKkdClBELYKc3GqmDf9s6kLCUZyNIp00zW6LvSEv",
+  {
+    apiVersion: "2023-10-16",
+  }
+);
+
+export const createPaymentIntent = onCall(
+  { enforceAppCheck: false, invoker: "public" },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be logged in to create a payment intent."
+      );
+    }
+
+    const { amount, currency, bookingId } = request.data;
+    if (!amount || typeof amount !== "number") {
+      throw new HttpsError("invalid-argument", "Missing or invalid amount.");
+    }
+    if (!bookingId || typeof bookingId !== "string") {
+      throw new HttpsError("invalid-argument", "Missing or invalid bookingId.");
+    }
+
+    try {
+      const uid = request.auth.uid;
+      const userRef = db.collection("users").doc(uid);
+      const userDoc = await userRef.get();
+
+      let customerId = userDoc.data()?.stripeCustomerId;
+
+      // 1. Create a Customer if they don't have one
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          metadata: { firebaseUID: uid },
+        });
+        customerId = customer.id;
+        await userRef.set({ stripeCustomerId: customerId }, { merge: true });
+      }
+
+      // 2. Create an Ephemeral Key for the Flutter app to access saved cards
+      const ephemeralKey = await stripe.ephemeralKeys.create(
+        { customer: customerId },
+        { apiVersion: "2023-10-16" }
+      );
+
+      // 3. Create the PaymentIntent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // cents
+        currency: currency || "myr",
+        customer: customerId,
+        setup_future_usage: "off_session", // Tells Stripe to save this card
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          bookingId: bookingId,
+        },
+      });
+
+      // 4. Save the paymentIntent.id to the booking document
+      await db.collection("bookings").doc(bookingId).set(
+        { paymentIntentId: paymentIntent.id },
+        { merge: true }
+      );
+
+      return {
+        clientSecret: paymentIntent.client_secret,
+        ephemeralKey: ephemeralKey.secret,
+        customer: customerId,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Stripe payment intent error:", error);
+      throw new HttpsError(
+        "internal",
+        error.message || "Payment intent failed."
+      );
+    }
+  }
+);
+
+// New function to just save a card without charging (for Settings)
+export const createSetupIntent = onCall(
+  { enforceAppCheck: false, invoker: "public" },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Must be logged in.");
+    }
+
+    try {
+      const uid = request.auth.uid;
+      const userRef = db.collection("users").doc(uid);
+      const userDoc = await userRef.get();
+
+      let customerId = userDoc.data()?.stripeCustomerId;
+
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          metadata: { firebaseUID: uid },
+        });
+        customerId = customer.id;
+        await userRef.set({ stripeCustomerId: customerId }, { merge: true });
+      }
+
+      const ephemeralKey = await stripe.ephemeralKeys.create(
+        { customer: customerId },
+        { apiVersion: "2023-10-16" }
+      );
+
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customerId,
+        payment_method_types: ["card"],
+      });
+
+      return {
+        clientSecret: setupIntent.client_secret,
+        ephemeralKey: ephemeralKey.secret,
+        customer: customerId,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Stripe setup intent error:", error);
+      throw new HttpsError("internal", error.message);
+    }
+  }
+);
+
+export const getSavedPaymentMethods = onCall(
+  { enforceAppCheck: false },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "You must be signed in.");
+    }
+
+    try {
+      const uid = request.auth.uid;
+      const userRef = db.collection("users").doc(uid);
+      const userDoc = await userRef.get();
+      const customerId = userDoc.data()?.stripeCustomerId;
+
+      if (!customerId) {
+        return { paymentMethods: [] };
+      }
+
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: "card",
+      });
+
+      return {
+        paymentMethods: paymentMethods.data.map((pm) => ({
+          id: pm.id,
+          brand: pm.card?.brand,
+          last4: pm.card?.last4,
+          expMonth: pm.card?.exp_month,
+          expYear: pm.card?.exp_year,
+        })),
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Error fetching payment methods:", error);
+      throw new HttpsError("internal", error.message);
+    }
+  }
+);
+
+export const deletePaymentMethod = onCall(
+  { enforceAppCheck: false },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "You must be signed in.");
+    }
+
+    const { paymentMethodId } = request.data;
+    if (!paymentMethodId || typeof paymentMethodId !== "string") {
+      throw new HttpsError("invalid-argument", "paymentMethodId is required.");
+    }
+
+    try {
+      const uid = request.auth.uid;
+      const userRef = db.collection("users").doc(uid);
+      const userDoc = await userRef.get();
+      const customerId = userDoc.data()?.stripeCustomerId;
+
+      if (!customerId) {
+        throw new HttpsError("failed-precondition", "No Stripe customer found.");
+      }
+
+      // Ensure the payment method belongs to the user's customer ID
+      const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+      if (pm.customer !== customerId) {
+        throw new HttpsError("permission-denied", "This payment method does not belong to you.");
+      }
+
+      await stripe.paymentMethods.detach(paymentMethodId);
+
+      return { success: true };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Error deleting payment method:", error);
+      throw new HttpsError("internal", error.message);
+    }
+  }
+);
+
+// ------------------------------------------------------------------
+// STRIPE WEBHOOK
+// ------------------------------------------------------------------
+export const stripeWebhook = onRequest(
+  { cors: true },
+  async (request, response) => {
+    const sig = request.headers["stripe-signature"];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_test_secret";
+
+    if (!sig) {
+      response.status(400).send("No stripe-signature found");
+      return;
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      // request.rawBody is provided by Firebase for webhook verification
+      event = stripe.webhooks.constructEvent(
+        request.rawBody,
+        sig,
+        endpointSecret
+      );
+    } catch (err) {
+      const webhookError = err as Error;
+      console.error(`Webhook Error: ${webhookError.message}`);
+      response.status(400).send(`Webhook Error: ${webhookError.message}`);
+      return;
+    }
+
+    // Handle the event
+    switch (event.type) {
+    case "payment_intent.succeeded": {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const bookingId = paymentIntent.metadata?.bookingId;
+
+      if (bookingId) {
+        await db.collection("bookings").doc(bookingId).update({
+          paymentStatus: "paid",
+          status: "active",
+        });
+        console.log(`Webhook: Booking ${bookingId} marked as paid & active.`);
+      } else {
+        // Fallback: search by paymentIntentId
+        const snapshot = await db
+          .collection("bookings")
+          .where("paymentIntentId", "==", paymentIntent.id)
+          .limit(1)
+          .get();
+        if (!snapshot.empty) {
+          await snapshot.docs[0].ref.update({
+            paymentStatus: "paid",
+            status: "active",
+          });
+          console.log(
+            `Webhook: Booking ${snapshot.docs[0].id} marked as paid via fallback.`
+          );
+        }
+      }
+      break;
+    }
+
+    case "payment_intent.payment_failed": {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const bookingId = paymentIntent.metadata?.bookingId;
+
+      if (bookingId) {
+        await db.collection("bookings").doc(bookingId).update({
+          paymentStatus: "failed",
+          status: "canceled",
+        });
+        console.log(`Webhook: Booking ${bookingId} payment failed.`);
+      }
+      break;
+    }
+
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+    }
+
+    // Return a 200 response to acknowledge receipt of the event
+    response.json({ received: true });
   }
 );
