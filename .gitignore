@@ -71,3 +71,6 @@ functions/.firebase/
 functions/firebase-debug.log
 functions/firebase-debug.*.log
 esp32_smart_parking/secrets.h
+
+# Firebase root cache
+.firebase/

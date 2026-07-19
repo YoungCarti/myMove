@@ -50,8 +50,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       // Stop scanner and process
       _scannerController.stop();
       
-      if (code.startsWith('mymove://user/')) {
-        final targetUserId = code.substring('mymove://user/'.length).trim();
+      if (code.startsWith('mymove://user/') || code.startsWith('https://mymove-cb624.web.app/scan?id=')) {
+        String targetUserId = '';
+        if (code.startsWith('mymove://user/')) {
+          targetUserId = code.substring('mymove://user/'.length).trim();
+        } else {
+          targetUserId = code.substring('https://mymove-cb624.web.app/scan?id='.length).trim();
+        }
         
         if (targetUserId.isEmpty || targetUserId.contains('/')) {
           _showError('Invalid QR code format.');

@@ -12,6 +12,7 @@ import 'providers/parking_provider.dart';
 import 'providers/booking_provider.dart';
 import 'services/notification_service.dart';
 import 'screens/calling/call_screen.dart';
+import 'screens/move_car/move_car_request_screen.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
 import 'firebase_options.dart';
@@ -62,6 +63,24 @@ class _ForegroundMessageHandlerState extends State<_ForegroundMessageHandler> {
                 channelName: channelName,
                 callerName: callerName,
                 token: token,
+              ),
+            ),
+          );
+        }
+      } else if (message.data['type'] == 'move_car_request') {
+        final photoUrl = message.data['photoUrl'];
+        final requestId = message.data['requestId'];
+        final latitude = message.data['latitude'];
+        final longitude = message.data['longitude'];
+        if (navigatorKey.currentContext != null) {
+          Navigator.push(
+            navigatorKey.currentContext!,
+            MaterialPageRoute(
+              builder: (_) => MoveCarRequestScreen(
+                photoUrl: photoUrl,
+                requestId: requestId,
+                latitude: latitude,
+                longitude: longitude,
               ),
             ),
           );

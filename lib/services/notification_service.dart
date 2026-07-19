@@ -7,6 +7,7 @@ import 'dart:ui';
 import '../app.dart';
 import '../screens/calling/call_screen.dart';
 import '../screens/calling/incoming_call_screen.dart';
+import '../screens/move_car/move_car_request_screen.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
@@ -68,6 +69,8 @@ class NotificationService {
             // Using a simple check string because payload can just be a stringified map
             if (response.payload!.contains('incoming_call')) {
               _navigateToCallScreen(response.payload!);
+            } else if (response.payload!.contains('move_car_request')) {
+              _navigateToMoveCarScreen(response.payload!);
             }
           } catch (e) {
             debugPrint('Error parsing notification payload: $e');
@@ -170,7 +173,54 @@ class NotificationService {
     // Automatically navigate if foreground call
     if (message.data['type'] == 'incoming_call') {
       _navigateToCallScreen(jsonEncode(message.data), messageData: message.data);
+    } else if (message.data['type'] == 'move_car_request') {
+      _navigateToMoveCarScreen(jsonEncode(message.data), messageData: message.data);
     }
+  }
+
+  void _navigateToMoveCarScreen(String payload, {Map<String, dynamic>? messageData, int retryCount = 0}) {
+    if (navigatorKey.currentContext == null) {
+      if (retryCount < 5) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _navigateToMoveCarScreen(payload, messageData: messageData, retryCount: retryCount + 1);
+        });
+      }
+      return;
+    }
+    
+    String? photoUrl;
+    String? requestId;
+    String? latitude;
+    String? longitude;
+    
+    if (messageData != null) {
+      photoUrl = messageData['photoUrl'];
+      requestId = messageData['requestId'];
+      latitude = messageData['latitude'];
+      longitude = messageData['longitude'];
+    } else {
+      try {
+        final decoded = jsonDecode(payload);
+        photoUrl = decoded['photoUrl'];
+        requestId = decoded['requestId'];
+        latitude = decoded['latitude'];
+        longitude = decoded['longitude'];
+      } catch (e) {
+        debugPrint('Failed to decode move_car_request payload: $e');
+      }
+    }
+
+    Navigator.push(
+      navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (_) => MoveCarRequestScreen(
+          photoUrl: photoUrl,
+          requestId: requestId,
+          latitude: latitude,
+          longitude: longitude,
+        ),
+      ),
+    );
   }
 
   void _navigateToCallScreen(String payload, {Map<String, dynamic>? messageData, int retryCount = 0, bool forceAnswer = false}) {
