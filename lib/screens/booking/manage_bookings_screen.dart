@@ -216,14 +216,34 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
 
     String priceUnit = 'total';
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookingInfoScreen(
+              bookingId: bookingId,
+              locationName: locationName,
+              spotId: data['spotId'] ?? 'N/A',
+              startDateTime: start,
+              endDateTime: end,
+              price: priceAmount,
+              effectiveStatus: effectiveStatus,
+              locationAddress: locationAddress ?? '',
+              vehicleMake: data['vehicleMake'] ?? '',
+              vehiclePlate: data['vehiclePlate'] ?? '',
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -390,7 +410,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
           ]
         ],
       ),
-    );
+    ));
   }
 
   void _showCancelDialog(BuildContext context, String bookingId) {

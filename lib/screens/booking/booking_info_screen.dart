@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'parking_timer_screen.dart';
+import '../feedback_screen.dart';
 class BookingInfoScreen extends StatefulWidget {
   final String bookingId;
   final String locationName;
@@ -231,6 +233,78 @@ class _BookingInfoScreenState extends State<BookingInfoScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                ],
+
+                if (effectiveStatus == 'Completed') ...[
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('feedback')
+                        .where('bookingId', isEqualTo: bookingId)
+                        .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                        .limit(1)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+                        );
+                      }
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: SizedBox(
+                            height: 56,
+                            child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                          ),
+                        );
+                      }
+                      
+                      final hasFeedback = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+                      if (hasFeedback) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => FeedbackScreen(
+                                      bookingId: bookingId,
+                                      locationName: locationName,
+                                      bookingDate: startDateTime,
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 18),
+                                backgroundColor: Colors.blueAccent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Leave Feedback',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    },
+                  ),
                 ],
 
                 SizedBox(

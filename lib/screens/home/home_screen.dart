@@ -14,6 +14,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:ui' as ui;
 import 'dart:async';
 import '../../widgets/sos_dialog.dart';
+import '../../widgets/sos_start_dialog.dart';
 import '../../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -98,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SymbolOptions(
             geometry: LatLng(location.latitude, location.longitude),
             iconImage: 'parking_icon',
-            iconSize: 1.0,
+            iconSize: 1.8,
           ),
         );
         _symbolToLocation[symbol.id] = location;
@@ -297,6 +298,9 @@ class _HomeScreenState extends State<HomeScreen> {
               styleString: "https://api.maptiler.com/maps/streets-v4-dark/style.json?key=HTRFmtzXurM48zKkvEh7",
               onMapCreated: _onMapCreated,
               onStyleLoadedCallback: _onStyleLoaded,
+              compassEnabled: false,
+              attributionButtonMargins: const Point(-100, -100),
+              logoViewMargins: const Point(-100, -100),
               onMapClick: (Point<double> point, LatLng position) {
                 FocusScope.of(context).unfocus();
               },
@@ -670,18 +674,37 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                FloatingActionButton(
-                  heroTag: 'sos_btn',
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: FloatingActionButton(
+                    heroTag: 'sos_btn',
                   onPressed: () async {
                     if (_isEmergencyActive) {
                       Navigator.pushNamed(context, '/emergency-status');
                       return;
                     }
-                    final bool? result = await showDialog<bool>(
+
+                    // First show the intermediate SOS Start screen
+                    final bool? shouldStart = await showDialog<bool>(
                       context: context,
                       barrierDismissible: false,
-                      builder: (context) => SOSDialog(
+                      builder: (context) => SOSStartDialog(
                         onCancel: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Emergency alert cancelled.')),
+                          );
+                        },
+                      ),
+                    );
+
+                    // If user tapped to start the actual emergency alert
+                    if (shouldStart == true) {
+                      final bool? result = await showDialog<bool>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => SOSDialog(
+                          onCancel: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Emergency alert cancelled.')),
                           );
@@ -744,13 +767,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SnackBar(content: Text('Failed to send SOS. Please call 911 directly.')),
                       );
                     }
+                    }
                   },
                   backgroundColor: Colors.redAccent,
                   child: const Icon(Icons.sos_rounded, color: Colors.white, size: 28),
                 ),
+                ),
                 const SizedBox(height: 16),
-                FloatingActionButton(
-                  heroTag: 'location_btn',
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: FloatingActionButton(
+                    heroTag: 'location_btn',
                   onPressed: _isLoadingLocation ? null : _goToCurrentLocation,
                   backgroundColor: const Color(0xFF1C1C1E),
                   child: _isLoadingLocation
@@ -763,6 +791,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         )
                       : const Icon(Icons.my_location_rounded, color: Colors.white),
+                  ),
                 ),
               ],
             )

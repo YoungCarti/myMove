@@ -78,6 +78,7 @@ dependencies:
   flutter_svg: ^2.0.9              # SVG image support
   cached_network_image: ^3.3.1     # Cache network images for better performance
   shimmer: ^3.0.0                  # Loading shimmer effects
+  flutter_vibrate: ^1.3.0
 
 dev_dependencies:
   flutter_test:

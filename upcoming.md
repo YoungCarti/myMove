@@ -22,8 +22,6 @@
 *   (Reviewing pending features to transition into the next phase)
 
 ## 3. What We Haven't Done (Pending & Future Features)
-*   **Identity Verification (IC and Face):** Implement e-KYC using on-device technology (e.g., Google ML Kit) to scan Identity Cards (IC) and detect faces for liveness without complex backend processing.
-*   **User Feedback:** Create a dedicated space/form to allow users to leave feedback on their experience.
 *   **App-less Web QR Scanning:** Update vehicle QR codes to use standard HTTPS URLs pointing to a Firebase-hosted webpage. This allows anyone (even without the app) to scan the code with their default camera and trigger a "Move Car" push notification to the owner.
 
 ### 🔮 Final Phases (To be tackled after feature completion)

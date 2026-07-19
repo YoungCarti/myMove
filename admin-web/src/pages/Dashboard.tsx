@@ -12,7 +12,8 @@ import {
   X,
   MapPin,
   ShieldAlert,
-  Megaphone
+  Megaphone,
+  MessageSquare
 } from 'lucide-react';
 import { SpotManagement } from './SpotManagement';
 import { LocationManagement } from './LocationManagement';
@@ -20,15 +21,16 @@ import { EmergencyManagement } from './EmergencyManagement';
 import { BookingManagement } from './BookingManagement';
 import { Overview } from './Overview';
 import { BroadcastNotifications } from './BroadcastNotifications';
+import { FeedbackManagement } from './FeedbackManagement';
 
-type TabType = 'overview' | 'locations' | 'spots' | 'bookings' | 'emergency' | 'broadcast';
+type TabType = 'overview' | 'locations' | 'spots' | 'bookings' | 'emergency' | 'broadcast' | 'feedback';
 
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const path = window.location.pathname.substring(1);
-    const validTabs: TabType[] = ['overview', 'locations', 'spots', 'bookings', 'emergency', 'broadcast'];
+    const validTabs: TabType[] = ['overview', 'locations', 'spots', 'bookings', 'emergency', 'broadcast', 'feedback'];
     return validTabs.includes(path as TabType) ? (path as TabType) : 'overview';
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -45,7 +47,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname.substring(1);
-      const validTabs: TabType[] = ['overview', 'locations', 'spots', 'bookings', 'emergency', 'broadcast'];
+      const validTabs: TabType[] = ['overview', 'locations', 'spots', 'bookings', 'emergency', 'broadcast', 'feedback'];
       if (validTabs.includes(path as TabType)) {
         setActiveTab(path as TabType);
       } else {
@@ -68,6 +70,7 @@ export const Dashboard: React.FC = () => {
     { id: 'spots', name: 'Spot Management', icon: Car },
     { id: 'bookings', name: 'Bookings', icon: CalendarDays },
     { id: 'broadcast', name: 'Broadcast', icon: Megaphone },
+    { id: 'feedback', name: 'Feedback', icon: MessageSquare },
     { id: 'emergency', name: 'Emergency SOS', icon: ShieldAlert },
   ] as const;
 
@@ -83,6 +86,8 @@ export const Dashboard: React.FC = () => {
         return <BookingManagement />;
       case 'broadcast':
         return <BroadcastNotifications />;
+      case 'feedback':
+        return <FeedbackManagement />;
       case 'emergency':
         return <EmergencyManagement />;
       default:
