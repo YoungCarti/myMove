@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'dart:async';
 
 class SOSDialog extends StatefulWidget {
@@ -15,21 +16,23 @@ class SOSDialog extends StatefulWidget {
   State<SOSDialog> createState() => _SOSDialogState();
 }
 
-class _SOSDialogState extends State<SOSDialog> with SingleTickerProviderStateMixin {
+class _SOSDialogState extends State<SOSDialog> {
   int _counter = 5;
   Timer? _timer;
-  late AnimationController _animationController;
   bool _isProcessing = false;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-
+    _vibrate();
     _startTimer();
+  }
+
+  void _vibrate() async {
+    bool canVibrate = await Vibrate.canVibrate;
+    if (canVibrate) {
+      Vibrate.vibrate();
+    }
   }
 
   void _startTimer() {
@@ -38,6 +41,7 @@ class _SOSDialogState extends State<SOSDialog> with SingleTickerProviderStateMix
         setState(() {
           _counter--;
         });
+        _vibrate();
       } else {
         _timer?.cancel();
         _handleConfirm();
@@ -65,7 +69,6 @@ class _SOSDialogState extends State<SOSDialog> with SingleTickerProviderStateMix
   @override
   void dispose() {
     _timer?.cancel();
-    _animationController.dispose();
     super.dispose();
   }
 
@@ -75,94 +78,103 @@ class _SOSDialogState extends State<SOSDialog> with SingleTickerProviderStateMix
       insetPadding: EdgeInsets.zero,
       backgroundColor: Colors.transparent,
       child: Scaffold(
-        backgroundColor: Colors.red.shade900,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(),
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.white,
-                  size: 100,
-                ),
-                const SizedBox(height: 32),
-                const Text(
-                  'EMERGENCY ALERT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2.0,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Notifying security and sharing your live location in...',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 48),
-                _isProcessing
-                    ? const Column(
-                        children: [
-                          SizedBox(height: 30),
-                          CircularProgressIndicator(color: Colors.white),
-                          SizedBox(height: 20),
-                          Text(
-                            'Acquiring location...',
-                            style: TextStyle(color: Colors.white, fontSize: 18),
-                          ),
-                          SizedBox(height: 100),
-                        ],
-                      )
-                    : AnimatedBuilder(
-                        animation: _animationController,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: 1.0 + (_animationController.value * 0.2),
-                            child: Container(
-                              width: 150,
-                              height: 150,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.2),
-                                border: Border.all(color: Colors.white, width: 4),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '$_counter',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 72,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                const Spacer(),
-                if (!_isProcessing)
-                  _SlideToCancel(
-                    onCancel: () {
-                      _timer?.cancel();
-                      Navigator.of(context).pop();
-                      widget.onCancel();
-                    },
-                  ),
-                const SizedBox(height: 32),
-              ],
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1.0),
+            child: Container(
+              color: Colors.grey.shade200,
+              height: 1.0,
+            ),
+          ),
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          title: const Text(
+            'SOS',
+            style: TextStyle(
+              color: Color(0xFF2E1B4D), // Dark purple
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
+        body: SafeArea(
+          child: _buildCountdownScreen(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCountdownScreen() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          const Text(
+            'Slide to cancel',
+            style: TextStyle(
+              color: Color(0xFF2E1B4D),
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'After 5 seconds, your SOS and location\nwill be sent to your Circle and emergency contacts.',
+            style: TextStyle(
+              color: Color(0xFF4A4A4A),
+              fontSize: 16,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 64),
+          _isProcessing
+              ? const Column(
+                  children: [
+                    SizedBox(height: 30),
+                    CircularProgressIndicator(color: Color(0xFFFF6B6B)),
+                    SizedBox(height: 20),
+                    Text(
+                      'Acquiring location...',
+                      style: TextStyle(color: Color(0xFF2E1B4D), fontSize: 18),
+                    ),
+                  ],
+                )
+              : Container(
+                  width: 100,
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFFFF6B6B),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$_counter',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+          const Spacer(),
+          if (!_isProcessing)
+            _SlideToCancel(
+              onCancel: () {
+                _timer?.cancel();
+                Navigator.of(context).pop();
+                widget.onCancel();
+              },
+            ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
@@ -179,7 +191,7 @@ class _SlideToCancel extends StatefulWidget {
 
 class _SlideToCancelState extends State<_SlideToCancel> {
   double _dragPosition = 0.0;
-  final double _thumbWidth = 60.0;
+  final double _thumbWidth = 64.0;
 
   @override
   Widget build(BuildContext context) {
@@ -189,39 +201,34 @@ class _SlideToCancelState extends State<_SlideToCancel> {
         final double maxDrag = maxWidth - _thumbWidth;
 
         return Container(
-          height: 60,
+          height: 64,
           decoration: BoxDecoration(
-            color: Colors.black26,
-            borderRadius: BorderRadius.circular(30),
+            color: const Color(0xFF424242),
+            borderRadius: BorderRadius.circular(32),
           ),
           child: Stack(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.centerRight,
             children: [
-              const Center(
-                child: Text(
-                  'Slide to Cancel >>',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
+              Positioned(
+                left: 0,
+                right: _thumbWidth,
+                child: const Center(
+                  child: Text(
+                    'Slide to cancel SOS',
+                    style: TextStyle(
+                      color: Color(0xFFFF6B6B),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-              Container(
-                width: _dragPosition + _thumbWidth,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
               Positioned(
-                left: _dragPosition,
+                right: _dragPosition,
                 child: GestureDetector(
                   onHorizontalDragUpdate: (details) {
                     setState(() {
-                      _dragPosition += details.delta.dx;
+                      _dragPosition -= details.delta.dx;
                       if (_dragPosition < 0) _dragPosition = 0;
                       if (_dragPosition > maxDrag) {
                         _dragPosition = maxDrag;
@@ -232,7 +239,6 @@ class _SlideToCancelState extends State<_SlideToCancel> {
                     if (_dragPosition >= maxDrag * 0.8) {
                       widget.onCancel();
                     } else {
-                      // Snap back if they didn't slide far enough
                       setState(() {
                         _dragPosition = 0.0;
                       });
@@ -240,12 +246,16 @@ class _SlideToCancelState extends State<_SlideToCancel> {
                   },
                   child: Container(
                     width: _thumbWidth,
-                    height: 60,
+                    height: _thumbWidth,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white,
+                      color: Color(0xFFFF6B6B),
                     ),
-                    child: Icon(Icons.close_rounded, color: Colors.red, size: 30),
+                    child: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                 ),
               ),

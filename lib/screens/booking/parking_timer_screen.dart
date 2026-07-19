@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'extend_parking_screen.dart';
+import '../feedback_screen.dart';
 
 class ParkingTimerScreen extends StatefulWidget {
   final String bookingId;
@@ -33,6 +34,7 @@ class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
   Timer? _timer;
   late Duration _remainingTime;
   late DateTime _endDateTime;
+  bool _feedbackShown = false;
 
   void _startTimer() {
     _timer?.cancel();
@@ -56,6 +58,22 @@ class _ParkingTimerScreenState extends State<ParkingTimerScreen> {
         _remainingTime = Duration.zero;
       });
       _timer?.cancel();
+
+      if (!_feedbackShown && mounted) {
+        _feedbackShown = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FeedbackScreen(
+                bookingId: widget.bookingId,
+                locationName: widget.locationName,
+                bookingDate: widget.startDateTime,
+              ),
+            ),
+          );
+        });
+      }
     } else {
       setState(() {
         _remainingTime = _endDateTime.difference(now);
