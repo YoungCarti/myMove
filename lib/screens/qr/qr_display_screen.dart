@@ -23,7 +23,7 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final uid = authProvider.user?.uid ?? 'unknown_user';
-    final qrData = 'mymove://user/$uid';
+    final qrData = 'https://mymove-cb624.web.app/scan?id=$uid';
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),

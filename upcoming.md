@@ -14,15 +14,16 @@
 *   **Emergency Mode (Phase 12):** Built quick-access features for users to send urgent SOS alerts, alongside real-time admin notification and resolution controls in the web dashboard.
 *   **Admin/Parking Management Dashboard (Phase 13):** Built a full React web dashboard for admins to manage parking spots, track real-time revenue analytics, resolve emergency alerts, and send global broadcast push notifications.
 *   **VoIP Calling (Phase 14):** Implemented full bidirectional VoIP voice calling between drivers using the Agora RTC Engine, complete with server-generated dynamic connection tokens via Cloud Functions and push-notification based incoming call routing.
+*   **App-less Web QR Scanning (Phase 15):** Implemented web-based QR scanning allowing non-app users to trigger a "Move Car" push notification to vehicle owners, complete with photo evidence, GPS location validation, and a fraud reporting/banning system.
+*   **Booking Expiry Notifications (Phase 16):** Added a server-side Cloud Function (`pubsub.schedule`) running every minute to automatically notify users via Push Notification when their active parking session is 10 minutes away from expiring.
 
 ---
 
 ## 2. What We Doing Currently (Doing Gradually)
-
-*   (Reviewing pending features to transition into the next phase)
+- 
 
 ## 3. What We Haven't Done (Pending & Future Features)
-*   **App-less Web QR Scanning:** Update vehicle QR codes to use standard HTTPS URLs pointing to a Firebase-hosted webpage. This allows anyone (even without the app) to scan the code with their default camera and trigger a "Move Car" push notification to the owner.
+- 
 
 ### 🔮 Final Phases (To be tackled after feature completion)
 *   **End-to-End Prototype Testing (Phase 12):** Final physical tests moving "toy cars" on the tabletop model while watching the Flutter UI react in real-time.

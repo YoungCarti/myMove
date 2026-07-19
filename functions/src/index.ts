@@ -3,6 +3,7 @@ import {
   onDocumentCreated,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 
 import { RtcTokenBuilder, RtcRole } from "agora-access-token";
@@ -1340,3 +1341,260 @@ export const stripeWebhook = onRequest(
     response.json({ received: true });
   }
 );
+
+// --- APP-LESS QR SCANNING ENDPOINTS ---
+
+export const getVehiclePublicInfo = onCall(
+  { enforceAppCheck: false },
+  async (request) => {
+    const { targetUserId } = request.data;
+    if (!targetUserId) {
+      throw new HttpsError("invalid-argument", "Missing targetUserId.");
+    }
+
+    const vehicleDoc = await db.collection("publicVehicles").doc(targetUserId).get();
+    if (!vehicleDoc.exists) {
+      throw new HttpsError("not-found", "Vehicle not found.");
+    }
+
+    const data = vehicleDoc.data();
+    if (data?.isActive !== true) {
+      throw new HttpsError("not-found", "Vehicle is not active.");
+    }
+
+    return {
+      success: true,
+      plateNumber: data.plateNumber || "Unknown",
+    };
+  }
+);
+
+export const requestWebMoveCar = onCall(
+  { enforceAppCheck: false },
+  async (request) => {
+    const { targetUserId, photoUrl, location } = request.data;
+    if (!targetUserId) {
+      throw new HttpsError("invalid-argument", "Missing targetUserId.");
+    }
+    if (!photoUrl) {
+      throw new HttpsError("invalid-argument", "Missing photo. A photo of the blocked vehicle is required.");
+    }
+
+    // Rate Limiting: Check recent notifications to prevent spam.
+    const ipAddress = request.rawRequest.ip || "unknown-ip";
+    // Also use the user's Auth uid if available
+    const uid = request.auth?.uid || "anonymous";
+
+    const rateLimitRef = db.collection("rateLimits").doc(`${ipAddress}_${targetUserId}`);
+    const rateLimitDoc = await rateLimitRef.get();
+    const now = Date.now();
+
+    if (rateLimitDoc.exists) {
+      const lastSent = rateLimitDoc.data()?.lastSent || 0;
+      // Limit to 1 request every 2 minutes (120000 ms)
+      if (now - lastSent < 120000) {
+        throw new HttpsError("resource-exhausted", "Please wait a moment before sending another notification.");
+      }
+    }
+    await rateLimitRef.set({ lastSent: now });
+
+    // Check if the user is banned
+    const reputationRef = db.collection("reputations").doc(uid);
+    const reputationDoc = await reputationRef.get();
+    if (reputationDoc.exists && reputationDoc.data()?.isBanned) {
+      throw new HttpsError("permission-denied", "You have been banned from sending requests due to multiple reports.");
+    }
+
+    const targetUserDoc = await db.collection("users").doc(targetUserId).get();
+    if (!targetUserDoc.exists) {
+      throw new HttpsError("not-found", "Target user not found.");
+    }
+
+    const fcmToken = targetUserDoc.data()?.fcmToken;
+    if (!fcmToken) {
+      throw new HttpsError("not-found", "Target user cannot receive notifications.");
+    }
+
+    // Save the request to Firestore for auditing and reporting
+    const moveRequestRef = db.collection("moveRequests").doc();
+    await moveRequestRef.set({
+      targetUserId,
+      senderUid: uid,
+      senderIp: ipAddress,
+      photoUrl,
+      location: location || null,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      status: "pending", // pending, reported
+    });
+
+    const payload: admin.messaging.Message = {
+      token: fcmToken,
+      data: {
+        title: "Please Move Your Car",
+        body: "Someone requested you to move your vehicle.",
+        type: "move_car_request",
+        photoUrl: photoUrl,
+        requestId: moveRequestRef.id,
+        latitude: location?.latitude?.toString() || "",
+        longitude: location?.longitude?.toString() || "",
+      },
+      android: {
+        priority: "high",
+      },
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              title: "Please Move Your Car",
+              body: "Someone requested you to move your vehicle.",
+            },
+            sound: "default",
+          },
+        },
+      },
+    };
+
+    try {
+      await admin.messaging().send(payload);
+      return { success: true, message: "Notification sent successfully." };
+    } catch (error) {
+      console.error("Error sending web move car FCM:", error);
+      throw new HttpsError("internal", "Failed to send notification.");
+    }
+  }
+);
+
+export const reportFakeRequest = onCall(
+  { enforceAppCheck: false },
+  async (request) => {
+    const { requestId } = request.data;
+    const uid = request.auth?.uid;
+
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "You must be logged in to report a request.");
+    }
+    if (!requestId) {
+      throw new HttpsError("invalid-argument", "Missing requestId.");
+    }
+
+    const moveRequestRef = db.collection("moveRequests").doc(requestId);
+    const moveRequestDoc = await moveRequestRef.get();
+
+    if (!moveRequestDoc.exists) {
+      throw new HttpsError("not-found", "Request not found.");
+    }
+
+    const data = moveRequestDoc.data();
+    if (data?.targetUserId !== uid) {
+      throw new HttpsError("permission-denied", "You can only report requests directed at you.");
+    }
+
+    if (data?.status === "reported") {
+      throw new HttpsError("already-exists", "This request has already been reported.");
+    }
+
+    await moveRequestRef.update({ status: "reported" });
+
+    // Update reputation for the sender
+    const senderUid = data?.senderUid;
+    if (senderUid && senderUid !== "anonymous") {
+      const reputationRef = db.collection("reputations").doc(senderUid);
+      const reputationDoc = await reputationRef.get();
+
+      if (reputationDoc.exists) {
+        const currentReports = reputationDoc.data()?.reportCount || 0;
+        const newReportCount = currentReports + 1;
+        await reputationRef.update({
+          reportCount: newReportCount,
+          isBanned: newReportCount >= 3, // Ban after 3 reports
+          lastReportedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        await reputationRef.set({
+          reportCount: 1,
+          isBanned: false,
+          lastReportedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    return { success: true, message: "Request reported successfully." };
+  }
+);
+
+export const notifyExpiringBookings = onSchedule("every 1 minutes", async () => {
+  const now = new Date();
+
+
+  // Find bookings expiring between 10m and 11m from now
+  const tenMinsFromNow = new Date(now.getTime() + 10 * 60 * 1000);
+  const elevenMinsFromNow = new Date(now.getTime() + 11 * 60 * 1000);
+
+  const tenMinsISO = tenMinsFromNow.toISOString();
+  const elevenMinsISO = elevenMinsFromNow.toISOString();
+
+  // Query active bookings where endDateTime is between 10MinsISO and 11MinsISO
+  const expiringBookingsSnapshot = await db.collection("bookings")
+    .where("status", "==", "active")
+    .where("endDateTime", ">=", tenMinsISO)
+    .where("endDateTime", "<", elevenMinsISO)
+    .get();
+
+  if (expiringBookingsSnapshot.empty) {
+    console.log("No bookings expiring in 10 minutes.");
+    return;
+  }
+
+  const promises: Promise<void>[] = [];
+
+  expiringBookingsSnapshot.forEach((doc) => {
+    const booking = doc.data();
+    if (!booking.userId) return;
+
+    const promise = db.collection("users").doc(booking.userId).get().then(async (userDoc) => {
+      const userData = userDoc.data();
+      const fcmToken = userData?.fcmToken;
+
+      if (!fcmToken) {
+        console.log(`User ${booking.userId} has no FCM token.`);
+        return;
+      }
+
+      const payload: admin.messaging.Message = {
+        token: fcmToken,
+        data: {
+          title: "Parking Expiring Soon!",
+          body: `Your parking at ${booking.locationName || "your location"} expires in 10 minutes. Open the app to extend your time!`,
+          type: "booking_expiring",
+          bookingId: doc.id,
+        },
+        android: {
+          priority: "high",
+        },
+        apns: {
+          payload: {
+            aps: {
+              alert: {
+                title: "Parking Expiring Soon!",
+                body: `Your parking at ${booking.locationName || "your location"} expires in 10 minutes. Open the app to extend your time!`,
+              },
+              sound: "default",
+            },
+          },
+        },
+      };
+
+      try {
+        await admin.messaging().send(payload);
+        console.log(`Sent expiry notification to ${booking.userId} for booking ${doc.id}`);
+      } catch (err) {
+        console.error(`Error sending notification to ${booking.userId}:`, err);
+      }
+    });
+
+    promises.push(promise);
+  });
+
+  await Promise.all(promises);
+  console.log(`Processed ${promises.length} expiring bookings.`);
+});
