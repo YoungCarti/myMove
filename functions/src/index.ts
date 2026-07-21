@@ -253,7 +253,12 @@ export const createBooking = onCall(
       );
     }
 
-    if (start < new Date()) {
+    // Allow a 2-minute grace period to account for network latency
+    // and seconds/milliseconds stripping on the frontend
+    const gracePeriod = new Date();
+    gracePeriod.setMinutes(gracePeriod.getMinutes() - 2);
+
+    if (start < gracePeriod) {
       throw new HttpsError(
         "failed-precondition",
         "Cannot book a time in the past."
@@ -414,10 +419,10 @@ export const assignSpot = onCall(
         // P2 FIX: Reject expired pending bookings before activation.
         // Firestore TTL deletion is async and can lag, so a booking
         // past its expiresAt could still exist. Check it explicitly.
-        if (bookingData.status !== "pending") {
+        if (bookingData.status !== "pending" && bookingData.status !== "active") {
           throw new HttpsError(
             "failed-precondition",
-            "This booking is no longer pending."
+            "This booking is no longer pending or active."
           );
         }
 

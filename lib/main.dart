@@ -50,43 +50,55 @@ class _ForegroundMessageHandlerState extends State<_ForegroundMessageHandler> {
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      if (!mounted || context.read<AuthProvider>().user == null) return;
-      if (message.data['type'] == 'incoming_call') {
-        final channelName = message.data['channelName'] ?? '';
-        final callerName = message.data['callerName'] ?? 'Caller';
-        final token = message.data['token'];
-        if (channelName.isNotEmpty && navigatorKey.currentContext != null) {
-          Navigator.push(
-            navigatorKey.currentContext!,
-            MaterialPageRoute(
-              builder: (_) => CallScreen(
-                channelName: channelName,
-                callerName: callerName,
-                token: token,
-              ),
-            ),
-          );
-        }
-      } else if (message.data['type'] == 'move_car_request') {
-        final photoUrl = message.data['photoUrl'];
-        final requestId = message.data['requestId'];
-        final latitude = message.data['latitude'];
-        final longitude = message.data['longitude'];
-        if (navigatorKey.currentContext != null) {
-          Navigator.push(
-            navigatorKey.currentContext!,
-            MaterialPageRoute(
-              builder: (_) => MoveCarRequestScreen(
-                photoUrl: photoUrl,
-                requestId: requestId,
-                latitude: latitude,
-                longitude: longitude,
-              ),
-            ),
-          );
-        }
-      }
+      _handleNotificationTap(message.data);
     });
+  }
+
+  void _handleNotificationTap(Map<String, dynamic> data, {int retryCount = 0}) {
+    if (!mounted || navigatorKey.currentContext == null || context.read<AuthProvider>().user == null) {
+      if (retryCount < 10) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _handleNotificationTap(data, retryCount: retryCount + 1);
+        });
+      } else {
+        debugPrint("Failed to handle notification tap after retries.");
+      }
+      return;
+    }
+
+    if (data['type'] == 'incoming_call') {
+      final channelName = data['channelName'] ?? '';
+      final callerName = data['callerName'] ?? 'Caller';
+      final token = data['token'];
+      if (channelName.isNotEmpty) {
+        Navigator.push(
+          navigatorKey.currentContext!,
+          MaterialPageRoute(
+            builder: (_) => CallScreen(
+              channelName: channelName,
+              callerName: callerName,
+              token: token,
+            ),
+          ),
+        );
+      }
+    } else if (data['type'] == 'move_car_request') {
+      final photoUrl = data['photoUrl'];
+      final requestId = data['requestId'];
+      final latitude = data['latitude'];
+      final longitude = data['longitude'];
+      Navigator.push(
+        navigatorKey.currentContext!,
+        MaterialPageRoute(
+          builder: (_) => MoveCarRequestScreen(
+            photoUrl: photoUrl,
+            requestId: requestId,
+            latitude: latitude,
+            longitude: longitude,
+          ),
+        ),
+      );
+    }
   }
 
   @override

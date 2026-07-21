@@ -75,6 +75,7 @@ class _MoveCarRequestScreenState extends State<MoveCarRequestScreen> {
       appBar: AppBar(
         title: const Text('Move Car Request'),
         backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: SingleChildScrollView(
