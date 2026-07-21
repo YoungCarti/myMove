@@ -26,8 +26,8 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
   late DateTime _currentMonth;
 
   // Time selection
-  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 14, minute: 0);
+  late TimeOfDay _startTime;
+  late TimeOfDay _endTime;
 
   bool _isLoading = false;
 
@@ -37,6 +37,16 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     DateTime now = DateTime.now();
     _currentMonth = DateTime(now.year, now.month);
     _selectedDates.add(DateTime(now.year, now.month, now.day));
+
+    _startTime = TimeOfDay(hour: now.hour, minute: now.minute);
+    
+    int endHour = now.hour + 2;
+    int endMinute = now.minute;
+    if (endHour > 23) {
+      endHour = 23;
+      endMinute = 59;
+    }
+    _endTime = TimeOfDay(hour: endHour, minute: endMinute);
   }
 
   @override
@@ -83,7 +93,11 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     final sortedDates = _selectedDates.toList()..sort();
     final startDate = sortedDates.first;
     final startDateTime = DateTime(startDate.year, startDate.month, startDate.day, _startTime.hour, _startTime.minute);
-    return startDateTime.isBefore(DateTime.now());
+    
+    final now = DateTime.now();
+    final currentDateTime = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+    
+    return startDateTime.isBefore(currentDateTime);
   }
 
   double get _totalPrice {
@@ -704,7 +718,7 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                                   vehiclePlate: _selectedVehicle?['plate'] ?? 'Unknown',
                                   startDateTime: startDateTime,
                                   endDateTime: endDateTime,
-                                  price: response.data['price'].toDouble(),
+                                  price: (response.data['price'] ?? 0.0).toDouble(),
                                   occupiedSpots: List<String>.from(response.data['occupiedSpots'] ?? []),
                                 ),
                               ),
