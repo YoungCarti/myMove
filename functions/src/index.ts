@@ -931,6 +931,32 @@ export const onBookingUpdated = onDocumentUpdated(
     const statusAfter = afterData.status;
 
     if (statusBefore === statusAfter) {
+      // Check if spotId was just assigned (e.g. status was already active from webhook, but spotId just got set)
+      const spotAssigned = !beforeData.spotId && afterData.spotId;
+      if (spotAssigned && statusAfter === "active") {
+        const userId = afterData.userId;
+        const userDoc = await db.collection("users").doc(userId).get();
+        const fcmToken = userDoc.data()?.fcmToken;
+        if (!fcmToken) return;
+
+        const locationName = afterData.locationName || "Parking Location";
+        const spotName = afterData.spotId || afterData.spotNumber || "";
+        const spotText = spotName ? `spot ${spotName}` : "parking spot";
+        const payload = {
+          token: fcmToken,
+          notification: {
+            title: "Booking Activated",
+            body: `Your ${spotText} at ${locationName} is now active!`,
+          },
+          data: {
+            bookingId: event.params.bookingId,
+            type: "booking_update",
+          },
+        };
+        await admin.messaging().send(payload).catch((e) => console.error(e));
+        return;
+      }
+
       if (
         beforeData.endDateTime !== afterData.endDateTime &&
         statusAfter === "active"
@@ -971,8 +997,18 @@ export const onBookingUpdated = onDocumentUpdated(
     let body = `Your booking for ${locationName} has been updated.`;
 
     if (statusAfter === "active") {
+      // If spotId is not yet assigned (e.g. webhook marked paid before assignSpot ran),
+      // do not send premature notification with undefined spotId. It will be sent once spotId is assigned.
+      if (!afterData.spotId && !afterData.spotNumber) {
+        console.log(
+          `Booking ${event.params.bookingId} is active, but spotId is not yet assigned. Notification deferred.`
+        );
+        return;
+      }
       title = "Booking Activated";
-      body = `Your spot ${afterData.spotId} at ${locationName} is now active!`;
+      const spotName = afterData.spotId || afterData.spotNumber || "";
+      const spotText = spotName ? `spot ${spotName}` : "parking spot";
+      body = `Your ${spotText} at ${locationName} is now active!`;
     } else if (statusAfter === "canceled") {
       title = "Booking Canceled";
       body = `Your booking at ${locationName} has been canceled.`;
@@ -1072,7 +1108,7 @@ export const createPaymentIntent = onCall(
       );
     }
 
-    const { amount, currency, bookingId } = request.data;
+    const { amount, currency, bookingId, spotId } = request.data;
     if (!amount || typeof amount !== "number") {
       throw new HttpsError("invalid-argument", "Missing or invalid amount.");
     }
@@ -1116,9 +1152,16 @@ export const createPaymentIntent = onCall(
         },
       });
 
-      // 4. Save the paymentIntent.id to the booking document
+      // 4. Save the paymentIntent.id and spotId to the booking document
+      const updateData: Record<string, unknown> = {
+        paymentIntentId: paymentIntent.id,
+      };
+      if (typeof spotId === "string" && spotId.trim().length > 0) {
+        updateData.spotId = spotId.trim().toUpperCase();
+      }
+
       await db.collection("bookings").doc(bookingId).set(
-        { paymentIntentId: paymentIntent.id },
+        updateData,
         { merge: true }
       );
 

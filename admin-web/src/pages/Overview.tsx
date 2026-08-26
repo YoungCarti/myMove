@@ -11,48 +11,25 @@ interface Stats {
 }
 
 export const Overview: React.FC = () => {
-  const [stats, setStats] = useState<Stats>({
-    totalRevenue: 0,
-    activeBookings: 0,
-    totalUsers: 0,
-    totalSpots: 0
-  });
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [totalSpots, setTotalSpots] = useState(0);
+  const [directUserCount, setDirectUserCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [time, setTime] = useState(new Date());
 
   useEffect(() => {
     // Listen to bookings
     const unsubscribeBookings = onSnapshot(collection(db, 'bookings'), (snapshot) => {
-      let revenue = 0;
-      let active = 0;
-      const uniqueUsers = new Set<string>();
-
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.status !== 'canceled') {
-          revenue += (data.totalPrice || data.totalPaid || 0);
-        }
-        if (data.status === 'active' || data.status === 'pending') {
-          active++;
-        }
-        if (data.userId) {
-          uniqueUsers.add(data.userId);
-        }
-      });
-
-      setStats(prev => ({
-        ...prev,
-        totalRevenue: revenue,
-        activeBookings: active,
-        totalUsers: uniqueUsers.size // Fallback metric for users
+      const bookingsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
+      setBookings(bookingsData);
     });
 
     // Listen to parking spots
     const unsubscribeSpots = onSnapshot(collection(db, 'parkingSpots'), (snapshot) => {
-      setStats(prev => ({
-        ...prev,
-        totalSpots: snapshot.docs.length
-      }));
+      setTotalSpots(snapshot.docs.length);
       setLoading(false);
     });
 
@@ -60,7 +37,7 @@ export const Overview: React.FC = () => {
     const fetchUsers = async () => {
       try {
         const usersSnap = await getDocs(collection(db, 'users'));
-        setStats(prev => ({ ...prev, totalUsers: usersSnap.size }));
+        setDirectUserCount(usersSnap.size);
       } catch (e) {
         // Admin might not have rules to read entire users list yet, fallback to booking users
         console.log("Could not fetch users directly, using booking data for user count.");
@@ -68,11 +45,120 @@ export const Overview: React.FC = () => {
     };
     fetchUsers();
 
+    const interval = setInterval(() => {
+      setTime(new Date());
+    }, 30000); // refresh every 30s
+
     return () => {
       unsubscribeBookings();
       unsubscribeSpots();
+      clearInterval(interval);
     };
   }, []);
+
+  // Compute stats on the fly
+  let totalRevenue = 0;
+  let activeBookings = 0;
+  const uniqueUsers = new Set<string>();
+
+  bookings.forEach(booking => {
+    if (booking.status !== 'canceled') {
+      totalRevenue += (booking.totalPrice || booking.totalPaid || 0);
+    }
+    
+    // Effective status check
+    const now = new Date();
+    const endDateTime = booking.endDateTime ? new Date(booking.endDateTime) : null;
+    let isEffectiveActive = false;
+    
+    if (booking.status === 'pending') {
+      isEffectiveActive = true;
+    } else if (booking.status === 'active') {
+      if (!endDateTime || endDateTime >= now) {
+        isEffectiveActive = true;
+      }
+    }
+    
+    if (isEffectiveActive) {
+      activeBookings++;
+    }
+    
+    if (booking.userId) {
+      uniqueUsers.add(booking.userId);
+    }
+  });
+
+  const displayUsersCount = directUserCount !== null ? directUserCount : uniqueUsers.size;
+
+  const stats = {
+    totalRevenue,
+    activeBookings,
+    totalUsers: displayUsersCount,
+    totalSpots
+  };
+
+  const getBookingDate = (b: any): Date => {
+    if (b.createdAt) {
+      if (typeof b.createdAt.toDate === 'function') {
+        return b.createdAt.toDate();
+      }
+      if (b.createdAt.seconds) {
+        return new Date(b.createdAt.seconds * 1000);
+      }
+      return new Date(b.createdAt);
+    }
+    return new Date(b.startDateTime || b.createdAt || Date.now());
+  };
+
+  const recentTransactions = bookings
+    .filter(b => b.paymentStatus === 'paid')
+    .sort((a, b) => getBookingDate(b).getTime() - getBookingDate(a).getTime())
+    .slice(0, 5);
+
+  // Calculate revenue for each day of the current week (Monday - Sunday)
+  const getWeeklyRevenueData = () => {
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
+    
+    // Calculate the date of Monday of this week
+    const monday = new Date(now);
+    // If today is Sunday (0), Monday was 6 days ago. Otherwise, it was (currentDay - 1) days ago.
+    const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
+    monday.setDate(now.getDate() - daysSinceMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    // Initialize daily revenue array [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+    const dailyRevenues = [0, 0, 0, 0, 0, 0, 0];
+
+    bookings.forEach(booking => {
+      if (booking.status !== 'canceled') {
+        const price = booking.totalPaid ?? (booking.totalPrice ? booking.totalPrice * 1.02 : 0);
+        const bookingDate = getBookingDate(booking);
+        
+        // Check if booking is in the current week
+        const diffTime = bookingDate.getTime() - monday.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays >= 0 && diffDays < 7) {
+          dailyRevenues[diffDays] += price;
+        }
+      }
+    });
+
+    // To scale the heights in the chart (max height is 100%)
+    const maxRevenue = Math.max(...dailyRevenues);
+    const chartHeights = dailyRevenues.map(rev => {
+      if (maxRevenue === 0 || rev === 0) return 0;
+      return Math.max(5, Math.round((rev / maxRevenue) * 100));
+    });
+
+    return {
+      dailyRevenues,
+      chartHeights
+    };
+  };
+
+  const { dailyRevenues, chartHeights } = getWeeklyRevenueData();
 
   if (loading) {
     return (
@@ -178,9 +264,18 @@ export const Overview: React.FC = () => {
           </div>
           <div className="h-64 flex items-end justify-between gap-2 border-b border-[#2A2E39] pb-2 px-2">
             {/* CSS Bar Chart Simulation */}
-            {[40, 70, 45, 90, 65, 85, 100].map((height, i) => (
-              <div key={i} className="w-full max-w-[40px] flex flex-col items-center gap-2 group">
-                <div className="w-full bg-gradient-to-t from-primary/20 to-primary rounded-t-xl transition-all duration-500 group-hover:opacity-80" style={{ height: `${height}%` }}></div>
+            {chartHeights.map((height, i) => (
+              <div key={i} className="w-full max-w-[40px] h-full flex flex-col justify-end items-center gap-2 group relative">
+                {/* Tooltip */}
+                <div className={`absolute -top-10 scale-0 ${dailyRevenues[i] > 0 ? 'group-hover:scale-100' : ''} transition-all bg-[#0F1115] text-white text-xs font-semibold px-2 py-1.5 rounded-lg border border-[#2A2E39] shadow-xl whitespace-nowrap z-20 pointer-events-none`}>
+                  RM {dailyRevenues[i].toFixed(2)}
+                </div>
+                {height > 0 && (
+                  <div 
+                    className="w-full bg-gradient-to-t from-primary/20 to-primary rounded-t-xl transition-all duration-500 group-hover:opacity-80" 
+                    style={{ height: `${height}%` }}
+                  ></div>
+                )}
               </div>
             ))}
           </div>
@@ -197,12 +292,48 @@ export const Overview: React.FC = () => {
 
         <div className="bg-[#1A1D24] border border-[#2A2E39] rounded-3xl p-6 shadow-lg flex flex-col">
           <h3 className="text-lg font-bold text-white mb-6">Recent Transactions</h3>
-          <div className="flex-1 flex flex-col justify-center items-center text-center opacity-50 space-y-3">
-            <div className="w-16 h-16 bg-[#2A2E39] rounded-full flex items-center justify-center mb-2">
-              <CreditCard className="w-8 h-8 text-gray-400" />
+          {recentTransactions.length === 0 ? (
+            <div className="flex-1 flex flex-col justify-center items-center text-center opacity-50 space-y-3 py-8">
+              <div className="w-16 h-16 bg-[#2A2E39] rounded-full flex items-center justify-center mb-2">
+                <CreditCard className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-sm text-gray-400">Transaction history will populate as users complete bookings.</p>
             </div>
-            <p className="text-sm text-gray-400">Transaction history will populate as users complete bookings.</p>
-          </div>
+          ) : (
+            <div className="flex-1 flex flex-col gap-4 overflow-y-auto max-h-72 pr-1 scrollbar-thin">
+              {recentTransactions.map((booking) => {
+                const price = booking.totalPaid ?? (booking.totalPrice ? booking.totalPrice * 1.02 : 0);
+                const parsedSpotId = booking.spotId?.includes('_') ? booking.spotId.split('_').pop() : booking.spotId;
+                const date = getBookingDate(booking);
+                const formattedDate = new Intl.DateTimeFormat('en-MY', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                }).format(date);
+
+                return (
+                  <div key={booking.id} className="flex items-center justify-between p-4 bg-[#2A2E39]/30 rounded-2xl border border-[#2A2E39] hover:border-[#3A3F4B] transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20 shrink-0">
+                        <DollarSign className="w-5 h-5 text-green-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-white">{booking.locationName || 'Unknown Location'}</p>
+                        <p className="text-xs text-gray-400">Spot: {parsedSpotId || 'N/A'} • {formattedDate}</p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-4">
+                      <p className="text-sm font-bold text-white">RM {price.toFixed(2)}</p>
+                      <span className="text-[10px] font-semibold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20 uppercase tracking-wider">
+                        Paid
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

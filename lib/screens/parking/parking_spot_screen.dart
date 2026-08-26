@@ -112,7 +112,13 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
           allSpots = allSpots.toSet().toList(); // Remove duplicates
           allSpots.sort();
 
-          Map<String, String> newSlotMapping = {};
+          Map<String, String> defaultSlotMapping = {
+            'slot_1': 'A1',
+            'slot_2': 'A2',
+            'slot_3': 'A3',
+            'slot_4': 'A4',
+          };
+          Map<String, String> newSlotMapping = Map.from(defaultSlotMapping);
           List<String> aSpots = [];
           List<String> bSpots = [];
 
@@ -216,6 +222,8 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
       if (!mounted) return;
       
       final data = event.snapshot.value;
+      debugPrint("RTDB Event received at $_rtdbPath: $data");
+      debugPrint("Current slot mapping: $_slotMapping");
       if (data is Map) {
         setState(() {
           // Check each sensor and update the occupied status
@@ -224,13 +232,17 @@ class _ParkingSpotScreenState extends State<ParkingSpotScreen> {
             if (uiSlot != null) {
               if (value.toString() == 'occupied') {
                 _sensorOccupiedSpots.add(uiSlot);
+                debugPrint("Sensor $key mapped to $uiSlot -> set to OCCUPIED");
                 // If the user had selected this spot, deselect it
                 if (_selectedSpot == uiSlot) {
                   _selectedSpot = null;
                 }
               } else if (value.toString() == 'available') {
                 _sensorOccupiedSpots.remove(uiSlot);
+                debugPrint("Sensor $key mapped to $uiSlot -> set to AVAILABLE");
               }
+            } else {
+              debugPrint("Sensor $key has no UI spot mapping in $_slotMapping");
             }
           });
         });

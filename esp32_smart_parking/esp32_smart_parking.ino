@@ -8,27 +8,53 @@
 // Include secure credentials
 #include "secrets.h"
 
-// 3. HC-SR04 Pins
-#define TRIG_PIN 14
-#define ECHO_PIN 27
+// Struct for Parking Sensors
+struct ParkingSlot {
+  const char* slotId;
+  int trigPin;
+  int echoPin;
+  String currentStatus;
+};
 
-// 4. Firebase Objects
+// 3 Sensors configuration:
+// Sensor 1: TRIG=D12, ECHO=D13 -> slot_1
+// Sensor 2: TRIG=D4,  ECHO=D16 -> slot_2
+// Sensor 3: TRIG=D14, ECHO=D27 -> slot_3 (Updated to D14/D27)
+ParkingSlot slots[3] = {
+  {"slot_1", 5, 18, ""},
+  {"slot_2", 4, 16, ""},
+  {"slot_3", 25, 26, ""}
+};
+
+// Firebase Objects
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
-// Variables for sensor and timing
-long duration;
-float distance_cm;
-String currentStatus = "";
 unsigned long sendDataPrevMillis = 0;
+
+float readDistanceCM(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000); // 30ms timeout
+  if (duration == 0) {
+    return 999.0; // Out of range / no echo
+  }
+  return duration * 0.034 / 2.0;
+}
 
 void setup() {
   Serial.begin(115200);
 
-  // Initialize Sensor Pins
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
+  // Initialize 3 Sensor Pins
+  for (int i = 0; i < 3; i++) {
+    pinMode(slots[i].trigPin, OUTPUT);
+    pinMode(slots[i].echoPin, INPUT);
+  }
 
   // Connect to WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -43,7 +69,7 @@ void setup() {
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
 
-  // Sign up as anonymous user (Required for modern Firebase rules)
+  // Sign up as anonymous user
   if (Firebase.signUp(&config, &auth, "", "")) {
     Serial.println("Firebase Auth Successful");
   } else {
@@ -59,53 +85,35 @@ void setup() {
 }
 
 void loop() {
-  // Read Sensor every 2 seconds
+  // Read 3 sensors every 2 seconds
   if (Firebase.ready() && (millis() - sendDataPrevMillis > 2000 || sendDataPrevMillis == 0)) {
     sendDataPrevMillis = millis();
 
-    // 1. Trigger the sensor
-    digitalWrite(TRIG_PIN, LOW);
-    delayMicroseconds(2);
-    digitalWrite(TRIG_PIN, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(TRIG_PIN, LOW);
-
-    // 2. Read the echo
-    // Timeout set to 30000 microseconds to prevent blocking if no object is nearby
-    duration = pulseIn(ECHO_PIN, HIGH, 30000);
-    
-    if (duration == 0) {
-      Serial.println("Out of range or no echo received.");
-      distance_cm = 999.0; // Large number representing no object
-    } else {
-      // 3. Calculate distance in cm
-      distance_cm = duration * 0.034 / 2;
-    }
-    
-    Serial.print("Distance: ");
-    Serial.print(distance_cm);
-    Serial.println(" cm");
-
-    // 4. Determine Status (If less than 10cm, a car is there!)
-    // Adjust 10.0cm based on your toy car / box size
-    String newStatus = "available";
-    if (distance_cm > 0 && distance_cm < 10.0) { 
-      newStatus = "occupied";
-    }
-
-    // 5. Send to Firebase ONLY if status changed
-    // This prevents spamming Firebase and wasting your free quota
-    if (newStatus != currentStatus) {
-      Serial.printf("Status changed to: %s. Updating Firebase...\n", newStatus.c_str());
+    for (int i = 0; i < 3; i++) {
+      float distance_cm = readDistanceCM(slots[i].trigPin, slots[i].echoPin);
       
-      // Update the database path
-      if (Firebase.RTDB.setString(&fbdo, "/parking_status/building_A/slot_3", newStatus)) {
-        Serial.println("Firebase Update SUCCESS");
-        currentStatus = newStatus;
-      } else {
-        Serial.println("Firebase Update FAILED");
-        Serial.println(fbdo.errorReason());
+      Serial.printf("[%s] Distance: %.2f cm\n", slots[i].slotId, distance_cm);
+
+      // Determine Status (If less than 10cm, car detected)
+      String newStatus = "available";
+      if (distance_cm > 0 && distance_cm < 10.0) { 
+        newStatus = "occupied";
       }
+
+      // Update Firebase only when status changes
+      if (newStatus != slots[i].currentStatus) {
+        String path = String("/parking_status/building_A/") + slots[i].slotId;
+        Serial.printf("[%s] Status changed: %s ➔ Updating Firebase (%s)...\n", slots[i].slotId, newStatus.c_str(), path.c_str());
+        
+        if (Firebase.RTDB.setString(&fbdo, path.c_str(), newStatus)) {
+          Serial.printf("[%s] Firebase Update SUCCESS!\n", slots[i].slotId);
+          slots[i].currentStatus = newStatus;
+        } else {
+          Serial.printf("[%s] Firebase Update FAILED: %s\n", slots[i].slotId, fbdo.errorReason().c_str());
+        }
+      }
+      delay(50); // Small pause between sensor reads
     }
+    Serial.println("----------------------------------------");
   }
-}
+}     

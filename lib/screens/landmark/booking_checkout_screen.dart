@@ -88,6 +88,20 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
     return (diffMinutes / 60).ceil();
   }
 
+  int get _calculatedMinutes {
+    if (_selectedDates.isEmpty) return 0;
+    
+    final sortedDates = _selectedDates.toList()..sort();
+    final startDate = sortedDates.first;
+    final endDate = sortedDates.last;
+
+    final startDateTime = DateTime(startDate.year, startDate.month, startDate.day, _startTime.hour, _startTime.minute);
+    final endDateTime = DateTime(endDate.year, endDate.month, endDate.day, _endTime.hour, _endTime.minute);
+
+    int diffMinutes = endDateTime.difference(startDateTime).inMinutes;
+    return diffMinutes > 0 ? diffMinutes : 0;
+  }
+
   bool get _isPastBooking {
     if (_selectedDates.isEmpty) return false;
     final sortedDates = _selectedDates.toList()..sort();
@@ -654,12 +668,27 @@ class _BookingCheckoutScreenState extends State<BookingCheckoutScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 3.0),
                     child: Text(
-                      'for $_calculatedHours hour(s)',
+                      'for $_calculatedHours hour${_calculatedHours > 1 ? 's' : ''}${_calculatedMinutes > 0 ? ' ($_calculatedMinutes mins)' : ''}',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: Colors.white.withValues(alpha: 0.5)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Rates are billed per hour or part thereof.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
                 ],

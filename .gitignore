@@ -74,3 +74,10 @@ esp32_smart_parking/secrets.h
 
 # Firebase root cache
 .firebase/
+
+# Large media files
+scratch/
+*.wav
+3minute-video/
+*_text.txt
+extracted_pages*.txt

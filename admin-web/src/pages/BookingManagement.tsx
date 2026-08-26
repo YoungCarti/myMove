@@ -24,6 +24,7 @@ export const BookingManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'completed' | 'canceled'>('all');
+  const [time, setTime] = useState(new Date());
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'bookings'), (snapshot) => {
@@ -47,6 +48,27 @@ export const BookingManagement: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTime(new Date());
+    }, 30000); // refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const getEffectiveStatus = (booking: Booking): string => {
+    if (booking.status === 'canceled') return 'canceled';
+    if (booking.status === 'completed') return 'completed';
+    if (booking.status === 'active') {
+      const now = new Date();
+      const end = new Date(booking.endDateTime);
+      if (end < now) {
+        return 'completed';
+      }
+      return 'active';
+    }
+    return booking.status;
+  };
+
   const handleCancelBooking = async (bookingId: string) => {
     if (window.confirm('Are you sure you want to cancel this booking?')) {
       try {
@@ -62,14 +84,15 @@ export const BookingManagement: React.FC = () => {
 
   const filteredBookings = bookings.filter(booking => {
     const searchLower = searchTerm.toLowerCase();
+    const effectiveStatus = getEffectiveStatus(booking);
     const matchesSearch = (
       booking.locationName?.toLowerCase().includes(searchLower) ||
       booking.spotId?.toLowerCase().includes(searchLower) ||
-      booking.status?.toLowerCase().includes(searchLower) ||
+      effectiveStatus.toLowerCase().includes(searchLower) ||
       booking.userId?.toLowerCase().includes(searchLower) ||
       booking.vehiclePlate?.toLowerCase().includes(searchLower)
     );
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || effectiveStatus === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -187,6 +210,7 @@ export const BookingManagement: React.FC = () => {
                 filteredBookings.map((booking) => {
                   const price = booking.totalPaid ?? (booking.totalPrice ? booking.totalPrice * 1.02 : 0);
                   const parsedSpotId = booking.spotId?.includes('_') ? booking.spotId.split('_').pop() : booking.spotId;
+                  const effectiveStatus = getEffectiveStatus(booking);
 
                   return (
                     <tr key={booking.id} className="hover:bg-[#2A2E39]/20 transition-colors">
@@ -225,12 +249,12 @@ export const BookingManagement: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
-                          {booking.status.toUpperCase()}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(effectiveStatus)}`}>
+                          {effectiveStatus.toUpperCase()}
                         </span>
                       </td>
                       <td className="p-4 text-right">
-                        {(booking.status === 'active' || booking.status === 'pending') && (
+                        {(effectiveStatus === 'active' || effectiveStatus === 'pending') && (
                           <button
                             onClick={() => handleCancelBooking(booking.id)}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors border border-red-500/20"
