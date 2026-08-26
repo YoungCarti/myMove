@@ -55,6 +55,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
         'amount': totalAmount,
         'currency': 'myr',
         'bookingId': widget.bookingId,
+        'spotId': widget.spotId,
       });
 
       final clientSecret = intentResponse.data['clientSecret'];
