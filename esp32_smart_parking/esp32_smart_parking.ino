@@ -17,9 +17,9 @@ struct ParkingSlot {
 };
 
 // 3 Sensors configuration:
-// Sensor 1: TRIG=D12, ECHO=D13 -> slot_1
+// Sensor 1: TRIG=D5,  ECHO=D18 -> slot_1
 // Sensor 2: TRIG=D4,  ECHO=D16 -> slot_2
-// Sensor 3: TRIG=D14, ECHO=D27 -> slot_3 (Updated to D14/D27)
+// Sensor 3: TRIG=D25, ECHO=D26 -> slot_3
 ParkingSlot slots[3] = {
   {"slot_1", 5, 18, ""},
   {"slot_2", 4, 16, ""},
@@ -49,6 +49,11 @@ float readDistanceCM(int trigPin, int echoPin) {
 
 void setup() {
   Serial.begin(115200);
+  delay(1000);
+
+  Serial.println("\n=================================");
+  Serial.println("  ESP32 Smart Parking Starting   ");
+  Serial.println("=================================");
 
   // Initialize 3 Sensor Pins
   for (int i = 0; i < 3; i++) {
@@ -57,31 +62,29 @@ void setup() {
   }
 
   // Connect to WiFi
+  Serial.printf("Connecting to Wi-Fi: %s\n", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("Connecting to Wi-Fi");
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
-    delay(300);
+    delay(400);
   }
-  Serial.println("\nConnected to Wi-Fi!");
+  Serial.println("\n[OK] Connected to Wi-Fi!");
+  Serial.print("ESP32 IP Address: ");
+  Serial.println(WiFi.localIP());
 
   // Configure Firebase
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
+  config.signer.tokens.legacy_token = DATABASE_SECRET;
+  config.timeout.serverResponse = 10000;
+  config.timeout.socketConnection = 10000;
 
-  // Sign up as anonymous user
-  if (Firebase.signUp(&config, &auth, "", "")) {
-    Serial.println("Firebase Auth Successful");
-  } else {
-    Serial.printf("Firebase Auth Error: %s\n", config.signer.signupError.message.c_str());
-  }
+  fbdo.setResponseSize(2048);
 
-  // Assign callbacks
-  config.token_status_callback = tokenStatusCallback; 
-
-  // Initialize Firebase
+  // Initialize Firebase (no signUp or token callback needed with legacy token!)
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
+  Serial.println("[OK] Firebase Initialized with Database Secret!");
 }
 
 void loop() {
@@ -92,7 +95,11 @@ void loop() {
     for (int i = 0; i < 3; i++) {
       float distance_cm = readDistanceCM(slots[i].trigPin, slots[i].echoPin);
       
-      Serial.printf("[%s] Distance: %.2f cm\n", slots[i].slotId, distance_cm);
+      Serial.print("[");
+      Serial.print(slots[i].slotId);
+      Serial.print("] Distance: ");
+      Serial.print(distance_cm);
+      Serial.println(" cm");
 
       // Determine Status (If less than 10cm, car detected)
       String newStatus = "available";
@@ -103,17 +110,29 @@ void loop() {
       // Update Firebase only when status changes
       if (newStatus != slots[i].currentStatus) {
         String path = String("/parking_status/building_A/") + slots[i].slotId;
-        Serial.printf("[%s] Status changed: %s ➔ Updating Firebase (%s)...\n", slots[i].slotId, newStatus.c_str(), path.c_str());
+        Serial.print("[");
+        Serial.print(slots[i].slotId);
+        Serial.print("] Status changed: ");
+        Serial.print(newStatus);
+        Serial.print(" -> Updating Firebase (");
+        Serial.print(path);
+        Serial.println(")...");
         
         if (Firebase.RTDB.setString(&fbdo, path.c_str(), newStatus)) {
-          Serial.printf("[%s] Firebase Update SUCCESS!\n", slots[i].slotId);
+          Serial.print("[");
+          Serial.print(slots[i].slotId);
+          Serial.println("] Firebase Update SUCCESS!");
           slots[i].currentStatus = newStatus;
         } else {
-          Serial.printf("[%s] Firebase Update FAILED: %s\n", slots[i].slotId, fbdo.errorReason().c_str());
+          Serial.print("[");
+          Serial.print(slots[i].slotId);
+          Serial.print("] Firebase Update FAILED: ");
+          Serial.println(fbdo.errorReason());
         }
       }
       delay(50); // Small pause between sensor reads
     }
     Serial.println("----------------------------------------");
   }
-}     
+}
+     
