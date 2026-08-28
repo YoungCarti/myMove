@@ -67,10 +67,11 @@ app.*.map.json
 /.home/
 .venv/
 
-# Firebase configuration files (Secrets)
+# Firebase and Local configuration files (Secrets)
 google-services.json
 GoogleService-Info.plist
 firebase_options.dart
+lib/config/map_config.dart
 serviceAccountKey.json
 *serviceAccount*.json
 
