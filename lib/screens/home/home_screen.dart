@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../config/routes.dart';
+import '../../config/map_config.dart';
 import '../landmark/landmark_card.dart';
 import '../../models/parking_location.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -295,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // ─── Full Screen Map ─────────────────────────────────────────────
           if (defaultTargetPlatform == TargetPlatform.android)
             MapLibreMap(
-              styleString: "https://api.maptiler.com/maps/streets-v4-dark/style.json?key=HTRFmtzXurM48zKkvEh7",
+              styleString: MapConfig.mapStyleUrl,
               onMapCreated: _onMapCreated,
               onStyleLoadedCallback: _onStyleLoaded,
               compassEnabled: false,
