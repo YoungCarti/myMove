@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Megaphone, BellRing, AlertCircle, CheckCircle2, Users, Car } from 'lucide-react';
+import { Send, Megaphone, BellRing, AlertCircle, CheckCircle2, Car } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 

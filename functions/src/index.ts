@@ -46,13 +46,13 @@ export const initiateCall = onCall(
       );
     }
 
-    const appID = process.env.AGORA_APP_ID || "1c3bf1b8e52c4c96b9c8017350b55c6c";
+    const appID = process.env.AGORA_APP_ID || "";
     const appCertificate = process.env.AGORA_APP_CERTIFICATE || "";
 
-    if (!appCertificate) {
+    if (!appID || !appCertificate) {
       throw new HttpsError(
         "failed-precondition",
-        "Agora App Certificate is not configured on the server."
+        "Agora App ID or App Certificate is not configured on the server."
       );
     }
 
@@ -1318,7 +1318,13 @@ export const stripeWebhook = onRequest(
   { cors: true },
   async (request, response) => {
     const sig = request.headers["stripe-signature"];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_test_secret";
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+
+    if (!endpointSecret) {
+      console.error("Stripe webhook secret is not configured on the server.");
+      response.status(500).send("Webhook secret not configured.");
+      return;
+    }
 
     if (!sig) {
       response.status(400).send("No stripe-signature found");

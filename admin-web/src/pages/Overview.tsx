@@ -1,21 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { DollarSign, Users, Car, TrendingUp, Activity, CreditCard, Calendar } from 'lucide-react';
-
-interface Stats {
-  totalRevenue: number;
-  activeBookings: number;
-  totalUsers: number;
-  totalSpots: number;
-}
 
 export const Overview: React.FC = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [totalSpots, setTotalSpots] = useState(0);
   const [directUserCount, setDirectUserCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [time, setTime] = useState(new Date());
+  const [, setTime] = useState(new Date());
 
   useEffect(() => {
     // Listen to bookings

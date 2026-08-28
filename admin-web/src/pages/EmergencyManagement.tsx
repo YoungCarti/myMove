@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, query, where, onSnapshot, doc, setDoc, addDoc, serverTimestamp, orderBy, updateDoc, deleteField } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, addDoc, serverTimestamp, orderBy, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,9 +12,8 @@ declare global {
   }
 }
 
-// Ensure you replace this with your actual Agora App ID
-const AGORA_APP_ID = '1c3bf1b8e52c4c96b9c8017350b55c6c';
-const AGORA_TEMP_TOKEN = '007eJxTYOANWZJR9Wrt9TtbH/t5tjQwqGh/fHHSUO+qQtaP8BvPWVkVGAyTjZPSDJMsUk2Nkk2SLc2SLJMtDAzNjU0NkkxNk82Sr1fbZTUEMjIUc3qwMDJAIIjPw1CSWlwSn5yRmJeXmsPAAACGPCKX';
+// Agora App ID loaded from environment variable
+const AGORA_APP_ID = import.meta.env.VITE_AGORA_APP_ID || '';
 
 
 interface Emergency {
@@ -51,7 +50,7 @@ export const EmergencyManagement: React.FC = () => {
 
   const clientRef = useRef<any>(null);
   const localAudioTrackRef = useRef<any>(null);
-  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const callTimerRef = useRef<any>(null);
 
   useEffect(() => {
     // Listen for active emergencies
@@ -89,7 +88,6 @@ export const EmergencyManagement: React.FC = () => {
     let unsubscribeMessages: () => void;
 
     if (selectedEmergency) {
-      const currentUserId = user?.uid ?? 'unknown';
       const participants = [selectedEmergency.userId, 'security_management'].sort();
       const chatId = participants.join('_');
 
@@ -103,6 +101,8 @@ export const EmergencyManagement: React.FC = () => {
         });
         setMessages(msgs);
         scrollToBottom();
+      }, (error) => {
+        console.error("Error fetching messages:", error);
       });
     }
 
@@ -112,61 +112,52 @@ export const EmergencyManagement: React.FC = () => {
   }, [selectedEmergency, user]);
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedEmergency) return;
-
-    const text = newMessage.trim();
-    setNewMessage('');
+    if (!newMessage.trim() || !selectedEmergency || !user) return;
 
     try {
       const participants = [selectedEmergency.userId, 'security_management'].sort();
       const chatId = participants.join('_');
-      const chatRef = doc(db, 'chats', chatId);
-      const messagesRef = collection(chatRef, 'messages');
 
-      const now = serverTimestamp();
-
-      // Ensure chat doc exists and update last message
-      await setDoc(chatRef, {
-        participants,
-        type: 'emergency',
-        status: 'active',
-        lastMessage: text,
-        lastMessageAt: now,
-        updatedAt: now,
-        deletedFor: {
-          'security_management': deleteField()
-        }
-      }, { merge: true });
-
-      // Add message
+      const messagesRef = collection(db, 'chats', chatId, 'messages');
       await addDoc(messagesRef, {
         senderId: 'security_management',
         receiverId: selectedEmergency.userId,
-        messageText: text,
-        createdAt: now,
-        isRead: false
+        messageText: newMessage.trim(),
+        createdAt: serverTimestamp(),
+        isRead: false,
       });
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      alert("Error sending message: " + error.message);
+
+      // Update chat meta
+      const chatDocRef = doc(db, 'chats', chatId);
+      await setDoc(chatDocRef, {
+        participants,
+        lastMessage: newMessage.trim(),
+        lastMessageTime: serverTimestamp(),
+        unreadCount_user: 1, // trigger notification for mobile user
+      }, { merge: true });
+
+      setNewMessage('');
+    } catch (err) {
+      console.error("Error sending message:", err);
     }
   };
 
-  const markResolved = async (emergencyId: string) => {
+  const markResolved = async (id: string) => {
     try {
-      await updateDoc(doc(db, 'emergencies', emergencyId), {
+      if (isInCall) {
+        endCall();
+      }
+      const emergencyRef = doc(db, 'emergencies', id);
+      await updateDoc(emergencyRef, {
         status: 'resolved',
         resolvedAt: serverTimestamp(),
-        resolvedBy: user?.uid
+        resolvedBy: user?.email || 'security_management'
       });
-      setSelectedEmergency(null);
     } catch (err) {
       console.error("Error resolving emergency", err);
     }
@@ -176,7 +167,20 @@ export const EmergencyManagement: React.FC = () => {
     if (!selectedEmergency) return;
 
     try {
-      // 1. Initialize Agora Client
+      const channelName = selectedEmergency.id;
+
+      // 1. Trigger Cloud Function to generate dynamic token and ring mobile user
+      const initiateCallFunction = httpsCallable(functions, 'initiateCall');
+      const callResult = await initiateCallFunction({
+        targetUserId: selectedEmergency.userId,
+        channelName: channelName,
+        callerName: 'Security Management'
+      });
+
+      const callData = callResult.data as { success: boolean; token?: string };
+      const token = callData?.token || null;
+
+      // 2. Initialize Agora Client
       const client = window.AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
       clientRef.current = client;
 
@@ -194,25 +198,13 @@ export const EmergencyManagement: React.FC = () => {
         console.log("User unpublished", user.uid);
       });
 
-      // 2. Join the channel
-      // We will use the emergency ID as the channel name.
-      const channelName = selectedEmergency.id;
+      // 3. Join the channel using dynamically generated token from backend
+      await client.join(AGORA_APP_ID, channelName, token, null);
 
-      // In production, generate token on backend. Using temp token or null for testing if app cert is disabled.
-      await client.join(AGORA_APP_ID, channelName, AGORA_TEMP_TOKEN, null);
-
-      // 3. Create and publish local audio track
+      // 4. Create and publish local audio track
       const localAudioTrack = await window.AgoraRTC.createMicrophoneAudioTrack();
       localAudioTrackRef.current = localAudioTrack;
       await client.publish([localAudioTrack]);
-
-      // 4. Trigger Cloud Function to ring the mobile user
-      const initiateCallFunction = httpsCallable(functions, 'initiateCall');
-      await initiateCallFunction({
-        targetUserId: selectedEmergency.userId,
-        channelName: channelName,
-        callerName: 'Security Management'
-      });
 
       // 5. Update UI State
       setIsInCall(true);

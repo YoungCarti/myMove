@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Search, Star, MessageSquare, MapPin, Calendar, Clock, XCircle } from 'lucide-react';
+import { Search, Star, MessageSquare, MapPin, Clock, XCircle } from 'lucide-react';
 
 interface Feedback {
   id: string;
