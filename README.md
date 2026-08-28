@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🚗 myMove
-### Smart IoT Parking Reservation & Vehicle Obstruction Management System
+### IoT Enabled Smart Parking Reservation and Privacy Vehicle Communication System
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-BaaS-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com)
@@ -279,12 +279,16 @@ npm run dev
 
 ## 🔐 Security & Environment Setup
 
+> [!NOTE]
+> ### 🛡️ Security Disclaimer & Secret Invalidation Notice
+> To preserve the complete commit and branch development history of this university/portfolio project, historical commits may reference development test keys. **All API keys, certificates, webhooks, and tokens found in past commits across all branches (including Stripe, Agora, MapTiler, and Firebase) have been completely revoked, invalidated, and rotated on their respective provider dashboards.** The active production codebase on `main` strictly loads configuration via runtime environment variables and protected local stores (`.gitignore`).
+
 When configuring or deploying **myMove**, ensure that sensitive credentials are kept secure:
 
 * **Stripe Keys:** Use restricted API keys in production and verify webhook signatures via `STRIPE_WEBHOOK_SECRET`.
 * **Agora Credentials:** Keep the Agora `appCertificate` strictly on the server (Cloud Functions) and issue ephemeral RTC tokens with short expiration times.
-* **Firestore & Storage Rules:** Apply declarative rules ([firestore.rules](file:///home/reshtva/Documents/Personal%20Projects/mymove/firestore.rules)) to enforce user authentication and document ownership across all collections.
-* **Git Hygiene:** Never commit `secrets.h`, `.env`, `serviceAccountKey.json`, or production `google-services.json` files.
+* **Firestore & Storage Rules:** Apply declarative rules ([firestore.rules](firestore.rules)) to enforce user authentication and document ownership across all collections.
+* **Git Hygiene:** Never commit `secrets.h`, `.env`, `serviceAccountKey.json`, or production `google-services.json` files. Standard `.example` configuration files are provided across all submodules.
 
 ---
 
