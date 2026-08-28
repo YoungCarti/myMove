@@ -21,23 +21,29 @@
 
 ## 📌 Table of Contents
 
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [Project Components](#-project-components)
-- [Technology Stack](#-technology-stack)
-- [Repository Structure](#-repository-structure)
-- [Getting Started](#-getting-started)
+- [Overview](#overview)
+- [Key Features](#key-features)
+  - [1. Mobile Driver Application (Flutter)](#1-mobile-driver-application-flutter)
+  - [2. App-less Guest Scanner Portal (scanner-web)](#2-app-less-guest-scanner-portal-scanner-web)
+  - [3. Facility Management Admin Dashboard (admin-web)](#3-facility-management-admin-dashboard-admin-web)
+  - [4. IoT Smart Sensor Node (esp32_smart_parking)](#4-iot-smart-sensor-node-esp32_smart_parking)
+  - [5. Serverless Backend (functions)](#5-serverless-backend-functions)
+- [System Architecture](#system-architecture)
+- [Technology Stack](#technology-stack)
+- [Repository Structure](#repository-structure)
+- [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
-  - [1. Mobile Application (Flutter)](#1-mobile-application-flutter)
-  - [2. IoT Hardware (ESP32)](#2-iot-hardware-esp32)
-  - [3. Backend & Cloud Functions](#3-backend--cloud-functions)
-  - [4. Admin Web & Scanner Web](#4-admin-web--scanner-web)
-- [Security & Environment Setup](#-security--environment-setup)
-- [Authors & Acknowledgments](#-authors--acknowledgments)
+  - [1. Backend & Cloud Functions (functions)](#1-backend--cloud-functions-functions)
+  - [2. Admin Web Dashboard (admin-web)](#2-admin-web-dashboard-admin-web)
+  - [3. Guest Scanner Web Portal (scanner-web)](#3-guest-scanner-web-portal-scanner-web)
+  - [4. Mobile Application (Flutter)](#4-mobile-application-flutter)
+  - [5. IoT Hardware (ESP32)](#5-iot-hardware-esp32)
+- [Security & Environment Setup](#security--environment-setup)
+- [Authors & Acknowledgments](#authors--acknowledgments)
 
 ---
 
+<a id="overview"></a>
 ## 📖 Overview
 
 Urban parking congestion and unauthorized double-parking are major pain points in metropolitan areas. **myMove** delivers a unified smart parking solution that bridges the physical and digital worlds:
@@ -48,8 +54,10 @@ Urban parking congestion and unauthorized double-parking are major pain points i
 
 ---
 
+<a id="key-features"></a>
 ## ✨ Key Features
 
+<a id="1-mobile-driver-application-flutter"></a>
 ### 📱 1. Mobile Driver Application (Flutter)
 - **Interactive Map & Navigation:** Browse nearby parking facilities using MapLibre vector maps with real-time location tracking and distance calculation.
 - **Live IoT Spot Grid:** View real-time spot availability (`Available`, `Occupied`, `Reserved`) synchronized directly with physical ESP32 sensors.
@@ -60,22 +68,26 @@ Urban parking congestion and unauthorized double-parking are major pain points i
 - **Emergency SOS Mode:** One-tap emergency dispatch alert sent directly to building management with location data.
 - **Two-Factor Authentication (2FA):** Industry-standard TOTP authenticator integration (Google Authenticator / Duo) and email OTP fallback.
 
+<a id="2-app-less-guest-scanner-portal-scanner-web"></a>
 ### 🌐 2. App-less Guest Scanner Portal (`scanner-web`)
 - **Zero App Installation Needed:** Any blocked driver can scan a vehicle's windshield QR code with a standard smartphone camera.
 - **Photo Proof & Geolocation Capture:** Uploads photo proof of obstruction and logs GPS coordinates to prevent false alerts.
 - **Direct Notification Dispatch:** Automatically triggers high-priority Firebase push notifications to the car owner.
 - **Ephemeral Web Chat:** Enables real-time web-to-app communication between the guest and the vehicle owner.
 
+<a id="3-facility-management-admin-dashboard-admin-web"></a>
 ### 📊 3. Facility Management Admin Dashboard (`admin-web`)
 - **Live Spot Management:** Visual grid of parking bays with manual override capabilities and status toggling.
 - **Revenue & Analytics:** Real-time financial summaries, booking volume charts, and peak utilization trends.
 - **Emergency Dispatch Center:** Incoming SOS alerts feed with live audio dispatch integration and resolution tracking.
 - **Global Broadcast Push Alerts:** Broadcast announcements and maintenance alerts to all registered app users.
 
+<a id="4-iot-smart-sensor-node-esp32_smart_parking"></a>
 ### ⚡ 4. IoT Smart Sensor Node (`esp32_smart_parking`)
 - **Edge Distance Detection:** Multi-sensor HC-SR04 ultrasonic array monitoring physical parking bays.
 - **Direct Firebase Synchronization:** Delta-triggered updates sent to Firebase Realtime Database (RTDB) to minimize network overhead and latency.
 
+<a id="5-serverless-backend-functions"></a>
 ### ☁️ 5. Serverless Backend (`functions`)
 - **Stripe Webhooks:** Atomic Firestore transaction processing on payment confirmation (`payment_intent.succeeded`).
 - **Dynamic VoIP Token Generation:** Server-side generation of privileged RTC connection tokens for secure calling.
@@ -83,6 +95,7 @@ Urban parking congestion and unauthorized double-parking are major pain points i
 
 ---
 
+<a id="system-architecture"></a>
 ## 🏗️ System Architecture
 
 ```mermaid
@@ -133,6 +146,7 @@ graph TD
 
 ---
 
+<a id="technology-stack"></a>
 ## 🧰 Technology Stack
 
 | Domain | Technology | Purpose |
@@ -150,6 +164,7 @@ graph TD
 
 ---
 
+<a id="repository-structure"></a>
 ## 📂 Repository Structure
 
 ```text
@@ -194,8 +209,10 @@ mymove/
 
 ---
 
+<a id="getting-started"></a>
 ## 🚀 Getting Started
 
+<a id="prerequisites"></a>
 ### Prerequisites
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (`>=3.0.0`)
 - [Node.js](https://nodejs.org) (`>=18.x`) & `npm`
@@ -204,6 +221,7 @@ mymove/
 
 ---
 
+<a id="1-backend--cloud-functions-functions"></a>
 ### 1. Backend & Cloud Functions (`functions`)
 
 1. Navigate to the functions directory and install dependencies:
@@ -229,6 +247,7 @@ mymove/
 
 ---
 
+<a id="2-admin-web-dashboard-admin-web"></a>
 ### 2. Admin Web Dashboard (`admin-web`)
 
 1. Navigate to the `admin-web` directory and install dependencies:
@@ -258,6 +277,7 @@ mymove/
 
 ---
 
+<a id="3-guest-scanner-web-portal-scanner-web"></a>
 ### 3. Guest Scanner Web Portal (`scanner-web`)
 
 1. Navigate to the `scanner-web` directory and install dependencies:
@@ -286,6 +306,7 @@ mymove/
 
 ---
 
+<a id="4-mobile-application-flutter"></a>
 ### 4. Mobile Application (Flutter)
 
 1. Navigate to the project root and install Flutter dependencies:
@@ -305,6 +326,7 @@ mymove/
 
 ---
 
+<a id="5-iot-hardware-esp32"></a>
 ### 5. IoT Hardware (ESP32)
 
 1. Open `esp32_smart_parking/esp32_smart_parking.ino` in the Arduino IDE.
@@ -321,6 +343,7 @@ mymove/
 
 ---
 
+<a id="security--environment-setup"></a>
 ## 🔐 Security & Environment Setup
 > ### 🛡️ Security Disclaimer & Secret Invalidation Notice
 > To keep the full commit and branch history of this university and portfolio project, some old commits may contain test keys used during development. All API keys, certificates, webhooks, and tokens from previous commits, including Stripe, Agora, MapTiler, and Firebase, have been revoked and replaced. The current code on main uses environment variables and local files protected by `.gitignore` to store configuration and sensitive information.
@@ -334,6 +357,7 @@ When configuring or deploying **myMove**, ensure that sensitive credentials are 
 
 ---
 
+<a id="authors--acknowledgments"></a>
 ## 👨‍💻 Authors & Acknowledgments
 
 * **Saabiresh** ([@YoungCarti](https://github.com/YoungCarti)) - *Developer*
