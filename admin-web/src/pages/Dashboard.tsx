@@ -6,7 +6,6 @@ import {
   LayoutDashboard, 
   Car, 
   CalendarDays, 
-  Settings, 
   LogOut, 
   Menu,
   X,

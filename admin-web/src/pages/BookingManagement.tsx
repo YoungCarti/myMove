@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Search, Calendar, MapPin, Car, DollarSign, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, Calendar, MapPin, Clock, XCircle } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -24,7 +24,7 @@ export const BookingManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'completed' | 'canceled'>('all');
-  const [time, setTime] = useState(new Date());
+  const [, setTime] = useState(new Date());
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'bookings'), (snapshot) => {

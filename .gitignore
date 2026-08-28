@@ -93,3 +93,12 @@ scratch/
 *_text.txt
 extracted_pages*.txt
 documentation/*Source-Code-Link*.pdf
+
+# Private student records, thesis reports, logbooks, and submission receipts
+*B02240005*
+*Thesis*
+*thesis*
+*Logbook*
+*logbook*
+resources/myMove_Report_1.*
+resources/ThesisReport.*
