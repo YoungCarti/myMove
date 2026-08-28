@@ -46,8 +46,15 @@ export const initiateCall = onCall(
       );
     }
 
-    const appID = "1c3bf1b8e52c4c96b9c8017350b55c6c";
-    const appCertificate = "293ad82990e14b17a06ccf39cf0c991c";
+    const appID = process.env.AGORA_APP_ID || "1c3bf1b8e52c4c96b9c8017350b55c6c";
+    const appCertificate = process.env.AGORA_APP_CERTIFICATE || "";
+
+    if (!appCertificate) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Agora App Certificate is not configured on the server."
+      );
+    }
 
     // Set token expiration time (e.g., 1 hour)
     const expirationTimeInSeconds = 3600;
@@ -1088,11 +1095,10 @@ export const broadcastNotification = onCall(
 
 import Stripe from "stripe";
 
-// Initialize Stripe with a test key (replace with your actual test secret
-// key in production or use Secret Manager)
+// Initialize Stripe from environment variable
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
 const stripe = new Stripe(
-  "sk_test_51QZYHFKiRHuR0U9E2rwn9qW1t7X98LseFtIY8csTCSoqDN" +
-  "MTGFVGTx3GgxdKkdClBELYKc3GqmDf9s6kLCUZyNIp00zW6LvSEv",
+  stripeSecretKey,
   {
     apiVersion: "2023-10-16",
   }

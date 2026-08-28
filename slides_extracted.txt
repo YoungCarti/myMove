@@ -1,49 +1,0 @@
-                                                                                                     FINAL YEAR PROJECT II
-
-
-
-
-MYMOVE
-     Park Smarter, Move Freely, Stay Private
-
-
-Presented by Saabiresh Letchumanan
-Student ID: B02240005
-Supervisor: Muhammad Syahmie Shabarudin
-University Malaysia of Computer Science &
-Engineering (UNIMY)
-                                               1. Search & Reserve ➔ 2. Real-Time IoT   ➔ 3. Stripe Checkout   ➔ 4. Privacy QR Chat
-The Parking Bottleneck
-The Parking Bottleneck
-The Broken Parking Cycle
-The Broken Parking Cycle
-The Roadmap
-The Roadmap
-The Ecosystem
-The Ecosystem
-The Missing Pieces
-The Missing Pieces
-What the Data Says
-What the Data Says
-From Plan to Product
-From Plan to Product
-Tap, Book, Park
-Tap, Book, Park
-Managing the Floor, Answering SOS
-Managing the Floor, Answering SOS
-Privacy on the Windshield
-Privacy on the Windshield
-Putting myMove to the Test
-Putting myMove to the Test
-Wrapping Up & Leveling Up
-Wrapping Up & Leveling Up
-Q&A TIME
-
-
-
-
-Thank you.
-   MYMOVE: IOT ENABLED SMART PARKING
-    RESERVATION AND PRIVACY VEHICLE
-         COMMUNICATION SYSTEM
-

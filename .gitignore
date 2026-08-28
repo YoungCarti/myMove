@@ -43,9 +43,19 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+/android/app/build/
+*.orig
+*.patch
 
-# Secrets / API Keys
+# Secrets / API Keys / Environment Variables
 /lib/services/email_keys.dart
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+
 
 # Dart Analysis cache and server files
 .dart-tool/
@@ -75,7 +85,8 @@ esp32_smart_parking/secrets.h
 # Firebase root cache
 .firebase/
 
-# Large media files
+# Large media files and private meeting logs
+meeting/
 scratch/
 *.wav
 3minute-video/
