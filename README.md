@@ -204,28 +204,108 @@ mymove/
 
 ---
 
-### 1. Mobile Application (Flutter)
+### 1. Backend & Cloud Functions (`functions`)
 
-1. Navigate to the project root:
+1. Navigate to the functions directory and install dependencies:
    ```bash
-   cd mymove
+   cd functions
+   npm install
    ```
-2. Install Dart dependencies:
+2. Create your local environment file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Populate `functions/.env` with your active keys:
+   ```env
+   STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+   STRIPE_WEBHOOK_SECRET=whsec_your_webhook_signing_secret
+   AGORA_APP_ID=your_agora_app_id
+   AGORA_APP_CERTIFICATE=your_agora_primary_certificate
+   ```
+4. Deploy Cloud Functions and Security Rules:
+   ```bash
+   firebase deploy --only functions,firestore:rules,storage:rules
+   ```
+
+---
+
+### 2. Admin Web Dashboard (`admin-web`)
+
+1. Navigate to the `admin-web` directory and install dependencies:
+   ```bash
+   cd admin-web
+   npm install
+   ```
+2. Create your local environment file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Configure `admin-web/.env` with your Agora and Firebase web client credentials:
+   ```env
+   VITE_AGORA_APP_ID=your_agora_app_id
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_web_app_id
+   VITE_FIREBASE_DATABASE_URL=https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app
+   ```
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+### 3. Guest Scanner Web Portal (`scanner-web`)
+
+1. Navigate to the `scanner-web` directory and install dependencies:
+   ```bash
+   cd scanner-web
+   npm install
+   ```
+2. Create your local environment file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Configure `scanner-web/.env` with your Firebase web client credentials:
+   ```env
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_web_app_id
+   VITE_FIREBASE_DATABASE_URL=https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app
+   ```
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+### 4. Mobile Application (Flutter)
+
+1. Navigate to the project root and install Flutter dependencies:
    ```bash
    flutter pub get
    ```
-3. Configure Firebase for Flutter:
-   * Place `google-services.json` in `android/app/`
-   * Place `GoogleService-Info.plist` in `ios/Runner/`
-   * Copy `lib/firebase_options.example.dart` to `lib/firebase_options.dart` and populate your project keys.
-4. Run the app:
+2. Configure local templates:
+   * **MapTiler Map Config:** Copy `lib/config/map_config.example.dart` to `lib/config/map_config.dart` and insert your MapTiler API key.
+   * **Agora VoIP Config:** Copy `lib/config/agora_config.example.dart` to `lib/config/agora_config.dart` and insert your Agora App ID.
+   * **EmailJS Keys:** Copy `lib/services/email_keys.dart.example` to `lib/services/email_keys.dart` and insert your EmailJS service credentials.
+   * **Firebase Options:** Copy `lib/firebase_options.example.dart` to `lib/firebase_options.dart` (or run `flutterfire configure`).
+   * Place `google-services.json` in `android/app/` and `GoogleService-Info.plist` in `ios/Runner/`.
+3. Launch the app on a physical device or emulator:
    ```bash
    flutter run
    ```
 
 ---
 
-### 2. IoT Hardware (ESP32)
+### 5. IoT Hardware (ESP32)
 
 1. Open `esp32_smart_parking/esp32_smart_parking.ino` in the Arduino IDE.
 2. Install the **Firebase ESP Client** library (`Firebase_ESP_Client` by Mobizt).
@@ -234,54 +314,16 @@ mymove/
    #define WIFI_SSID "YOUR_WIFI_SSID"
    #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
    #define DATABASE_SECRET "YOUR_FIREBASE_DATABASE_SECRET"
-   #define DATABASE_URL "https://YOUR_PROJECT-default-rtdb.firebaseio.com"
+   #define DATABASE_URL "https://YOUR_PROJECT-default-rtdb.asia-southeast1.firebasedatabase.app"
    ```
-4. Wire your HC-SR04 sensors according to [PINOUT.md](file:///home/reshtva/Documents/Personal%20Projects/mymove/esp32_smart_parking/PINOUT.md).
+4. Wire your HC-SR04 ultrasonic sensors according to [PINOUT.md](esp32_smart_parking/PINOUT.md).
 5. Select **ESP32 Dev Module** and flash the firmware.
 
 ---
 
-### 3. Backend & Cloud Functions
-
-1. Navigate to the functions directory:
-   ```bash
-   cd functions
-   npm install
-   ```
-2. Set up environment configuration:
-   ```bash
-   firebase functions:config:set stripe.secret="sk_test_..." stripe.webhook_secret="whsec_..." agora.app_id="YOUR_APP_ID" agora.app_cert="YOUR_APP_CERT"
-   ```
-3. Deploy functions and rules to Firebase:
-   ```bash
-   firebase deploy --only functions,firestore:rules,storage:rules
-   ```
-
----
-
-### 4. Admin Web & Scanner Web
-
-#### Admin Dashboard (`admin-web`):
-```bash
-cd admin-web
-npm install
-npm run dev
-```
-
-#### Guest Scanner Web Portal (`scanner-web`):
-```bash
-cd scanner-web
-npm install
-npm run dev
-```
-
----
-
 ## 🔐 Security & Environment Setup
-
-> [!NOTE]
 > ### 🛡️ Security Disclaimer & Secret Invalidation Notice
-> To preserve the complete commit and branch development history of this university/portfolio project, historical commits may reference development test keys. **All API keys, certificates, webhooks, and tokens found in past commits across all branches (including Stripe, Agora, MapTiler, and Firebase) have been completely revoked, invalidated, and rotated on their respective provider dashboards.** The active production codebase on `main` strictly loads configuration via runtime environment variables and protected local stores (`.gitignore`).
+> To keep the full commit and branch history of this university and portfolio project, some old commits may contain test keys used during development. All API keys, certificates, webhooks, and tokens from previous commits, including Stripe, Agora, MapTiler, and Firebase, have been revoked and replaced. The current code on main uses environment variables and local files protected by `.gitignore` to store configuration and sensitive information.
 
 When configuring or deploying **myMove**, ensure that sensitive credentials are kept secure:
 
@@ -294,5 +336,5 @@ When configuring or deploying **myMove**, ensure that sensitive credentials are 
 
 ## 👨‍💻 Authors & Acknowledgments
 
-* **Saabiresh** ([@YoungCarti](https://github.com/YoungCarti)) - *Lead Developer & System Architect*
+* **Saabiresh** ([@YoungCarti](https://github.com/YoungCarti)) - *Developer*
 * Developed as part of the Final Year Project (FYP) under the School of Computing & Digital Technology at **University Malaysia of Computer Science & Engineering (UNIMY)**.
